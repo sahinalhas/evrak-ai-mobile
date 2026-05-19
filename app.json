@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "EvrakAI",
+    "slug": "evrak-ai-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f8f9fe"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.evrakai.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#f8f9fe"
+      },
+      "package": "com.evrakai.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
