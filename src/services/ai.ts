@@ -1548,9 +1548,39 @@ Belgenin tarafıma verilmesini saygılarımla arz ederim.
 ⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.*`;
 }
 
+// ─── User-info pre-filler ─────────────────────────────────────────────────────
+
+interface UserInfoLike { ad?: string; soyad?: string; tckn?: string; adres?: string; telefon?: string; eposta?: string }
+
+function applyUserInfo(fields: Fields, missing: string[], userInfo?: UserInfoLike): { fields: Fields; missing: string[] } {
+  if (!userInfo) return { fields, missing };
+  const fullName = [userInfo.ad, userInfo.soyad].filter(Boolean).join(" ").trim();
+  const nameFields = ["calisanAdi", "ogrenciAdi", "basvuranAdi", "basvurucu", "tarafAdi", "referansVeren", "referansAlan"];
+  for (const f of nameFields) {
+    if (!fields[f] && fullName) {
+      fields[f] = fullName;
+    }
+  }
+  if (!fields["tcKimlik"] && userInfo.tckn) fields["tcKimlik"] = userInfo.tckn;
+  if (!fields["tckn"] && userInfo.tckn) fields["tckn"] = userInfo.tckn;
+  if (!fields["adres"] && userInfo.adres) fields["adres"] = userInfo.adres;
+  if (!fields["eposta"] && userInfo.eposta) fields["eposta"] = userInfo.eposta;
+  if (!fields["telefon"] && userInfo.telefon) fields["telefon"] = userInfo.telefon;
+  const newMissing = missing.filter(m => {
+    const lower = m.toLowerCase();
+    if ((lower.includes("adınız") || lower.includes("ad soyad") || lower.includes("isim")) && fullName) return false;
+    if ((lower.includes("tc kimlik") || lower.includes("tckn")) && userInfo.tckn) return false;
+    if (lower.includes("adres") && userInfo.adres) return false;
+    if (lower.includes("e-posta") && userInfo.eposta) return false;
+    if (lower.includes("telefon") && userInfo.telefon) return false;
+    return true;
+  });
+  return { fields, missing: newMissing };
+}
+
 // ─── Smart Mock Engine ────────────────────────────────────────────────────────
 
-function generateMockResponse(messages: ChatMsg[]): AiResponse {
+function generateMockResponse(messages: ChatMsg[], userInfo?: UserInfoLike): AiResponse {
   const history = fullHistory(messages);
   const uHistory = userMsgs(messages);
   const last = lastUser(messages);

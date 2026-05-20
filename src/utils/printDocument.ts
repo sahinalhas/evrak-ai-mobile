@@ -1,38 +1,24 @@
-/**
- * Web print / PDF export utility.
- * Converts markdown content to a clean A4-ready HTML page and triggers the
- * browser's native print dialog (which includes "Save as PDF").
- */
+import { Platform } from "react-native";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 function mdToHtml(md: string): string {
   return md
-    // Headings
     .replace(/^### (.+)$/gm, "<h3>$1</h3>")
     .replace(/^## (.+)$/gm, "<h2>$1</h2>")
     .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-    // Bold / italic
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    // Horizontal rule
     .replace(/^---$/gm, "<hr>")
-    // Blank lines → paragraph breaks
     .replace(/\n{2,}/g, "</p><p>")
-    // Single newlines inside paragraphs → <br>
     .replace(/\n/g, "<br>")
-    // Wrap everything in a paragraph
     .replace(/^/, "<p>")
     .replace(/$/, "</p>")
-    // Clean up empty paragraphs that sit right after block-level elements
     .replace(/<p>(<h[123]>|<hr>)/g, "$1")
     .replace(/(<\/h[123]>|<hr>)<\/p>/g, "$1");
 }
 
-export function printDocument(content: string, title = "EvrakAI Belgesi"): void {
-  if (typeof window === "undefined") return;
-
-  const html = mdToHtml(content);
-
-  const printHtml = `<!DOCTYPE html>
+const buildHtml = (content: string, title: string) => `<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
@@ -84,7 +70,7 @@ export function printDocument(content: string, title = "EvrakAI Belgesi"): void 
   </style>
 </head>
 <body>
-  ${html}
+  ${mdToHtml(content)}
   <div class="footer">Bu belge EvrakAI tarafından oluşturulmuş taslaktır. Kuruma teslim etmeden önce kontrol ediniz.</div>
   <script>
     window.onload = function() {
@@ -94,11 +80,29 @@ export function printDocument(content: string, title = "EvrakAI Belgesi"): void 
 </body>
 </html>`;
 
-  const win = window.open("", "_blank", "width=800,height=900");
-  if (!win) {
-    alert("Yazdırma penceresi açılamadı. Lütfen tarayıcınızın açılır pencere engelleyicisini devre dışı bırakın.");
-    return;
+export async function printDocument(content: string, title = "EvrakAI Belgesi"): Promise<void> {
+  const html = buildHtml(content, title);
+
+  if (Platform.OS === "web") {
+    if (typeof window === "undefined") return;
+    const win = window.open("", "_blank", "width=800,height=900");
+    if (!win) {
+      alert("Yazdırma penceresi açılamadı. Lütfen tarayıcınızın açılır pencere engelleyicisini devre dışı bırakın.");
+      return;
+    }
+    win.document.write(html);
+    win.document.close();
+  } else {
+    const { uri } = await Print.printToFileAsync({ html, base64: false });
+    const canShare = await Sharing.isAvailableAsync();
+    if (canShare) {
+      await Sharing.shareAsync(uri, {
+        mimeType: "application/pdf",
+        dialogTitle: title,
+        UTI: "com.adobe.pdf",
+      });
+    } else {
+      await Print.printAsync({ html });
+    }
   }
-  win.document.write(printHtml);
-  win.document.close();
 }

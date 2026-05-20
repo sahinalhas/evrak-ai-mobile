@@ -1,4 +1,6 @@
 import { Platform } from "react-native";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 function markdownToHtml(md: string): string {
   return md
@@ -63,9 +65,7 @@ function applyInline(text: string): string {
     .replace(/_(.+?)_/g, "<em>$1</em>");
 }
 
-export function exportToPDF(content: string, title: string): void {
-  if (Platform.OS !== "web") return;
-
+export async function exportToPDF(content: string, title: string): Promise<void> {
   const htmlBody = markdownToHtml(content);
 
   const fullHtml = `<!DOCTYPE html>
@@ -184,13 +184,27 @@ export function exportToPDF(content: string, title: string): void {
 </body>
 </html>`;
 
-  const win = window.open("", "_blank");
-  if (!win) {
-    alert("Lütfen tarayıcınızda açılır pencere iznine izin verin.");
-    return;
+  if (Platform.OS === "web") {
+    const win = window.open("", "_blank");
+    if (!win) {
+      alert("Lütfen tarayıcınızda açılır pencere iznine izin verin.");
+      return;
+    }
+    win.document.write(fullHtml);
+    win.document.close();
+  } else {
+    const { uri } = await Print.printToFileAsync({ html: fullHtml, base64: false });
+    const canShare = await Sharing.isAvailableAsync();
+    if (canShare) {
+      await Sharing.shareAsync(uri, {
+        mimeType: "application/pdf",
+        dialogTitle: title,
+        UTI: "com.adobe.pdf",
+      });
+    } else {
+      await Print.printAsync({ html: fullHtml });
+    }
   }
-  win.document.write(fullHtml);
-  win.document.close();
 }
 
 export function copyToClipboard(text: string): Promise<boolean> {
