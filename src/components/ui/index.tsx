@@ -160,7 +160,7 @@ export const DialogSheet: React.FC<SheetProps> = ({
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
 
-        <Animated.View style={[sStyles.sheet, { maxHeight, transform: [{ translateY: slide }] }]}>
+        <Animated.View style={[sStyles.sheet, { maxHeight: maxHeight as any, transform: [{ translateY: slide }] }]}>
           {/* Drag handle */}
           <View style={sStyles.handleBar}>
             <View style={sStyles.handle} />

@@ -87,7 +87,7 @@ export const DocumentsScreen: React.FC = () => {
 
   const copyDoc = async (content: string) => {
     try {
-      const { Clipboard } = await import("expo-clipboard");
+      const Clipboard = await import("expo-clipboard");
       await Clipboard.setStringAsync(content);
       Alert.alert("Kopyalandı", "Belge panoya kopyalandı.");
     } catch {}

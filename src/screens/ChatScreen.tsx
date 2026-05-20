@@ -182,7 +182,7 @@ export const ChatScreen: React.FC = () => {
 
   const copyText = async (text: string) => {
     try {
-      const { Clipboard } = await import("expo-clipboard");
+      const Clipboard = await import("expo-clipboard");
       await Clipboard.setStringAsync(text);
       Alert.alert("Kopyalandı", "Belge panoya kopyalandı.");
     } catch {}
