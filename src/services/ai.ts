@@ -837,16 +837,19 @@ function generateMockResponse(messages: ChatMsg[]): AiResponse {
 
 // ─── AI Service ───────────────────────────────────────────────────────────────
 
+import { StorageService } from "./storage";
+
 export const AIService = {
   async sendMessage(messages: ChatMsg[]): Promise<AiResponse> {
     const apiBase = typeof window !== "undefined"
       ? `${window.location.protocol}//${window.location.hostname}:3001`
       : "http://localhost:3001";
     try {
+      const userInfo = await StorageService.getUserInfo();
       const response = await fetch(`${apiBase}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages }),
+        body: JSON.stringify({ messages, userInfo }),
         signal: AbortSignal.timeout(20000),
       });
       if (!response.ok) throw new Error(`Sunucu hatası: ${response.status}`);

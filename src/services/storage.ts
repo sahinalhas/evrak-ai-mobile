@@ -11,10 +11,22 @@ export type Document = {
   content: string; // The generated document content
 };
 
+export type UserInfo = {
+  ad: string;
+  soyad: string;
+  tckn: string;
+  telefon: string;
+  adres: string;
+  eposta: string;
+};
+
+const EMPTY_USER_INFO: UserInfo = { ad: "", soyad: "", tckn: "", telefon: "", adres: "", eposta: "" };
+
 const KEYS = {
   DOCUMENTS: "evrak_ai_documents",
   CREDITS: "evrak_ai_credits",
   USER_LOGGED_IN: "evrak_ai_user_logged_in",
+  USER_INFO: "evrak_ai_user_info",
 };
 
 const MOCK_DOCUMENTS: Document[] = [
@@ -100,6 +112,24 @@ export const StorageService = {
       return true;
     } catch {
       return false;
+    }
+  },
+
+  async getUserInfo(): Promise<UserInfo> {
+    try {
+      const data = await AsyncStorage.getItem(KEYS.USER_INFO);
+      if (!data) return { ...EMPTY_USER_INFO };
+      return { ...EMPTY_USER_INFO, ...JSON.parse(data) };
+    } catch {
+      return { ...EMPTY_USER_INFO };
+    }
+  },
+
+  async saveUserInfo(info: UserInfo): Promise<void> {
+    try {
+      await AsyncStorage.setItem(KEYS.USER_INFO, JSON.stringify(info));
+    } catch (e) {
+      console.error("Error saving user info:", e);
     }
   },
 

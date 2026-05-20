@@ -37,14 +37,14 @@ app.get("/api/health", (req, res) => {
 });
 
 app.post("/api/chat", async (req, res) => {
-  const { messages } = req.body;
+  const { messages, userInfo } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     return res.status(503).json({
       docType: null,
       status: "need_type",
-      assistantMessage: "⚠️ Sunucu AI motoru henüz yapılandırılmamış (GEMINI_API_KEY eksik). Profil ekranından 'Çevrimdışı Motor' seçeneğini kullanabilirsiniz.",
+      assistantMessage: "⚠️ Sunucu AI motoru henüz yapılandırılmamış (GEMINI_API_KEY eksik).",
       document: null,
     });
   }
@@ -52,6 +52,24 @@ app.post("/api/chat", async (req, res) => {
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: "Geçersiz istek formatı." });
   }
+
+  // Build a user-info block to inject into the prompt if any fields are filled
+  let userInfoBlock = "";
+  if (userInfo && typeof userInfo === "object") {
+    const lines = [];
+    if (userInfo.ad && userInfo.soyad) lines.push(`- Ad Soyad: ${userInfo.ad} ${userInfo.soyad}`);
+    else if (userInfo.ad) lines.push(`- Ad: ${userInfo.ad}`);
+    else if (userInfo.soyad) lines.push(`- Soyad: ${userInfo.soyad}`);
+    if (userInfo.tckn) lines.push(`- T.C. Kimlik No: ${userInfo.tckn}`);
+    if (userInfo.telefon) lines.push(`- Telefon: ${userInfo.telefon}`);
+    if (userInfo.adres) lines.push(`- Adres: ${userInfo.adres}`);
+    if (userInfo.eposta) lines.push(`- E-posta: ${userInfo.eposta}`);
+    if (lines.length > 0) {
+      userInfoBlock = `\n\nKULLANICININ KAYITLI BİLGİLERİ (bu bilgileri belgede kullan, tekrar sorma):\n${lines.join("\n")}`;
+    }
+  }
+
+  const effectivePrompt = SYSTEM_PROMPT + userInfoBlock;
 
   try {
     const response = await fetch(
@@ -64,7 +82,7 @@ app.post("/api/chat", async (req, res) => {
             {
               role: "user",
               parts: [
-                { text: SYSTEM_PROMPT },
+                { text: effectivePrompt },
                 ...messages.map((m) => ({
                   text: `${m.role === "user" ? "Kullanıcı" : "Asistan"}: ${m.content}`,
                 })),

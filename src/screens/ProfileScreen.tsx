@@ -6,6 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -16,10 +19,12 @@ import {
   LogOut,
   Check,
   ShoppingCart,
+  User,
+  Pencil,
 } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";
-import { StorageService } from "../services/storage";
+import { StorageService, UserInfo } from "../services/storage";
 import { GradientButton, DialogSheet } from "../components/ui";
 
 export const ProfileScreen: React.FC = () => {
@@ -28,6 +33,10 @@ export const ProfileScreen: React.FC = () => {
   const [totalDocs, setTotalDocs] = useState(0);
   const [buyOpen, setBuyOpen] = useState(false);
   const [selectedPkg, setSelectedPkg] = useState("p3");
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [userInfo, setUserInfo] = useState<UserInfo>({ ad: "", soyad: "", tckn: "", telefon: "", adres: "", eposta: "" });
+  const [draft, setDraft] = useState<UserInfo>({ ad: "", soyad: "", tckn: "", telefon: "", adres: "", eposta: "" });
+  const [savingInfo, setSavingInfo] = useState(false);
 
   const CREDIT_PACKAGES = [
     { id: "p1", label: "1 Belge", credits: 1, price: "₺29", priceNum: 29, badge: null },
@@ -43,6 +52,21 @@ export const ProfileScreen: React.FC = () => {
     setCredits(await StorageService.getCredits());
     const docs = await StorageService.getDocuments();
     setTotalDocs(docs.length);
+    const info = await StorageService.getUserInfo();
+    setUserInfo(info);
+  };
+
+  const handleOpenInfoForm = () => {
+    setDraft({ ...userInfo });
+    setInfoOpen(true);
+  };
+
+  const handleSaveInfo = async () => {
+    setSavingInfo(true);
+    await StorageService.saveUserInfo(draft);
+    setUserInfo(draft);
+    setSavingInfo(false);
+    setInfoOpen(false);
   };
 
   const handleBuyCredits = async () => {
@@ -146,6 +170,50 @@ export const ProfileScreen: React.FC = () => {
           ))}
         </View>
 
+        {/* Bilgilerim */}
+        <View style={styles.section}>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionLabel}>Kişisel Bilgilerim</Text>
+            <TouchableOpacity onPress={handleOpenInfoForm} activeOpacity={0.7} style={styles.editBtn}>
+              <Pencil size={13} color={Colors.accent} strokeWidth={2} />
+              <Text style={styles.editBtnText}>{userInfo.ad ? "Düzenle" : "Ekle"}</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity onPress={handleOpenInfoForm} activeOpacity={0.75} style={styles.infoCard}>
+            {userInfo.ad || userInfo.soyad ? (
+              <View style={styles.infoCardFilled}>
+                <View style={styles.infoAvatar}>
+                  <Text style={styles.infoAvatarText}>
+                    {(userInfo.ad[0] ?? "") + (userInfo.soyad[0] ?? "")}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.infoName}>{[userInfo.ad, userInfo.soyad].filter(Boolean).join(" ")}</Text>
+                  <Text style={styles.infoMeta} numberOfLines={1}>
+                    {[userInfo.tckn && `TC: ${userInfo.tckn}`, userInfo.telefon].filter(Boolean).join(" · ") || "Bilgiler kaydedildi"}
+                  </Text>
+                </View>
+                <View style={styles.infoAutoFillBadge}>
+                  <Text style={styles.infoAutoFillText}>Otomatik Doldurma Aktif</Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.infoCardEmpty}>
+                <View style={styles.infoEmptyIcon}>
+                  <User size={20} color={Colors.accent} strokeWidth={1.5} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.infoEmptyTitle}>Bilgilerimi Kaydet</Text>
+                  <Text style={styles.infoEmptyDesc}>
+                    Ad, TCKN, telefon ve adresinizi ekleyin — belgelerinize otomatik dolsun
+                  </Text>
+                </View>
+                <ChevronRight size={14} color={Colors.accent} strokeWidth={1.5} />
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
         {/* Credits section */}
         <View style={styles.section}>
           <View style={styles.creditCard}>
@@ -244,6 +312,55 @@ export const ProfileScreen: React.FC = () => {
 
         <Text style={styles.footer}>EvrakAI hukuki tavsiye vermez. Avukata danışmayı ihmal etmeyin.</Text>
       </ScrollView>
+
+      {/* User Info Form Sheet */}
+      <DialogSheet
+        visible={infoOpen}
+        onClose={() => setInfoOpen(false)}
+        title="Kişisel Bilgilerim"
+        subtitle="Belgelerinize otomatik olarak eklenecek"
+        footer={
+          <GradientButton
+            onPress={handleSaveInfo}
+            title={savingInfo ? "Kaydediliyor…" : "Kaydet"}
+            size="lg"
+            style={{ flex: 1 }}
+          />
+        }
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <View style={styles.formList}>
+            {([
+              { key: "ad", label: "Ad", placeholder: "Ahmet", keyboard: "default" },
+              { key: "soyad", label: "Soyad", placeholder: "Yılmaz", keyboard: "default" },
+              { key: "tckn", label: "T.C. Kimlik No", placeholder: "12345678901", keyboard: "numeric", maxLength: 11 },
+              { key: "telefon", label: "Telefon", placeholder: "0532 000 00 00", keyboard: "phone-pad" },
+              { key: "eposta", label: "E-posta", placeholder: "ahmet@mail.com", keyboard: "email-address" },
+              { key: "adres", label: "Adres", placeholder: "Mahalle, Cadde, No, İlçe/İl", keyboard: "default", multiline: true },
+            ] as const).map((field) => (
+              <View key={field.key} style={styles.formField}>
+                <Text style={styles.formLabel}>{field.label}</Text>
+                <TextInput
+                  value={draft[field.key]}
+                  onChangeText={(v) => setDraft((d) => ({ ...d, [field.key]: v }))}
+                  placeholder={field.placeholder}
+                  placeholderTextColor={Colors.mutedForeground}
+                  keyboardType={field.keyboard as any}
+                  maxLength={"maxLength" in field ? field.maxLength : undefined}
+                  multiline={"multiline" in field && field.multiline}
+                  style={[styles.formInput, ("multiline" in field && field.multiline) && styles.formInputMulti]}
+                  autoCapitalize={field.keyboard === "default" ? "words" : "none"}
+                />
+              </View>
+            ))}
+            <View style={styles.formNote}>
+              <Text style={styles.formNoteText}>
+                🔒 Bilgileriniz yalnızca cihazınızda saklanır, hiçbir sunucuya gönderilmez.
+              </Text>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </DialogSheet>
 
       {/* Buy Credits Sheet */}
       <DialogSheet
@@ -463,4 +580,58 @@ const styles = StyleSheet.create({
   pkgPriceSelected: { color: Colors.accent },
   pkgNote: { backgroundColor: Colors.muted, borderRadius: 10, padding: 12, marginTop: 4 },
   pkgNoteText: { fontSize: 12, color: Colors.mutedForeground, lineHeight: 17 },
+
+  // Section row with action button
+  sectionRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  editBtn: { flexDirection: "row", alignItems: "center", gap: 4, marginLeft: "auto" },
+  editBtnText: { fontSize: 13, fontWeight: "600", color: Colors.accent },
+
+  // Info card (filled state)
+  infoCard: {
+    backgroundColor: Colors.card, borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
+    overflow: "hidden", ...Shadows.xs,
+  },
+  infoCardFilled: {
+    flexDirection: "row", alignItems: "center", gap: 12, padding: 14,
+  },
+  infoAvatar: {
+    width: 42, height: 42, borderRadius: 12,
+    backgroundColor: Colors.accentLight, alignItems: "center", justifyContent: "center",
+  },
+  infoAvatarText: { fontSize: 15, fontWeight: "700", color: Colors.accent },
+  infoName: { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.3 },
+  infoMeta: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
+  infoAutoFillBadge: {
+    backgroundColor: Colors.accentLight, borderRadius: 6,
+    paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1, borderColor: Colors.accentMid,
+  },
+  infoAutoFillText: { fontSize: 10, fontWeight: "700", color: Colors.accent, letterSpacing: 0.2 },
+
+  // Info card (empty state)
+  infoCardEmpty: {
+    flexDirection: "row", alignItems: "center", gap: 12, padding: 14,
+  },
+  infoEmptyIcon: {
+    width: 42, height: 42, borderRadius: 12,
+    backgroundColor: Colors.accentLight, alignItems: "center", justifyContent: "center",
+  },
+  infoEmptyTitle: { fontSize: 14, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
+  infoEmptyDesc: { fontSize: 12, color: Colors.mutedForeground, marginTop: 3, lineHeight: 17 },
+
+  // User info form
+  formList: { gap: 14 },
+  formField: { gap: 6 },
+  formLabel: { fontSize: 13, fontWeight: "600", color: Colors.mutedForeground, letterSpacing: -0.1 },
+  formInput: {
+    backgroundColor: Colors.background, borderRadius: 10,
+    borderWidth: 1.5, borderColor: Colors.separator,
+    paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 15, color: Colors.label,
+  },
+  formInputMulti: { height: 72, textAlignVertical: "top", paddingTop: 10 },
+  formNote: {
+    backgroundColor: Colors.muted, borderRadius: 10, padding: 12, marginTop: 4,
+  },
+  formNoteText: { fontSize: 12, color: Colors.mutedForeground, lineHeight: 17 },
 });
