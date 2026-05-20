@@ -1,3 +1,5 @@
+import { getTemplateTypes } from "./templateRegistry";
+
 export type ChatMsg = { role: "user" | "assistant"; content: string };
 
 export type AiResponse = {
@@ -34,6 +36,8 @@ SADECE geçerli bir JSON nesnesi döndür. Başka hiçbir metin, açıklama, kod
   "assistantMessage": string,
   "document": string | null
 }`;
+
+const AVAILABLE_TEMPLATES = getTemplateTypes().join(", ");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
