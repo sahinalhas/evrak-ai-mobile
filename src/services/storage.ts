@@ -90,18 +90,18 @@ export const StorageService = {
     }
   },
 
-  async getApiKeys(): Promise<{ lovableKey: string; geminiKey: string; provider: "lovable" | "gemini" | "mock" }> {
+  async getApiKeys(): Promise<{ lovableKey: string; geminiKey: string; provider: "lovable" | "gemini" | "mock" | "server" }> {
     try {
       const lovableKey = (await AsyncStorage.getItem(KEYS.API_KEY_LOVABLE)) || "";
       const geminiKey = (await AsyncStorage.getItem(KEYS.API_KEY_GEMINI)) || "";
-      const provider = ((await AsyncStorage.getItem(KEYS.API_PROVIDER)) as "lovable" | "gemini" | "mock") || "mock";
+      const provider = ((await AsyncStorage.getItem(KEYS.API_PROVIDER)) as "lovable" | "gemini" | "mock" | "server") || "mock";
       return { lovableKey, geminiKey, provider };
     } catch {
       return { lovableKey: "", geminiKey: "", provider: "mock" };
     }
   },
 
-  async saveApiKeys(keys: { lovableKey?: string; geminiKey?: string; provider?: "lovable" | "gemini" | "mock" }): Promise<void> {
+  async saveApiKeys(keys: { lovableKey?: string; geminiKey?: string; provider?: "lovable" | "gemini" | "mock" | "server" }): Promise<void> {
     try {
       if (keys.lovableKey !== undefined) {
         await AsyncStorage.setItem(KEYS.API_KEY_LOVABLE, keys.lovableKey);

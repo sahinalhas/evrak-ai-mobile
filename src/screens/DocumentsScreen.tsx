@@ -18,12 +18,16 @@ import {
   Share2,
   Trash2,
   ChevronRight,
+  Download,
+  Mail,
+  Copy,
 } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";
 import { StorageService, Document } from "../services/storage";
 import { DialogSheet, GradientButton } from "../components/ui";
 import { MarkdownView } from "../components/MarkdownView";
+import { exportToPDF, copyToClipboard, shareViaWhatsApp, shareViaEmail } from "../services/pdfExport";
 
 const CATEGORIES = ["Tümü", "Hukuki", "İş Hayatı", "Eğitim", "Kişisel"] as const;
 
@@ -47,6 +51,8 @@ export const DocumentsScreen: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<(typeof CATEGORIES)[number]>("Tümü");
   const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useFocusEffect(useCallback(() => {
     StorageService.getDocuments().then(setDocuments);
@@ -62,8 +68,7 @@ export const DocumentsScreen: React.FC = () => {
     Alert.alert("Belgeyi Sil", "Bu belge kalıcı olarak silinecek.", [
       { text: "Vazgeç", style: "cancel" },
       {
-        text: "Sil",
-        style: "destructive",
+        text: "Sil", style: "destructive",
         onPress: async () => {
           const updated = documents.filter((d) => d.id !== id);
           setDocuments(updated);
@@ -74,8 +79,30 @@ export const DocumentsScreen: React.FC = () => {
     ]);
   };
 
-  const handleShare = async (doc: Document) => {
+  const handleNativeShare = async (doc: Document) => {
     try { await Share.share({ message: doc.content, title: doc.title }); } catch {}
+  };
+
+  const handlePdfExport = (doc: Document) => {
+    setSelectedDoc(null);
+    setTimeout(() => exportToPDF(doc.content, doc.title), 300);
+  };
+
+  const handleCopy = async (doc: Document) => {
+    const ok = await copyToClipboard(doc.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2200);
+    if (!ok) Alert.alert("Kopyalandı", "Belge panoya kopyalandı.");
+  };
+
+  const handleWhatsApp = (doc: Document) => {
+    setShareOpen(false);
+    shareViaWhatsApp(doc.content);
+  };
+
+  const handleEmail = (doc: Document) => {
+    setShareOpen(false);
+    shareViaEmail(doc.content, doc.title);
   };
 
   const filtered = documents.filter((d) => {
@@ -215,8 +242,16 @@ export const DocumentsScreen: React.FC = () => {
               <TouchableOpacity onPress={() => deleteDocument(selectedDoc.id)} style={styles.deleteBtn}>
                 <Trash2 size={16} color={Colors.red} strokeWidth={1.5} />
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handlePdfExport(selectedDoc)}
+                style={styles.pdfBtn}
+                activeOpacity={0.75}
+              >
+                <Download size={15} color={Colors.accent} strokeWidth={1.8} />
+                <Text style={styles.pdfBtnText}>PDF</Text>
+              </TouchableOpacity>
               <GradientButton
-                onPress={() => handleShare(selectedDoc)}
+                onPress={() => setShareOpen(true)}
                 title="Paylaş"
                 icon={<Share2 size={15} color="#fff" />}
                 style={{ flex: 1 }}
@@ -224,7 +259,59 @@ export const DocumentsScreen: React.FC = () => {
             </View>
           }
         >
-          <MarkdownView content={selectedDoc.content} maxHeight={400} />
+          <MarkdownView content={selectedDoc.content} maxHeight={380} />
+        </DialogSheet>
+      )}
+
+      {/* Share Options Sheet */}
+      {selectedDoc && (
+        <DialogSheet
+          visible={shareOpen}
+          onClose={() => setShareOpen(false)}
+          title="Belgeyi Paylaş"
+          subtitle="Paylaşım yöntemini seçin"
+        >
+          <View style={styles.shareOptions}>
+            <TouchableOpacity onPress={() => handleWhatsApp(selectedDoc)} style={styles.shareOption} activeOpacity={0.75}>
+              <View style={[styles.shareIcon, { backgroundColor: "#25D36620" }]}>
+                <Text style={{ fontSize: 22 }}>💬</Text>
+              </View>
+              <View style={styles.shareOptionText}>
+                <Text style={styles.shareOptionTitle}>WhatsApp</Text>
+                <Text style={styles.shareOptionDesc}>WhatsApp üzerinden gönder</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => handleEmail(selectedDoc)} style={styles.shareOption} activeOpacity={0.75}>
+              <View style={[styles.shareIcon, { backgroundColor: Colors.blue + "20" }]}>
+                <Mail size={22} color={Colors.blue} strokeWidth={1.5} />
+              </View>
+              <View style={styles.shareOptionText}>
+                <Text style={styles.shareOptionTitle}>E-posta</Text>
+                <Text style={styles.shareOptionDesc}>E-posta uygulamasını aç</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => handleCopy(selectedDoc)} style={styles.shareOption} activeOpacity={0.75}>
+              <View style={[styles.shareIcon, { backgroundColor: Colors.accentLight }]}>
+                <Copy size={22} color={Colors.accent} strokeWidth={1.5} />
+              </View>
+              <View style={styles.shareOptionText}>
+                <Text style={styles.shareOptionTitle}>{copied ? "Kopyalandı! ✓" : "Panoya Kopyala"}</Text>
+                <Text style={styles.shareOptionDesc}>Metni kopyala, istediğin yere yapıştır</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => { setShareOpen(false); handleNativeShare(selectedDoc); }} style={styles.shareOption} activeOpacity={0.75}>
+              <View style={[styles.shareIcon, { backgroundColor: Colors.muted }]}>
+                <Share2 size={22} color={Colors.label} strokeWidth={1.5} />
+              </View>
+              <View style={styles.shareOptionText}>
+                <Text style={styles.shareOptionTitle}>Diğer Uygulamalar</Text>
+                <Text style={styles.shareOptionDesc}>Sistem paylaşım menüsünü aç</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </DialogSheet>
       )}
     </SafeAreaView>
@@ -235,48 +322,32 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 12,
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 8,
+    paddingHorizontal: 20, paddingTop: 18, paddingBottom: 12,
+    flexDirection: "row", alignItems: "baseline", gap: 8,
   },
   headerTitle: { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.5 },
   headerCount: { fontSize: 14, color: Colors.mutedForeground },
 
   searchWrap: { paddingHorizontal: 16, marginBottom: 10 },
   searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    flexDirection: "row", alignItems: "center", gap: 8,
     backgroundColor: Colors.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.separatorOpaque,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 40,
-    ...Shadows.xs,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separatorOpaque,
+    borderRadius: 12, paddingHorizontal: 12, height: 40, ...Shadows.xs,
   },
   searchInput: { flex: 1, fontSize: 15, color: Colors.label, letterSpacing: -0.2 },
   clearBtn: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 18, height: 18, borderRadius: 9,
     backgroundColor: Colors.mutedForeground,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center", justifyContent: "center",
   },
   clearBtnText: { fontSize: 8, color: "#fff", fontWeight: "700" },
 
   catRow: { paddingHorizontal: 16, gap: 7, paddingBottom: 12 },
   catPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
     backgroundColor: Colors.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.separatorOpaque,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separatorOpaque,
   },
   catPillActive: { backgroundColor: Colors.accent },
   catText: { fontSize: 13, color: Colors.label },
@@ -284,32 +355,19 @@ const styles = StyleSheet.create({
 
   listContent: { paddingHorizontal: 16, paddingBottom: 32 },
   sectionHeader: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: Colors.mutedForeground,
-    letterSpacing: -0.1,
-    marginTop: 16,
-    marginBottom: 6,
-    marginLeft: 2,
+    fontSize: 13, fontWeight: "600", color: Colors.mutedForeground,
+    letterSpacing: -0.1, marginTop: 16, marginBottom: 6, marginLeft: 2,
   },
 
   docRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.card,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 13,
-    gap: 12,
-    ...Shadows.xs,
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: Colors.card, paddingHorizontal: 14, paddingVertical: 12,
+    borderRadius: 13, gap: 12, ...Shadows.xs,
   },
   separator: { height: 6 },
   docEmoji: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 40, height: 40, borderRadius: 10,
+    alignItems: "center", justifyContent: "center",
   },
   docBody: { flex: 1, gap: 3 },
   docTitle: { fontSize: 14, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
@@ -323,13 +381,30 @@ const styles = StyleSheet.create({
 
   sheetFooter: { flexDirection: "row", gap: 10, alignItems: "center" },
   deleteBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.red + "50",
+    width: 44, height: 44, borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.red + "50",
     backgroundColor: Colors.red + "10",
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center", justifyContent: "center",
   },
+  pdfBtn: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 12, height: 44,
+    borderRadius: 12, borderWidth: 1, borderColor: Colors.accentMid,
+    backgroundColor: Colors.accentLight,
+  },
+  pdfBtnText: { fontSize: 13, fontWeight: "600", color: Colors.accent },
+
+  shareOptions: { gap: 8 },
+  shareOption: {
+    flexDirection: "row", alignItems: "center", gap: 14, padding: 14,
+    borderRadius: 14, backgroundColor: Colors.background,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
+  },
+  shareIcon: {
+    width: 44, height: 44, borderRadius: 12,
+    alignItems: "center", justifyContent: "center",
+  },
+  shareOptionText: { flex: 1 },
+  shareOptionTitle: { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
+  shareOptionDesc: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
 });

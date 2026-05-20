@@ -32,7 +32,7 @@ export const ProfileScreen: React.FC = () => {
   const [isPro, setIsPro] = useState(false);
   const [apiOpen, setApiOpen] = useState(false);
   const [plansOpen, setPlansOpen] = useState(false);
-  const [provider, setProvider] = useState<"mock" | "gemini" | "lovable">("mock");
+  const [provider, setProvider] = useState<"mock" | "gemini" | "lovable" | "server">("mock");
   const [geminiKey, setGeminiKey] = useState("");
   const [lovableKey, setLovableKey] = useState("");
   const [saving, setSaving] = useState(false);
@@ -110,7 +110,7 @@ export const ProfileScreen: React.FC = () => {
 
   // ── Profile ────────────────────────────────────────────────────────────────
   const quotaUsed = FREE_LIMIT - quota;
-  const providerLabel = provider === "mock" ? "Çevrimdışı Motor" : provider === "gemini" ? "Google Gemini" : "Lovable AI";
+  const providerLabel = provider === "mock" ? "Çevrimdışı Motor" : provider === "gemini" ? "Google Gemini" : provider === "server" ? "EvrakAI Sunucu" : "Lovable AI";
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -253,6 +253,7 @@ export const ProfileScreen: React.FC = () => {
       >
         <View style={styles.providerList}>
           {([
+            { id: "server", label: "EvrakAI Sunucu (Önerilen)", desc: "Sunucu tarafında gerçek AI — anahtar gerekmez", emoji: "⚡" },
             { id: "mock", label: "Çevrimdışı Motor", desc: "API gerektirmez, demo modunda çalışır", emoji: "🤖" },
             { id: "gemini", label: "Google Gemini", desc: "Kendi API anahtarınız ile güçlü sonuçlar", emoji: "✨" },
             { id: "lovable", label: "Lovable AI", desc: "Lovable gateway üzerinden erişim", emoji: "💜" },
@@ -319,7 +320,7 @@ export const ProfileScreen: React.FC = () => {
             "Sınırsız belge oluşturma",
             "Öncelikli AI yanıt süresi",
             "Tüm belge şablonları",
-            "PDF dışa aktarma (yakında)",
+            "PDF dışa aktarma",
             "Belge arşivi",
             "Öncelikli destek",
           ].map((f, i) => (
