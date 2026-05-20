@@ -22,8 +22,6 @@ import { Colors, Shadows } from "../components/Theme";
 import { StorageService } from "../services/storage";
 import { GradientButton, DialogSheet } from "../components/ui";
 
-const FREE_LIMIT = 8;
-
 export const ProfileScreen: React.FC = () => {
   const [signedIn, setSignedIn] = useState(false);
   const [credits, setCredits] = useState(0);
@@ -106,8 +104,6 @@ export const ProfileScreen: React.FC = () => {
   }
 
   // ── Profile ────────────────────────────────────────────────────────────────
-  const quotaUsed = FREE_LIMIT - quota;
-
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <StatusBar style="dark" />
@@ -121,11 +117,6 @@ export const ProfileScreen: React.FC = () => {
           <View style={{ flex: 1 }}>
             <View style={styles.nameRow}>
               <Text style={styles.name}>EvrakAI Kullanıcısı</Text>
-              {isPro && (
-                <View style={styles.proBadge}>
-                  <Text style={styles.proBadgeText}>PRO</Text>
-                </View>
-              )}
             </View>
             <Text style={styles.email}>Yapay zekâ ile belge asistanı</Text>
           </View>
