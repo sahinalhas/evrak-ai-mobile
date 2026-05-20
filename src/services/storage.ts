@@ -22,8 +22,11 @@ export type UserInfo = {
 
 const EMPTY_USER_INFO: UserInfo = { ad: "", soyad: "", tckn: "", telefon: "", adres: "", eposta: "" };
 
+const DATA_VERSION = "v3";
+
 const KEYS = {
   DOCUMENTS: "evrak_ai_documents",
+  DATA_VERSION: "evrak_ai_data_version",
   CREDITS: "evrak_ai_credits",
   USER_LOGGED_IN: "evrak_ai_user_logged_in",
   USER_INFO: "evrak_ai_user_info",
@@ -40,9 +43,14 @@ const MOCK_DOCUMENTS: Document[] = [
 export const StorageService = {
   async getDocuments(): Promise<Document[]> {
     try {
+      const storedVersion = await AsyncStorage.getItem(KEYS.DATA_VERSION);
+      if (storedVersion !== DATA_VERSION) {
+        await AsyncStorage.setItem(KEYS.DOCUMENTS, JSON.stringify(MOCK_DOCUMENTS));
+        await AsyncStorage.setItem(KEYS.DATA_VERSION, DATA_VERSION);
+        return MOCK_DOCUMENTS;
+      }
       const data = await AsyncStorage.getItem(KEYS.DOCUMENTS);
       if (!data) {
-        // Seed initial data
         await AsyncStorage.setItem(KEYS.DOCUMENTS, JSON.stringify(MOCK_DOCUMENTS));
         return MOCK_DOCUMENTS;
       }

@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   Share,
   Alert,
-  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -33,11 +32,11 @@ type Category = "Tümü" | "Hukuki" | "İş Hayatı" | "Eğitim" | "Vatandaşlı
 const CATEGORIES: Category[] = ["Tümü", "Hukuki", "İş Hayatı", "Eğitim", "Vatandaşlık", "Kişisel"];
 
 const CAT_ACCENT: Record<string, string> = {
-  Hukuki: Colors.red,
-  "İş Hayatı": Colors.orange,
-  Eğitim: Colors.blue,
-  Vatandaşlık: "#7C3AED",
-  Kişisel: Colors.green,
+  Hukuki: "#E53935",
+  "İş Hayatı": "#F57C00",
+  Eğitim: "#1E88E5",
+  Vatandaşlık: "#7B1FA2",
+  Kişisel: "#2E7D32",
   default: Colors.accent,
 };
 
@@ -110,6 +109,9 @@ export const DocumentsScreen: React.FC = () => {
     shareViaEmail(doc.content, doc.title);
   };
 
+  const countByCategory = (cat: string) =>
+    documents.filter((d) => d.category === cat).length;
+
   const searchFiltered = documents.filter((d) =>
     d.title.toLowerCase().includes(query.toLowerCase()) ||
     d.type.toLowerCase().includes(query.toLowerCase())
@@ -118,9 +120,6 @@ export const DocumentsScreen: React.FC = () => {
   const filtered = activeCategory === "Tümü"
     ? searchFiltered
     : searchFiltered.filter((d) => d.category === activeCategory);
-
-  const countByCategory = (cat: string) =>
-    documents.filter((d) => d.category === cat).length;
 
   type ListItem = Document | { _section: string; _accent?: string };
 
@@ -133,7 +132,6 @@ export const DocumentsScreen: React.FC = () => {
         ...(rest.length > 0 ? [{ _section: favs.length > 0 ? "Belgeler" : "Tüm Belgeler" } as ListItem, ...rest] : []),
       ];
     }
-
     const result: ListItem[] = [];
     const favs = filtered.filter((d) => d.favorite);
     if (favs.length > 0) {
@@ -156,9 +154,9 @@ export const DocumentsScreen: React.FC = () => {
     const accent = CAT_ACCENT[item.category] ?? CAT_ACCENT.default;
     const emoji = CAT_EMOJI[item.category] ?? "📄";
     return (
-      <TouchableOpacity onPress={() => setSelectedDoc(item)} activeOpacity={0.7} style={styles.docRow}>
-        <View style={[styles.docEmoji, { backgroundColor: accent + "18" }]}>
-          <Text style={{ fontSize: 16 }}>{emoji}</Text>
+      <TouchableOpacity onPress={() => setSelectedDoc(item)} activeOpacity={0.75} style={styles.docRow}>
+        <View style={[styles.docIcon, { backgroundColor: accent + "15" }]}>
+          <Text style={{ fontSize: 17 }}>{emoji}</Text>
         </View>
         <View style={styles.docBody}>
           <Text style={styles.docTitle} numberOfLines={1}>{item.title}</Text>
@@ -167,16 +165,16 @@ export const DocumentsScreen: React.FC = () => {
         <View style={styles.docRight}>
           <TouchableOpacity
             onPress={() => toggleFavorite(item.id)}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Star
-              size={15}
-              color={item.favorite ? Colors.yellow : Colors.mutedForeground}
-              fill={item.favorite ? Colors.yellow : "transparent"}
+              size={16}
+              color={item.favorite ? "#FBBF24" : Colors.mutedForeground}
+              fill={item.favorite ? "#FBBF24" : "transparent"}
               strokeWidth={1.5}
             />
           </TouchableOpacity>
-          <ChevronRight size={14} color={Colors.mutedForeground} strokeWidth={1.5} />
+          <ChevronRight size={15} color={Colors.mutedForeground} strokeWidth={1.5} />
         </View>
       </TouchableOpacity>
     );
@@ -188,8 +186,10 @@ export const DocumentsScreen: React.FC = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Belgelerim</Text>
-        <Text style={styles.headerCount}>{documents.length} belge</Text>
+        <View>
+          <Text style={styles.headerTitle}>Belgelerim</Text>
+          <Text style={styles.headerSub}>{documents.length} belge kayıtlı</Text>
+        </View>
       </View>
 
       {/* Search */}
@@ -199,7 +199,7 @@ export const DocumentsScreen: React.FC = () => {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Arama"
+            placeholder="Belge ara..."
             placeholderTextColor={Colors.mutedForeground}
             style={styles.searchInput}
           />
@@ -213,35 +213,7 @@ export const DocumentsScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Category Summary Cards — only when "Tümü" and no search */}
-      {activeCategory === "Tümü" && query.length === 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.summaryRow}
-          style={{ flexGrow: 0 }}
-        >
-          {CAT_ORDER.filter((c) => countByCategory(c) > 0).map((cat) => {
-            const accent = CAT_ACCENT[cat];
-            const emoji = CAT_EMOJI[cat];
-            const count = countByCategory(cat);
-            return (
-              <TouchableOpacity
-                key={cat}
-                onPress={() => setActiveCategory(cat)}
-                activeOpacity={0.75}
-                style={[styles.summaryCard, { borderColor: accent + "30", backgroundColor: accent + "0D" }]}
-              >
-                <Text style={styles.summaryEmoji}>{emoji}</Text>
-                <Text style={[styles.summaryCount, { color: accent }]}>{count}</Text>
-                <Text style={[styles.summaryLabel, { color: accent }]}>{cat}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      )}
-
-      {/* Category Filter Tabs */}
+      {/* Category Filter Pills — with counts */}
       <FlatList
         horizontal
         data={CATEGORIES}
@@ -251,7 +223,8 @@ export const DocumentsScreen: React.FC = () => {
         style={{ flexGrow: 0 }}
         renderItem={({ item: c }) => {
           const active = activeCategory === c;
-          const accent = CAT_ACCENT[c] ?? Colors.accent;
+          const accent = c === "Tümü" ? Colors.accent : (CAT_ACCENT[c] ?? Colors.accent);
+          const count = c === "Tümü" ? documents.length : countByCategory(c);
           return (
             <TouchableOpacity
               onPress={() => setActiveCategory(c)}
@@ -261,8 +234,15 @@ export const DocumentsScreen: React.FC = () => {
                 active && { backgroundColor: accent, borderColor: accent },
               ]}
             >
-              {c !== "Tümü" && <Text style={styles.catEmoji}>{CAT_EMOJI[c]}</Text>}
-              <Text style={[styles.catText, active && styles.catTextActive]}>{c}</Text>
+              {c !== "Tümü" && <Text style={styles.catPillEmoji}>{CAT_EMOJI[c]}</Text>}
+              <Text style={[styles.catPillText, active && styles.catPillTextActive]}>{c}</Text>
+              {count > 0 && (
+                <View style={[styles.catBadge, active ? styles.catBadgeActive : { backgroundColor: accent + "20" }]}>
+                  <Text style={[styles.catBadgeText, active ? styles.catBadgeTextActive : { color: accent }]}>
+                    {count}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           );
         }}
@@ -279,7 +259,9 @@ export const DocumentsScreen: React.FC = () => {
             <Text style={styles.emptyIcon}>📂</Text>
             <Text style={styles.emptyTitle}>Belge bulunamadı</Text>
             <Text style={styles.emptyDesc}>
-              {query ? "Arama kriterlerine uyan belge yok." : "Sohbet sekmesinden ilk belgenizi oluşturun."}
+              {query
+                ? "Arama kriterlerine uyan belge yok."
+                : "Sohbet sekmesinden ilk belgenizi oluşturun."}
             </Text>
           </View>
         }
@@ -287,11 +269,12 @@ export const DocumentsScreen: React.FC = () => {
           if ("_section" in item) {
             const accent = item._accent;
             return (
-              <View style={styles.sectionHeaderRow}>
-                {accent && (
-                  <View style={[styles.sectionDot, { backgroundColor: accent }]} />
-                )}
-                <Text style={[styles.sectionHeader, accent ? { color: accent } : {}]}>
+              <View style={styles.sectionRow}>
+                {accent
+                  ? <View style={[styles.sectionDot, { backgroundColor: accent }]} />
+                  : <Text style={styles.sectionStar}>★</Text>
+                }
+                <Text style={[styles.sectionLabel, accent ? { color: accent } : { color: "#FBBF24" }]}>
                   {item._section}
                 </Text>
               </View>
@@ -299,7 +282,7 @@ export const DocumentsScreen: React.FC = () => {
           }
           return renderDoc({ item });
         }}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={() => <View style={{ height: 6 }} />}
       />
 
       {/* Detail Sheet */}
@@ -374,7 +357,11 @@ export const DocumentsScreen: React.FC = () => {
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => { setShareOpen(false); handleNativeShare(selectedDoc); }} style={styles.shareOption} activeOpacity={0.75}>
+            <TouchableOpacity
+              onPress={() => { setShareOpen(false); handleNativeShare(selectedDoc); }}
+              style={styles.shareOption}
+              activeOpacity={0.75}
+            >
               <View style={[styles.shareIcon, { backgroundColor: Colors.muted }]}>
                 <Share2 size={22} color={Colors.label} strokeWidth={1.5} />
               </View>
@@ -394,18 +381,34 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
   header: {
-    paddingHorizontal: 20, paddingTop: 18, paddingBottom: 12,
-    flexDirection: "row", alignItems: "baseline", gap: 8,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 14,
   },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.5 },
-  headerCount: { fontSize: 14, color: Colors.mutedForeground },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: "700",
+    color: Colors.label,
+    letterSpacing: -0.8,
+  },
+  headerSub: {
+    fontSize: 13,
+    color: Colors.mutedForeground,
+    marginTop: 2,
+  },
 
-  searchWrap: { paddingHorizontal: 16, marginBottom: 10 },
+  searchWrap: { paddingHorizontal: 16, marginBottom: 12 },
   searchBar: {
-    flexDirection: "row", alignItems: "center", gap: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     backgroundColor: Colors.card,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separatorOpaque,
-    borderRadius: 12, paddingHorizontal: 12, height: 40, ...Shadows.xs,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separatorOpaque,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 42,
+    ...Shadows.xs,
   },
   searchInput: { flex: 1, fontSize: 15, color: Colors.label, letterSpacing: -0.2 },
   clearBtn: {
@@ -415,67 +418,86 @@ const styles = StyleSheet.create({
   },
   clearBtnText: { fontSize: 8, color: "#fff", fontWeight: "700" },
 
-  summaryRow: { paddingHorizontal: 16, gap: 10, paddingBottom: 12 },
-  summaryCard: {
-    alignItems: "center", justifyContent: "center", gap: 3,
-    paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14,
-    borderWidth: 1, minWidth: 80,
+  catRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 14 },
+  catPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingLeft: 10,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: Colors.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separatorOpaque,
     ...Shadows.xs,
   },
-  summaryEmoji: { fontSize: 20 },
-  summaryCount: { fontSize: 18, fontWeight: "700", letterSpacing: -0.5 },
-  summaryLabel: { fontSize: 11, fontWeight: "600", letterSpacing: -0.1 },
-
-  catRow: { paddingHorizontal: 16, gap: 7, paddingBottom: 12 },
-  catPill: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-    backgroundColor: Colors.card,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separatorOpaque,
+  catPillEmoji: { fontSize: 13 },
+  catPillText: { fontSize: 13, color: Colors.label, fontWeight: "500" },
+  catPillTextActive: { color: "#fff", fontWeight: "600" },
+  catBadge: {
+    minWidth: 20, height: 20, borderRadius: 10,
+    alignItems: "center", justifyContent: "center",
+    paddingHorizontal: 5,
   },
-  catEmoji: { fontSize: 12 },
-  catText: { fontSize: 13, color: Colors.label },
-  catTextActive: { color: "#fff", fontWeight: "600" },
+  catBadgeActive: { backgroundColor: "rgba(255,255,255,0.25)" },
+  catBadgeText: { fontSize: 11, fontWeight: "700" },
+  catBadgeTextActive: { color: "#fff" },
 
   listContent: { paddingHorizontal: 16, paddingBottom: 32 },
 
-  sectionHeaderRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 18, marginBottom: 6, marginLeft: 2 },
-  sectionDot: { width: 6, height: 6, borderRadius: 3 },
-  sectionHeader: {
-    fontSize: 13, fontWeight: "600", color: Colors.mutedForeground, letterSpacing: -0.1,
+  sectionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    marginTop: 20,
+    marginBottom: 8,
+    marginLeft: 2,
   },
+  sectionDot: { width: 7, height: 7, borderRadius: 4 },
+  sectionStar: { fontSize: 11, color: "#FBBF24" },
+  sectionLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase" },
 
   docRow: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: Colors.card, paddingHorizontal: 14, paddingVertical: 12,
-    borderRadius: 13, gap: 12, ...Shadows.xs,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.card,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderRadius: 14,
+    gap: 12,
+    ...Shadows.xs,
   },
-  separator: { height: 6 },
-  docEmoji: {
-    width: 40, height: 40, borderRadius: 10,
+  docIcon: {
+    width: 42, height: 42, borderRadius: 11,
     alignItems: "center", justifyContent: "center",
   },
   docBody: { flex: 1, gap: 3 },
   docTitle: { fontSize: 14, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
   docMeta: { fontSize: 12, color: Colors.mutedForeground },
-  docRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+  docRight: { flexDirection: "row", alignItems: "center", gap: 10 },
 
-  empty: { alignItems: "center", paddingTop: 72, gap: 10 },
-  emptyIcon: { fontSize: 40 },
+  empty: { alignItems: "center", paddingTop: 80, gap: 10 },
+  emptyIcon: { fontSize: 44 },
   emptyTitle: { fontSize: 17, fontWeight: "600", color: Colors.label },
-  emptyDesc: { fontSize: 14, color: Colors.mutedForeground, textAlign: "center", paddingHorizontal: 40, lineHeight: 20 },
+  emptyDesc: {
+    fontSize: 14, color: Colors.mutedForeground,
+    textAlign: "center", paddingHorizontal: 40, lineHeight: 20,
+  },
 
   sheetFooter: { flexDirection: "row", gap: 10, alignItems: "center" },
   deleteBtn: {
     width: 44, height: 44, borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.red + "50",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.red + "50",
     backgroundColor: Colors.red + "10",
     alignItems: "center", justifyContent: "center",
   },
   pdfBtn: {
     flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 12, height: 44,
-    borderRadius: 12, borderWidth: 1, borderColor: Colors.accentMid,
+    paddingHorizontal: 14, height: 44,
+    borderRadius: 12, borderWidth: 1,
+    borderColor: Colors.accentMid,
     backgroundColor: Colors.accentLight,
   },
   pdfBtnText: { fontSize: 13, fontWeight: "600", color: Colors.accent },
