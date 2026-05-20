@@ -8,13 +8,13 @@ import {
   TouchableOpacity,
   Share,
   Alert,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import {
   Search,
   Star,
-  FileText,
   Share2,
   Trash2,
   ChevronRight,
@@ -29,12 +29,14 @@ import { DialogSheet, GradientButton } from "../components/ui";
 import { MarkdownView } from "../components/MarkdownView";
 import { exportToPDF, copyToClipboard, shareViaWhatsApp, shareViaEmail } from "../services/pdfExport";
 
-const CATEGORIES = ["Tümü", "Hukuki", "İş Hayatı", "Eğitim", "Kişisel"] as const;
+type Category = "Tümü" | "Hukuki" | "İş Hayatı" | "Eğitim" | "Vatandaşlık" | "Kişisel";
+const CATEGORIES: Category[] = ["Tümü", "Hukuki", "İş Hayatı", "Eğitim", "Vatandaşlık", "Kişisel"];
 
 const CAT_ACCENT: Record<string, string> = {
   Hukuki: Colors.red,
   "İş Hayatı": Colors.orange,
   Eğitim: Colors.blue,
+  Vatandaşlık: "#7C3AED",
   Kişisel: Colors.green,
   default: Colors.accent,
 };
@@ -43,12 +45,15 @@ const CAT_EMOJI: Record<string, string> = {
   Hukuki: "⚖️",
   "İş Hayatı": "💼",
   Eğitim: "🎓",
+  Vatandaşlık: "🏛️",
   Kişisel: "👤",
 };
 
+const CAT_ORDER: Category[] = ["Hukuki", "İş Hayatı", "Eğitim", "Vatandaşlık", "Kişisel"];
+
 export const DocumentsScreen: React.FC = () => {
   const [query, setQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<(typeof CATEGORIES)[number]>("Tümü");
+  const [activeCategory, setActiveCategory] = useState<Category>("Tümü");
   const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
@@ -105,23 +110,54 @@ export const DocumentsScreen: React.FC = () => {
     shareViaEmail(doc.content, doc.title);
   };
 
-  const filtered = documents.filter((d) => {
-    const matchesCat = activeCategory === "Tümü" || d.category === activeCategory;
-    const matchesQ =
-      d.title.toLowerCase().includes(query.toLowerCase()) ||
-      d.type.toLowerCase().includes(query.toLowerCase());
-    return matchesCat && matchesQ;
-  });
+  const searchFiltered = documents.filter((d) =>
+    d.title.toLowerCase().includes(query.toLowerCase()) ||
+    d.type.toLowerCase().includes(query.toLowerCase())
+  );
 
-  const favorites = filtered.filter((d) => d.favorite);
-  const rest = filtered.filter((d) => !d.favorite);
+  const filtered = activeCategory === "Tümü"
+    ? searchFiltered
+    : searchFiltered.filter((d) => d.category === activeCategory);
+
+  const countByCategory = (cat: string) =>
+    documents.filter((d) => d.category === cat).length;
+
+  type ListItem = Document | { _section: string; _accent?: string };
+
+  const buildListData = (): ListItem[] => {
+    if (activeCategory !== "Tümü" || query.length > 0) {
+      const favs = filtered.filter((d) => d.favorite);
+      const rest = filtered.filter((d) => !d.favorite);
+      return [
+        ...(favs.length > 0 ? [{ _section: "Favoriler" } as ListItem, ...favs] : []),
+        ...(rest.length > 0 ? [{ _section: favs.length > 0 ? "Belgeler" : "Tüm Belgeler" } as ListItem, ...rest] : []),
+      ];
+    }
+
+    const result: ListItem[] = [];
+    const favs = filtered.filter((d) => d.favorite);
+    if (favs.length > 0) {
+      result.push({ _section: "Favoriler" });
+      result.push(...favs);
+    }
+    CAT_ORDER.forEach((cat) => {
+      const catDocs = filtered.filter((d) => d.category === cat && !d.favorite);
+      if (catDocs.length > 0) {
+        result.push({ _section: cat, _accent: CAT_ACCENT[cat] });
+        result.push(...catDocs);
+      }
+    });
+    return result;
+  };
+
+  const listData = buildListData();
 
   const renderDoc = ({ item }: { item: Document }) => {
     const accent = CAT_ACCENT[item.category] ?? CAT_ACCENT.default;
     const emoji = CAT_EMOJI[item.category] ?? "📄";
     return (
       <TouchableOpacity onPress={() => setSelectedDoc(item)} activeOpacity={0.7} style={styles.docRow}>
-        <View style={[styles.docEmoji, { backgroundColor: accent + "15" }]}>
+        <View style={[styles.docEmoji, { backgroundColor: accent + "18" }]}>
           <Text style={{ fontSize: 16 }}>{emoji}</Text>
         </View>
         <View style={styles.docBody}>
@@ -145,13 +181,6 @@ export const DocumentsScreen: React.FC = () => {
       </TouchableOpacity>
     );
   };
-
-  type ListItem = Document | { _section: string };
-
-  const listData: ListItem[] = [
-    ...(favorites.length > 0 ? [{ _section: "Favoriler" } as ListItem, ...favorites] : []),
-    ...(rest.length > 0 ? [{ _section: favorites.length > 0 ? "Belgeler" : "Tüm Belgeler" } as ListItem, ...rest] : []),
-  ];
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -184,7 +213,35 @@ export const DocumentsScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Category Tabs */}
+      {/* Category Summary Cards — only when "Tümü" and no search */}
+      {activeCategory === "Tümü" && query.length === 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.summaryRow}
+          style={{ flexGrow: 0 }}
+        >
+          {CAT_ORDER.filter((c) => countByCategory(c) > 0).map((cat) => {
+            const accent = CAT_ACCENT[cat];
+            const emoji = CAT_EMOJI[cat];
+            const count = countByCategory(cat);
+            return (
+              <TouchableOpacity
+                key={cat}
+                onPress={() => setActiveCategory(cat)}
+                activeOpacity={0.75}
+                style={[styles.summaryCard, { borderColor: accent + "30", backgroundColor: accent + "0D" }]}
+              >
+                <Text style={styles.summaryEmoji}>{emoji}</Text>
+                <Text style={[styles.summaryCount, { color: accent }]}>{count}</Text>
+                <Text style={[styles.summaryLabel, { color: accent }]}>{cat}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      {/* Category Filter Tabs */}
       <FlatList
         horizontal
         data={CATEGORIES}
@@ -194,12 +251,17 @@ export const DocumentsScreen: React.FC = () => {
         style={{ flexGrow: 0 }}
         renderItem={({ item: c }) => {
           const active = activeCategory === c;
+          const accent = CAT_ACCENT[c] ?? Colors.accent;
           return (
             <TouchableOpacity
               onPress={() => setActiveCategory(c)}
               activeOpacity={0.7}
-              style={[styles.catPill, active && styles.catPillActive]}
+              style={[
+                styles.catPill,
+                active && { backgroundColor: accent, borderColor: accent },
+              ]}
             >
+              {c !== "Tümü" && <Text style={styles.catEmoji}>{CAT_EMOJI[c]}</Text>}
               <Text style={[styles.catText, active && styles.catTextActive]}>{c}</Text>
             </TouchableOpacity>
           );
@@ -223,7 +285,17 @@ export const DocumentsScreen: React.FC = () => {
         }
         renderItem={({ item }) => {
           if ("_section" in item) {
-            return <Text style={styles.sectionHeader}>{item._section}</Text>;
+            const accent = item._accent;
+            return (
+              <View style={styles.sectionHeaderRow}>
+                {accent && (
+                  <View style={[styles.sectionDot, { backgroundColor: accent }]} />
+                )}
+                <Text style={[styles.sectionHeader, accent ? { color: accent } : {}]}>
+                  {item._section}
+                </Text>
+              </View>
+            );
           }
           return renderDoc({ item });
         }}
@@ -343,20 +415,34 @@ const styles = StyleSheet.create({
   },
   clearBtnText: { fontSize: 8, color: "#fff", fontWeight: "700" },
 
+  summaryRow: { paddingHorizontal: 16, gap: 10, paddingBottom: 12 },
+  summaryCard: {
+    alignItems: "center", justifyContent: "center", gap: 3,
+    paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14,
+    borderWidth: 1, minWidth: 80,
+    ...Shadows.xs,
+  },
+  summaryEmoji: { fontSize: 20 },
+  summaryCount: { fontSize: 18, fontWeight: "700", letterSpacing: -0.5 },
+  summaryLabel: { fontSize: 11, fontWeight: "600", letterSpacing: -0.1 },
+
   catRow: { paddingHorizontal: 16, gap: 7, paddingBottom: 12 },
   catPill: {
-    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
     backgroundColor: Colors.card,
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separatorOpaque,
   },
-  catPillActive: { backgroundColor: Colors.accent },
+  catEmoji: { fontSize: 12 },
   catText: { fontSize: 13, color: Colors.label },
   catTextActive: { color: "#fff", fontWeight: "600" },
 
   listContent: { paddingHorizontal: 16, paddingBottom: 32 },
+
+  sectionHeaderRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 18, marginBottom: 6, marginLeft: 2 },
+  sectionDot: { width: 6, height: 6, borderRadius: 3 },
   sectionHeader: {
-    fontSize: 13, fontWeight: "600", color: Colors.mutedForeground,
-    letterSpacing: -0.1, marginTop: 16, marginBottom: 6, marginLeft: 2,
+    fontSize: 13, fontWeight: "600", color: Colors.mutedForeground, letterSpacing: -0.1,
   },
 
   docRow: {
