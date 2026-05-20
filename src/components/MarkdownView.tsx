@@ -3,84 +3,61 @@ import { StyleSheet, ScrollView, View } from "react-native";
 import Markdown from "react-native-markdown-display";
 import { Colors } from "./Theme";
 
-type MarkdownViewProps = {
-  content: string;
-  maxHeight?: number;
-};
+type Props = { content: string; maxHeight?: number };
 
-export const MarkdownView: React.FC<MarkdownViewProps> = ({ content, maxHeight }) => {
-  return (
-    <View style={[styles.wrapper, maxHeight ? { maxHeight } : { flex: 1 }]}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <Markdown style={markdownStyles}>{content}</Markdown>
-      </ScrollView>
-    </View>
-  );
-};
+export const MarkdownView: React.FC<Props> = ({ content, maxHeight }) => (
+  <View style={[styles.wrapper, maxHeight ? { maxHeight } : { flex: 1 }]}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <Markdown style={mdStyles}>{content}</Markdown>
+    </ScrollView>
+  </View>
+);
 
 const styles = StyleSheet.create({
   wrapper: {
-    backgroundColor: Colors.muted,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separator,
     overflow: "hidden",
   },
-  container: { flex: 1 },
-  contentContainer: { padding: 18 },
+  scroll: { flex: 1 },
+  content: { padding: 16 },
 });
 
-const markdownStyles = StyleSheet.create({
-  body: {
-    color: Colors.foreground,
-    fontSize: 13,
-    lineHeight: 19,
-  },
+const mdStyles = StyleSheet.create({
+  body: { color: Colors.label, fontSize: 15, lineHeight: 22 },
   heading1: {
     fontSize: 15,
     fontWeight: "700",
-    color: Colors.foreground,
+    color: Colors.label,
     textAlign: "center",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginTop: 8,
-    marginBottom: 14,
-    lineHeight: 22,
+    letterSpacing: 0.6,
+    marginVertical: 12,
   },
   heading2: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Colors.foreground,
-    marginTop: 16,
-    marginBottom: 6,
-    lineHeight: 20,
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.label,
+    marginTop: 14,
+    marginBottom: 4,
   },
   heading3: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
     color: Colors.mutedForeground,
     marginTop: 10,
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  paragraph: {
-    marginTop: 2,
-    marginBottom: 8,
-    lineHeight: 19,
-  },
-  strong: {
-    fontWeight: "700",
-    color: Colors.foreground,
-  },
+  paragraph: { marginBottom: 8, lineHeight: 22 },
+  strong: { fontWeight: "700" },
+  hr: { backgroundColor: Colors.separator, height: StyleSheet.hairlineWidth, marginVertical: 12 },
   bullet_list: { marginVertical: 4 },
   ordered_list: { marginVertical: 4 },
-  list_item: { marginVertical: 2, lineHeight: 18 },
-  hr: {
-    backgroundColor: Colors.border,
-    height: 1,
-    marginVertical: 12,
-  },
+  list_item: { marginVertical: 2 },
 });

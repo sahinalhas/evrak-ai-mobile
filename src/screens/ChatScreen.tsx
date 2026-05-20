@@ -14,23 +14,12 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import {
-  Sparkles,
-  Send,
-  FileText,
-  Eye,
-  Zap,
-  Share2,
-  Plus,
-  Crown,
-  RotateCcw,
-} from "lucide-react-native";
+import { Send, FileText, Eye, Share2, Plus, RotateCcw, Sparkles } from "lucide-react-native";
 import { Colors, Shadows } from "../components/Theme";
 import { StorageService } from "../services/storage";
 import { AIService, ChatMsg } from "../services/ai";
-import { GradientButton, DialogSheet, PulsingDots, ProBanner } from "../components/ui";
+import { GradientButton, DialogSheet, PulsingDots } from "../components/ui";
 import { MarkdownView } from "../components/MarkdownView";
 
 const QUICK_CHIPS = [
@@ -42,7 +31,7 @@ const QUICK_CHIPS = [
   { label: "Kayıt Dondurma", emoji: "🎓" },
 ];
 
-const GREETING = "Merhaba! 👋 Hangi belgeyi oluşturmak istersiniz?\n\nTüm bilgileri tek seferde anlatabilirsiniz, eksik varsa ben sorarım.";
+const GREETING = "Merhaba! Hangi belgeyi oluşturmak istersiniz?\n\nTüm bilgileri tek seferde anlatabilirsiniz, eksik varsa ben sorarım.";
 const MAX_FREE = 8;
 
 export const ChatScreen: React.FC = () => {
@@ -55,85 +44,66 @@ export const ChatScreen: React.FC = () => {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [quota, setQuota] = useState(MAX_FREE);
   const listRef = useRef<FlatList>(null);
-  const inputRef = useRef<TextInput>(null);
   const docCardAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    StorageService.getQuota().then(setQuota);
-  }, []);
+  useEffect(() => { StorageService.getQuota().then(setQuota); }, []);
 
-  const scrollToBottom = () => {
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
-  };
+  const scrollToBottom = () => setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
 
   const showDocCard = () => {
     docCardAnim.setValue(0);
-    Animated.spring(docCardAnim, { toValue: 1, tension: 60, friction: 9, useNativeDriver: true }).start();
+    Animated.spring(docCardAnim, { toValue: 1, tension: 70, friction: 10, useNativeDriver: true }).start();
   };
 
   const handleNewChat = () => {
-    Alert.alert("Yeni Sohbet", "Mevcut sohbet silinecek. Devam etmek istiyor musunuz?", [
+    Alert.alert("Yeni Sohbet", "Mevcut sohbet silinecek.", [
       { text: "Vazgeç", style: "cancel" },
-      {
-        text: "Yeni Başlat",
-        onPress: () => {
-          setMessages([{ role: "assistant", content: GREETING }]);
-          setInput("");
-          setDocType(null);
-          setGeneratedDoc("");
-        },
-      },
+      { text: "Yeni Başlat", onPress: () => {
+        setMessages([{ role: "assistant", content: GREETING }]);
+        setInput(""); setDocType(null); setGeneratedDoc("");
+      }},
     ]);
   };
 
   const handleSend = async (rawText: string) => {
     const text = rawText.trim();
     if (!text || typing) return;
-
-    if (quota <= 0) {
-      setUpgradeOpen(true);
-      return;
-    }
+    if (quota <= 0) { setUpgradeOpen(true); return; }
 
     const nextQuota = quota - 1;
     setQuota(nextQuota);
     await StorageService.setQuota(nextQuota);
 
-    const nextMessages: ChatMsg[] = [...messages, { role: "user", content: text }];
-    setMessages(nextMessages);
+    const next: ChatMsg[] = [...messages, { role: "user", content: text }];
+    setMessages(next);
     setInput("");
     setTyping(true);
     scrollToBottom();
 
     try {
-      const data = await AIService.sendMessage(nextMessages);
+      const data = await AIService.sendMessage(next);
       if (data.docType) setDocType(data.docType);
-
-      const updated = [...nextMessages, { role: "assistant" as const, content: data.assistantMessage }];
+      const updated = [...next, { role: "assistant" as const, content: data.assistantMessage }];
       setMessages(updated);
-
       if (data.status === "ready" && data.document) {
         setGeneratedDoc(data.document);
         showDocCard();
         await StorageService.addDocument({
           title: `${data.docType ?? "Belge"} — ${new Date().toLocaleDateString("tr-TR")}`,
           type: data.docType ?? "Genel Belge",
-          category: getCategoryForDocType(data.docType),
+          category: getCat(data.docType),
           content: data.document,
         });
       }
-    } catch (e) {
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: "Üzgünüm, şu anda bağlanamıyorum. Lütfen tekrar deneyin." },
-      ]);
+    } catch {
+      setMessages((m) => [...m, { role: "assistant", content: "Bağlantı hatası. Lütfen tekrar deneyin." }]);
     } finally {
       setTyping(false);
       scrollToBottom();
     }
   };
 
-  const getCategoryForDocType = (type: string | null): "Hukuki" | "İş Hayatı" | "Eğitim" | "Kişisel" => {
+  const getCat = (type: string | null): "Hukuki" | "İş Hayatı" | "Eğitim" | "Kişisel" => {
     if (!type) return "Hukuki";
     const t = type.toLowerCase();
     if (t.includes("kira") || t.includes("ihtar")) return "Hukuki";
@@ -143,42 +113,28 @@ export const ChatScreen: React.FC = () => {
   };
 
   const handleShare = async () => {
-    try {
-      await Share.share({ message: generatedDoc, title: `${docType ?? "Belge"} — EvrakAI` });
-    } catch {}
+    try { await Share.share({ message: generatedDoc, title: `${docType ?? "Belge"} — EvrakAI` }); } catch {}
   };
 
-  const quotaPercent = (quota / MAX_FREE) * 100;
-  const quotaColor = quota <= 2 ? Colors.destructive : quota <= 4 ? Colors.warning : Colors.success;
+  const quotaColor = quota <= 2 ? Colors.red : quota <= 4 ? Colors.orange : Colors.accent;
 
-  const renderMessage = ({ item, index }: { item: ChatMsg; index: number }) => {
+  const renderMessage = ({ item }: { item: ChatMsg }) => {
     const isUser = item.role === "user";
     return (
-      <View style={[styles.messageRow, isUser ? styles.messageRowUser : styles.messageRowAssistant]}>
+      <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAI]}>
         {!isUser && (
-          <View style={styles.avatarDot}>
-            <Sparkles size={10} color={Colors.primary} />
+          <View style={styles.aiAvatar}>
+            <Sparkles size={10} color={Colors.accent} />
           </View>
         )}
-        {isUser ? (
-          <LinearGradient
-            colors={Colors.gradientPrimary as any}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.userBubble}
-          >
-            <Text style={styles.userText}>{item.content}</Text>
-          </LinearGradient>
-        ) : (
-          <View style={styles.assistantBubble}>
-            <Text style={styles.assistantText}>{item.content}</Text>
-          </View>
-        )}
+        <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
+          <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextAI]}>
+            {item.content}
+          </Text>
+        </View>
       </View>
     );
   };
-
-  const listData = [...messages];
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -186,38 +142,29 @@ export const ChatScreen: React.FC = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.logoRow}>
-          <LinearGradient colors={Colors.gradientPrimary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.logoIcon}>
-            <Sparkles size={14} color="#fff" />
-          </LinearGradient>
+        <View style={styles.headerLeft}>
+          <View style={styles.logoMark}>
+            <Text style={styles.logoGlyph}>⚖</Text>
+          </View>
           <View>
-            <Text style={styles.logoTitle}>EvrakAI</Text>
-            <Text style={styles.logoSub}>Yapay Zekâ Belge Asistanı</Text>
+            <Text style={styles.headerTitle}>EvrakAI</Text>
           </View>
         </View>
-
         <View style={styles.headerRight}>
-          {/* Quota pill */}
-          <View style={[styles.quotaPill, { borderColor: quotaColor + "40" }]}>
-            <Zap size={11} color={quotaColor} />
-            <Text style={[styles.quotaText, { color: quotaColor }]}>{quota}/{MAX_FREE}</Text>
+          <View style={[styles.quotaBadge, { borderColor: quotaColor + "50" }]}>
+            <View style={[styles.quotaDot, { backgroundColor: quotaColor }]} />
+            <Text style={[styles.quotaText, { color: quotaColor }]}>{quota}/{MAX_FREE} kredi</Text>
           </View>
-          {/* New chat */}
-          <TouchableOpacity onPress={handleNewChat} style={styles.newChatBtn}>
-            <Plus size={16} color={Colors.primary} />
+          <TouchableOpacity onPress={handleNewChat} style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Plus size={17} color={Colors.accent} strokeWidth={2} />
           </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Quota bar */}
-      <View style={styles.quotaBarBg}>
-        <Animated.View style={[styles.quotaBarFill, { width: `${quotaPercent}%` as any, backgroundColor: quotaColor }]} />
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <FlatList
           ref={listRef}
-          data={listData}
+          data={messages}
           keyExtractor={(_, i) => String(i)}
           renderItem={renderMessage}
           contentContainerStyle={styles.chatContent}
@@ -226,18 +173,18 @@ export const ChatScreen: React.FC = () => {
           ListHeaderComponent={
             messages.length <= 2 ? (
               <View style={styles.chipsSection}>
-                <Text style={styles.chipsLabel}>Popüler Şablonlar</Text>
+                <Text style={styles.chipsLabel}>Sık kullanılan şablonlar</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-                  {QUICK_CHIPS.map((chip) => (
+                  {QUICK_CHIPS.map((c) => (
                     <TouchableOpacity
-                      key={chip.label}
-                      onPress={() => handleSend(`${chip.label} hazırlamak istiyorum.`)}
+                      key={c.label}
+                      onPress={() => handleSend(`${c.label} hazırlamak istiyorum.`)}
                       disabled={typing}
-                      activeOpacity={0.75}
-                      style={styles.chipBtn}
+                      activeOpacity={0.65}
+                      style={styles.chip}
                     >
-                      <Text style={styles.chipEmoji}>{chip.emoji}</Text>
-                      <Text style={styles.chipText}>{chip.label}</Text>
+                      <Text style={styles.chipEmoji}>{c.emoji}</Text>
+                      <Text style={styles.chipText}>{c.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -247,89 +194,76 @@ export const ChatScreen: React.FC = () => {
           ListFooterComponent={
             <>
               {typing && (
-                <View style={[styles.messageRow, styles.messageRowAssistant]}>
-                  <View style={styles.avatarDot}>
-                    <Sparkles size={10} color={Colors.primary} />
+                <View style={[styles.msgRow, styles.msgRowAI]}>
+                  <View style={styles.aiAvatar}>
+                    <Sparkles size={10} color={Colors.accent} />
                   </View>
-                  <View style={[styles.assistantBubble, { paddingVertical: 14 }]}>
+                  <View style={[styles.bubble, styles.bubbleAI, styles.typingBubble]}>
                     <PulsingDots />
                   </View>
                 </View>
               )}
               {generatedDoc !== "" && (
-                <Animated.View
-                  style={{
-                    opacity: docCardAnim,
-                    transform: [{ translateY: docCardAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
-                  }}
-                >
-                  <TouchableOpacity onPress={() => setPreviewOpen(true)} activeOpacity={0.88} style={styles.docReadyCard}>
-                    <LinearGradient colors={Colors.gradientPrimary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.docReadyIconWrap}>
-                      <FileText size={22} color="#fff" />
-                    </LinearGradient>
-                    <View style={styles.docReadyText}>
-                      <Text style={styles.docReadyTitle}>{docType ?? "Belge"} Hazır ✓</Text>
-                      <Text style={styles.docReadySub}>Önizlemek için dokunun</Text>
+                <Animated.View style={{
+                  opacity: docCardAnim,
+                  transform: [{ scale: docCardAnim.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }],
+                  marginTop: 10,
+                }}>
+                  <TouchableOpacity onPress={() => setPreviewOpen(true)} activeOpacity={0.75} style={styles.docCard}>
+                    <View style={styles.docCardIcon}>
+                      <FileText size={18} color={Colors.accent} strokeWidth={1.5} />
                     </View>
-                    <Eye size={18} color={Colors.primary} />
+                    <View style={styles.docCardText}>
+                      <Text style={styles.docCardTitle}>{docType ?? "Belge"} hazırlandı</Text>
+                      <Text style={styles.docCardSub}>Önizlemek için dokunun</Text>
+                    </View>
+                    <Eye size={16} color={Colors.mutedForeground} strokeWidth={1.5} />
                   </TouchableOpacity>
                 </Animated.View>
               )}
-              <View style={{ height: 12 }} />
+              <View style={{ height: 16 }} />
             </>
           }
         />
 
-        {/* Input Bar */}
+        {/* Input */}
         <View style={styles.inputArea}>
-          {quota <= 2 && quota > 0 && (
-            <TouchableOpacity onPress={() => setUpgradeOpen(true)} style={styles.lowQuotaBanner}>
-              <Crown size={12} color={Colors.warning} />
-              <Text style={styles.lowQuotaText}>Yalnızca {quota} belge kredisi kaldı. Pro'ya geç →</Text>
-            </TouchableOpacity>
-          )}
-          <View style={styles.inputCard}>
+          <View style={styles.inputRow}>
             <TextInput
-              ref={inputRef}
               value={input}
               onChangeText={setInput}
-              placeholder="Belge isteğinizi yazın…"
+              placeholder="Bir belge talep edin…"
               placeholderTextColor={Colors.mutedForeground}
               multiline
               style={styles.textInput}
-              onSubmitEditing={() => handleSend(input)}
             />
             <TouchableOpacity
               onPress={() => handleSend(input)}
               disabled={!input.trim() || typing}
               style={[styles.sendBtn, (!input.trim() || typing) && styles.sendBtnDisabled]}
             >
-              {typing ? (
-                <RotateCcw size={14} color="#fff" />
-              ) : (
-                <Send size={14} color="#fff" />
-              )}
+              {typing
+                ? <RotateCcw size={14} color="#fff" strokeWidth={2} />
+                : <Send size={14} color="#fff" strokeWidth={2} />}
             </TouchableOpacity>
           </View>
-          <Text style={styles.inputHint}>EvrakAI hukuki tavsiye vermez. Önemli işlemler için avukata danışın.</Text>
+          <Text style={styles.disclaimer}>EvrakAI hukuki tavsiye vermez. Önemli işlemler için avukata danışın.</Text>
         </View>
       </KeyboardAvoidingView>
 
-      {/* Document Preview Sheet */}
+      {/* Preview Sheet */}
       <DialogSheet
         visible={previewOpen}
         onClose={() => setPreviewOpen(false)}
-        title={`${docType ?? "Belge"} Önizleme`}
-        subtitle="Belgenizi kontrol edip paylaşabilirsiniz"
+        title={docType ?? "Belge Önizleme"}
+        subtitle="Belgenizi inceleyip paylaşabilirsiniz"
         footer={
-          <View style={styles.sheetFooterBtns}>
-            <GradientButton
-              onPress={handleShare}
-              title="Paylaş / Kopyala"
-              icon={<Share2 size={15} color="#fff" />}
-              style={{ flex: 1 }}
-            />
-          </View>
+          <GradientButton
+            onPress={handleShare}
+            title="Paylaş"
+            icon={<Share2 size={15} color="#fff" />}
+            style={{ flex: 1 }}
+          />
         }
       >
         <MarkdownView content={generatedDoc} maxHeight={380} />
@@ -339,30 +273,28 @@ export const ChatScreen: React.FC = () => {
       <DialogSheet
         visible={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
-        title="Pro'ya Geç"
-        subtitle="Sınırsız belge ve öncelikli AI erişimi"
+        title="Pro Plana Geç"
+        subtitle="Sınırsız belge ve gelişmiş özellikler"
       >
-        <View style={styles.upgradeContent}>
+        <View style={styles.upgradeList}>
           {["Sınırsız belge oluşturma", "Öncelikli AI yanıt süresi", "PDF dışa aktarma (yakında)", "Tüm şablonlara erişim"].map((f, i) => (
-            <View key={i} style={styles.upgradeFeature}>
-              <View style={styles.upgradeCheck}>
-                <Text style={styles.upgradeCheckText}>✓</Text>
-              </View>
-              <Text style={styles.upgradeFeatureText}>{f}</Text>
+            <View key={i} style={styles.upgradeRow}>
+              <Text style={styles.upgradeCheck}>✓</Text>
+              <Text style={styles.upgradeRowText}>{f}</Text>
             </View>
           ))}
           <View style={styles.upgradePriceRow}>
             <Text style={styles.upgradePrice}>₺149</Text>
-            <Text style={styles.upgradePriceSub}>/ay</Text>
+            <Text style={styles.upgradePeriod}>/ay</Text>
           </View>
           <GradientButton
             onPress={() => { setUpgradeOpen(false); Alert.alert("Pro", "Ödeme entegrasyonu yakında aktif olacak!"); }}
             title="Pro'ya Geç"
             size="lg"
-            style={{ marginTop: 8 }}
+            style={{ marginTop: 4 }}
           />
-          <TouchableOpacity onPress={() => setUpgradeOpen(false)} style={styles.upgradeSkip}>
-            <Text style={styles.upgradeSkipText}>Şimdi değil</Text>
+          <TouchableOpacity onPress={() => setUpgradeOpen(false)} style={styles.skipBtn}>
+            <Text style={styles.skipText}>Şimdi değil</Text>
           </TouchableOpacity>
         </View>
       </DialogSheet>
@@ -377,199 +309,182 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 13,
     backgroundColor: Colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.separator,
   },
-  logoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  logoIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  logoTitle: { fontSize: 15, fontWeight: "700", color: Colors.foreground },
-  logoSub: { fontSize: 10, color: Colors.mutedForeground, marginTop: 1 },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
-  quotaPill: {
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  logoMark: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    backgroundColor: Colors.accentLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoGlyph: { fontSize: 15 },
+  headerTitle: { fontSize: 17, fontWeight: "600", color: Colors.label, letterSpacing: -0.4 },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
+  quotaBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
     borderWidth: 1,
-    backgroundColor: Colors.muted,
+    backgroundColor: Colors.background,
   },
-  quotaText: { fontSize: 11, fontWeight: "700" },
-  newChatBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
-    backgroundColor: Colors.primaryLight,
+  quotaDot: { width: 6, height: 6, borderRadius: 3 },
+  quotaText: { fontSize: 12, fontWeight: "500" },
+  iconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: Colors.accentLight,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  quotaBarBg: { height: 2, backgroundColor: Colors.border },
-  quotaBarFill: { height: 2, borderRadius: 1 },
+  chatContent: { padding: 16, gap: 10, flexGrow: 1 },
 
-  chatContent: {
-    padding: 16,
-    gap: 10,
-    flexGrow: 1,
-  },
-
-  chipsSection: { marginBottom: 8 },
-  chipsLabel: { fontSize: 11, fontWeight: "600", color: Colors.mutedForeground, marginBottom: 10, letterSpacing: 0.3 },
-  chipsRow: { gap: 8, paddingRight: 4 },
-  chipBtn: {
+  chipsSection: { marginBottom: 4 },
+  chipsLabel: { fontSize: 12, fontWeight: "500", color: Colors.mutedForeground, marginBottom: 10, letterSpacing: 0.1 },
+  chipsRow: { gap: 7, paddingRight: 4 },
+  chip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separatorOpaque,
+    borderRadius: 20,
     ...Shadows.xs,
   },
   chipEmoji: { fontSize: 13 },
-  chipText: { fontSize: 12, fontWeight: "500", color: Colors.foreground },
+  chipText: { fontSize: 13, color: Colors.label, letterSpacing: -0.1 },
 
-  messageRow: { flexDirection: "row", alignItems: "flex-end", gap: 7 },
-  messageRowUser: { justifyContent: "flex-end" },
-  messageRowAssistant: { justifyContent: "flex-start" },
-
-  avatarDot: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: Colors.primaryLight,
+  msgRow: { flexDirection: "row", alignItems: "flex-end", gap: 7 },
+  msgRowUser: { justifyContent: "flex-end" },
+  msgRowAI: { justifyContent: "flex-start" },
+  aiAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    backgroundColor: Colors.accentLight,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 2,
   },
-
-  userBubble: {
-    maxWidth: "78%",
+  bubble: {
+    maxWidth: "80%",
     paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 4,
-    ...Shadows.xs,
+    paddingVertical: 10,
+    borderRadius: 18,
   },
-  userText: { color: "#fff", fontSize: 14, lineHeight: 20 },
-
-  assistantBubble: {
-    maxWidth: "82%",
+  bubbleUser: {
+    backgroundColor: Colors.accent,
+    borderBottomRightRadius: 5,
+  },
+  bubbleAI: {
     backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separator,
+    borderBottomLeftRadius: 5,
     ...Shadows.xs,
   },
-  assistantText: { color: Colors.foreground, fontSize: 14, lineHeight: 20 },
+  bubbleText: { fontSize: 15, lineHeight: 21, letterSpacing: -0.2 },
+  bubbleTextUser: { color: "#fff" },
+  bubbleTextAI: { color: Colors.label },
+  typingBubble: { paddingVertical: 14 },
 
-  docReadyCard: {
+  docCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.card,
-    borderWidth: 1.5,
-    borderColor: Colors.primary + "60",
-    borderRadius: 18,
-    padding: 14,
-    marginTop: 6,
-    ...Shadows.card,
-  },
-  docReadyIconWrap: {
-    width: 46,
-    height: 46,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separatorOpaque,
     borderRadius: 14,
+    padding: 14,
+    gap: 12,
+    ...Shadows.sm,
+  },
+  docCardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: Colors.accentLight,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
-  docReadyText: { flex: 1 },
-  docReadyTitle: { fontSize: 14, fontWeight: "700", color: Colors.foreground },
-  docReadySub: { fontSize: 11, color: Colors.mutedForeground, marginTop: 2 },
+  docCardText: { flex: 1 },
+  docCardTitle: { fontSize: 14, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
+  docCardSub: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
 
   inputArea: {
     paddingHorizontal: 12,
     paddingTop: 8,
-    paddingBottom: Platform.OS === "ios" ? 4 : 10,
+    paddingBottom: Platform.OS === "ios" ? 4 : 12,
     backgroundColor: Colors.card,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.separator,
   },
-  lowQuotaBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    backgroundColor: Colors.warningLight,
-    borderRadius: 10,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: Colors.warning + "40",
-  },
-  lowQuotaText: { fontSize: 11, color: Colors.warningForeground, fontWeight: "600", flex: 1 },
-  inputCard: {
+  inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    backgroundColor: Colors.input,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 22,
+    backgroundColor: Colors.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separatorOpaque,
+    borderRadius: 16,
     paddingLeft: 14,
     paddingRight: 6,
     paddingVertical: 6,
   },
   textInput: {
     flex: 1,
-    fontSize: 14,
-    color: Colors.foreground,
+    fontSize: 15,
+    color: Colors.label,
     minHeight: 36,
     maxHeight: 100,
-    paddingTop: Platform.OS === "ios" ? 8 : 6,
-    paddingBottom: Platform.OS === "ios" ? 8 : 6,
+    paddingTop: Platform.OS === "ios" ? 7 : 5,
+    paddingBottom: Platform.OS === "ios" ? 7 : 5,
+    letterSpacing: -0.2,
   },
   sendBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: Colors.primary,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: Colors.accent,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 6,
-    ...Shadows.sm,
   },
-  sendBtnDisabled: { backgroundColor: Colors.border },
-  inputHint: { fontSize: 9, color: Colors.mutedForeground, textAlign: "center", marginTop: 6 },
+  sendBtnDisabled: { backgroundColor: Colors.muted },
+  disclaimer: {
+    fontSize: 10,
+    color: Colors.mutedForeground,
+    textAlign: "center",
+    marginTop: 7,
+    letterSpacing: 0.1,
+  },
 
-  sheetFooterBtns: { flexDirection: "row", gap: 10 },
-
-  upgradeContent: { gap: 14 },
-  upgradeFeature: { flexDirection: "row", alignItems: "center", gap: 12 },
+  upgradeList: { gap: 12 },
+  upgradeRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   upgradeCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.successLight,
-    alignItems: "center",
-    justifyContent: "center",
+    fontSize: 13,
+    color: Colors.green,
+    fontWeight: "700",
+    width: 20,
+    textAlign: "center",
   },
-  upgradeCheckText: { fontSize: 12, color: Colors.success, fontWeight: "700" },
-  upgradeFeatureText: { fontSize: 14, color: Colors.foreground },
-  upgradePriceRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "center", marginTop: 4 },
-  upgradePrice: { fontSize: 36, fontWeight: "700", color: Colors.primary },
-  upgradePriceSub: { fontSize: 14, color: Colors.mutedForeground, marginBottom: 6, marginLeft: 4 },
-  upgradeSkip: { alignItems: "center", paddingVertical: 10 },
-  upgradeSkipText: { fontSize: 13, color: Colors.mutedForeground },
+  upgradeRowText: { fontSize: 15, color: Colors.label, letterSpacing: -0.2 },
+  upgradePriceRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "center", marginTop: 6 },
+  upgradePrice: { fontSize: 40, fontWeight: "700", color: Colors.accent, letterSpacing: -1 },
+  upgradePeriod: { fontSize: 15, color: Colors.mutedForeground, marginBottom: 8, marginLeft: 4 },
+  skipBtn: { alignItems: "center", paddingVertical: 12 },
+  skipText: { fontSize: 14, color: Colors.mutedForeground },
 });

@@ -8,45 +8,38 @@ import {
   TouchableOpacity,
   Share,
   Alert,
-  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { LinearGradient } from "expo-linear-gradient";
 import {
   Search,
   Star,
   FileText,
   Share2,
   Trash2,
-  Home,
-  Briefcase,
-  GraduationCap,
-  User,
-  BookOpen,
   ChevronRight,
 } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";
 import { StorageService, Document } from "../services/storage";
-import { DialogSheet, GradientButton, Badge } from "../components/ui";
+import { DialogSheet, GradientButton } from "../components/ui";
 import { MarkdownView } from "../components/MarkdownView";
 
 const CATEGORIES = ["Tümü", "Hukuki", "İş Hayatı", "Eğitim", "Kişisel"] as const;
 
-const CATEGORY_COLORS: Record<string, { bg: string; icon: string; gradient: string[] }> = {
-  Hukuki: { bg: "#ffe4e4", icon: "#ef4444", gradient: ["#ef4444", "#dc2626"] },
-  "İş Hayatı": { bg: "#fef3c7", icon: "#f59e0b", gradient: ["#f59e0b", "#d97706"] },
-  Eğitim: { bg: "#dbeafe", icon: "#3b82f6", gradient: ["#3b82f6", "#2563eb"] },
-  Kişisel: { bg: "#d1fae5", icon: "#10b981", gradient: ["#10b981", "#059669"] },
-  default: { bg: Colors.primaryLight, icon: Colors.primary, gradient: Colors.gradientPrimary as unknown as string[] },
+const CAT_ACCENT: Record<string, string> = {
+  Hukuki: Colors.red,
+  "İş Hayatı": Colors.orange,
+  Eğitim: Colors.blue,
+  Kişisel: Colors.green,
+  default: Colors.accent,
 };
 
-const CATEGORY_ICONS: Record<string, React.FC<any>> = {
-  Hukuki: Home,
-  "İş Hayatı": Briefcase,
-  Eğitim: GraduationCap,
-  Kişisel: User,
+const CAT_EMOJI: Record<string, string> = {
+  Hukuki: "⚖️",
+  "İş Hayatı": "💼",
+  Eğitim: "🎓",
+  Kişisel: "👤",
 };
 
 export const DocumentsScreen: React.FC = () => {
@@ -55,11 +48,9 @@ export const DocumentsScreen: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      StorageService.getDocuments().then(setDocuments);
-    }, [])
-  );
+  useFocusEffect(useCallback(() => {
+    StorageService.getDocuments().then(setDocuments);
+  }, []));
 
   const toggleFavorite = async (id: string) => {
     const updated = documents.map((d) => (d.id === id ? { ...d, favorite: !d.favorite } : d));
@@ -68,7 +59,7 @@ export const DocumentsScreen: React.FC = () => {
   };
 
   const deleteDocument = (id: string) => {
-    Alert.alert("Belgeyi Sil", "Bu belge kalıcı olarak silinecek. Emin misiniz?", [
+    Alert.alert("Belgeyi Sil", "Bu belge kalıcı olarak silinecek.", [
       { text: "Vazgeç", style: "cancel" },
       {
         text: "Sil",
@@ -84,9 +75,7 @@ export const DocumentsScreen: React.FC = () => {
   };
 
   const handleShare = async (doc: Document) => {
-    try {
-      await Share.share({ message: doc.content, title: `${doc.title} — EvrakAI` });
-    } catch {}
+    try { await Share.share({ message: doc.content, title: doc.title }); } catch {}
   };
 
   const filtered = documents.filter((d) => {
@@ -100,55 +89,42 @@ export const DocumentsScreen: React.FC = () => {
   const favorites = filtered.filter((d) => d.favorite);
   const rest = filtered.filter((d) => !d.favorite);
 
-  const getIcon = (category: string) => {
-    const IconComp = CATEGORY_ICONS[category] || BookOpen;
-    const colors = CATEGORY_COLORS[category] || CATEGORY_COLORS.default;
-    return { IconComp, colors };
-  };
-
   const renderDoc = ({ item }: { item: Document }) => {
-    const { IconComp, colors } = getIcon(item.category);
+    const accent = CAT_ACCENT[item.category] ?? CAT_ACCENT.default;
+    const emoji = CAT_EMOJI[item.category] ?? "📄";
     return (
-      <TouchableOpacity onPress={() => setSelectedDoc(item)} activeOpacity={0.78} style={styles.docCard}>
-        <LinearGradient colors={colors.gradient as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.docIconWrap}>
-          <IconComp size={18} color="#fff" />
-        </LinearGradient>
-
-        <View style={styles.docBody}>
-          <View style={styles.docTitleRow}>
-            <Text style={styles.docTitle} numberOfLines={1}>{item.title}</Text>
-            {item.favorite && <Star size={12} color={Colors.warning} fill={Colors.warning} />}
-          </View>
-          <View style={styles.docMeta}>
-            <Text style={styles.docDate}>{item.date}</Text>
-            <View style={[styles.statusDot, { backgroundColor: item.status === "Tamamlandı" ? Colors.success : Colors.warning }]} />
-            <Text style={[styles.docStatus, { color: item.status === "Tamamlandı" ? Colors.success : Colors.warning }]}>
-              {item.status}
-            </Text>
-          </View>
+      <TouchableOpacity onPress={() => setSelectedDoc(item)} activeOpacity={0.7} style={styles.docRow}>
+        <View style={[styles.docEmoji, { backgroundColor: accent + "15" }]}>
+          <Text style={{ fontSize: 16 }}>{emoji}</Text>
         </View>
-
-        <View style={styles.docActions}>
-          <TouchableOpacity onPress={() => toggleFavorite(item.id)} style={styles.actionIconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Star size={15} color={item.favorite ? Colors.warning : Colors.mutedForeground} fill={item.favorite ? Colors.warning : "transparent"} />
+        <View style={styles.docBody}>
+          <Text style={styles.docTitle} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.docMeta}>{item.date} · {item.status}</Text>
+        </View>
+        <View style={styles.docRight}>
+          <TouchableOpacity
+            onPress={() => toggleFavorite(item.id)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Star
+              size={15}
+              color={item.favorite ? Colors.yellow : Colors.mutedForeground}
+              fill={item.favorite ? Colors.yellow : "transparent"}
+              strokeWidth={1.5}
+            />
           </TouchableOpacity>
-          <ChevronRight size={14} color={Colors.mutedForeground} />
+          <ChevronRight size={14} color={Colors.mutedForeground} strokeWidth={1.5} />
         </View>
       </TouchableOpacity>
     );
   };
 
-  const EmptyState = () => (
-    <View style={styles.emptyState}>
-      <View style={styles.emptyIconBg}>
-        <FileText size={32} color={Colors.primary} />
-      </View>
-      <Text style={styles.emptyTitle}>Henüz belge yok</Text>
-      <Text style={styles.emptyDesc}>
-        {query ? "Arama kriterlerine uyan belge bulunamadı." : "Sohbet sekmesinden ilk belgenizi oluşturun!"}
-      </Text>
-    </View>
-  );
+  type ListItem = Document | { _section: string };
+
+  const listData: ListItem[] = [
+    ...(favorites.length > 0 ? [{ _section: "Favoriler" } as ListItem, ...favorites] : []),
+    ...(rest.length > 0 ? [{ _section: favorites.length > 0 ? "Belgeler" : "Tüm Belgeler" } as ListItem, ...rest] : []),
+  ];
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -156,81 +132,88 @@ export const DocumentsScreen: React.FC = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Belgelerim</Text>
-          <Text style={styles.headerSub}>{documents.length} belge</Text>
-        </View>
-        <View style={styles.headerBadgeWrap}>
-          <Badge label={`${favorites.length} ★`} color={Colors.warning} bg={Colors.warningLight} size="md" />
-        </View>
+        <Text style={styles.headerTitle}>Belgelerim</Text>
+        <Text style={styles.headerCount}>{documents.length} belge</Text>
       </View>
 
       {/* Search */}
       <View style={styles.searchWrap}>
         <View style={styles.searchBar}>
-          <Search size={15} color={Colors.mutedForeground} />
+          <Search size={15} color={Colors.mutedForeground} strokeWidth={1.5} />
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Belgelerde ara…"
+            placeholder="Arama"
             placeholderTextColor={Colors.mutedForeground}
             style={styles.searchInput}
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery("")}>
-              <Text style={styles.clearBtn}>✕</Text>
+            <TouchableOpacity onPress={() => setQuery("")} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+              <View style={styles.clearBtn}>
+                <Text style={styles.clearBtnText}>✕</Text>
+              </View>
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* Categories */}
+      {/* Category Tabs */}
       <FlatList
         horizontal
         data={CATEGORIES}
         keyExtractor={(c) => c}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.catRow}
+        style={{ flexGrow: 0 }}
         renderItem={({ item: c }) => {
           const active = activeCategory === c;
           return (
-            <TouchableOpacity onPress={() => setActiveCategory(c)} activeOpacity={0.8} style={[styles.catBtn, active && styles.catBtnActive]}>
+            <TouchableOpacity
+              onPress={() => setActiveCategory(c)}
+              activeOpacity={0.7}
+              style={[styles.catPill, active && styles.catPillActive]}
+            >
               <Text style={[styles.catText, active && styles.catTextActive]}>{c}</Text>
             </TouchableOpacity>
           );
         }}
-        style={styles.catScroll}
       />
 
-      {/* List */}
-      <FlatList
-        data={[
-          ...(favorites.length > 0 ? [{ _type: "section", label: "⭐ Favoriler" }, ...favorites] : []),
-          ...(rest.length > 0 ? [{ _type: "section", label: favorites.length > 0 ? "Diğerleri" : "Tüm Belgeler" }, ...rest] : []),
-        ] as any[]}
-        keyExtractor={(item, i) => item.id ?? `section-${i}`}
+      {/* Document List */}
+      <FlatList<ListItem>
+        data={listData}
+        keyExtractor={(item, i) => ("id" in item ? item.id : `s-${i}`)}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<EmptyState />}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Text style={styles.emptyIcon}>📂</Text>
+            <Text style={styles.emptyTitle}>Belge bulunamadı</Text>
+            <Text style={styles.emptyDesc}>
+              {query ? "Arama kriterlerine uyan belge yok." : "Sohbet sekmesinden ilk belgenizi oluşturun."}
+            </Text>
+          </View>
+        }
         renderItem={({ item }) => {
-          if (item._type === "section") {
-            return <Text style={styles.sectionLabel}>{item.label}</Text>;
+          if ("_section" in item) {
+            return <Text style={styles.sectionHeader}>{item._section}</Text>;
           }
           return renderDoc({ item });
         }}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
 
       {/* Detail Sheet */}
       {selectedDoc && (
         <DialogSheet
-          visible={!!selectedDoc}
+          visible
           onClose={() => setSelectedDoc(null)}
           title={selectedDoc.title}
           subtitle={`${selectedDoc.type} · ${selectedDoc.date}`}
           footer={
-            <View style={styles.sheetFooterRow}>
+            <View style={styles.sheetFooter}>
               <TouchableOpacity onPress={() => deleteDocument(selectedDoc.id)} style={styles.deleteBtn}>
-                <Trash2 size={16} color={Colors.destructive} />
+                <Trash2 size={16} color={Colors.red} strokeWidth={1.5} />
               </TouchableOpacity>
               <GradientButton
                 onPress={() => handleShare(selectedDoc)}
@@ -252,106 +235,100 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 18,
     paddingBottom: 12,
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
   },
-  headerTitle: { fontSize: 24, fontWeight: "700", color: Colors.foreground },
-  headerSub: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
-  headerBadgeWrap: { paddingTop: 4 },
+  headerTitle: { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.5 },
+  headerCount: { fontSize: 14, color: Colors.mutedForeground },
 
-  searchWrap: { paddingHorizontal: 16, paddingBottom: 8 },
+  searchWrap: { paddingHorizontal: 16, marginBottom: 10 },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    height: 44,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separatorOpaque,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 40,
     ...Shadows.xs,
   },
-  searchInput: { flex: 1, fontSize: 13, color: Colors.foreground },
-  clearBtn: { fontSize: 12, color: Colors.mutedForeground, padding: 4 },
+  searchInput: { flex: 1, fontSize: 15, color: Colors.label, letterSpacing: -0.2 },
+  clearBtn: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.mutedForeground,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  clearBtnText: { fontSize: 8, color: "#fff", fontWeight: "700" },
 
-  catScroll: { maxHeight: 50 },
-  catRow: { paddingHorizontal: 16, gap: 8, alignItems: "center" },
-  catBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  catRow: { paddingHorizontal: 16, gap: 7, paddingBottom: 12 },
+  catPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 20,
     backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separatorOpaque,
   },
-  catBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  catText: { fontSize: 12, fontWeight: "500", color: Colors.mutedForeground },
-  catTextActive: { color: "#fff", fontWeight: "700" },
+  catPillActive: { backgroundColor: Colors.accent },
+  catText: { fontSize: 13, color: Colors.label },
+  catTextActive: { color: "#fff", fontWeight: "600" },
 
-  listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24, gap: 8 },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
+  listContent: { paddingHorizontal: 16, paddingBottom: 32 },
+  sectionHeader: {
+    fontSize: 13,
+    fontWeight: "600",
     color: Colors.mutedForeground,
-    letterSpacing: 0.4,
-    marginTop: 8,
-    marginBottom: 2,
+    letterSpacing: -0.1,
+    marginTop: 16,
+    marginBottom: 6,
     marginLeft: 2,
   },
 
-  docCard: {
+  docRow: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 18,
-    padding: 13,
-    ...Shadows.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 13,
+    gap: 12,
+    ...Shadows.xs,
   },
-  docIconWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  docBody: { flex: 1, gap: 4 },
-  docTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  docTitle: { fontSize: 13, fontWeight: "700", color: Colors.foreground, flex: 1 },
-  docMeta: { flexDirection: "row", alignItems: "center", gap: 6 },
-  docDate: { fontSize: 11, color: Colors.mutedForeground },
-  statusDot: { width: 5, height: 5, borderRadius: 2.5 },
-  docStatus: { fontSize: 10, fontWeight: "600" },
-  docActions: { flexDirection: "row", alignItems: "center", gap: 6, marginLeft: 8 },
-  actionIconBtn: { padding: 4 },
-
-  emptyState: { alignItems: "center", paddingTop: 64, gap: 14 },
-  emptyIconBg: {
-    width: 72,
-    height: 72,
-    borderRadius: 22,
-    backgroundColor: Colors.primaryLight,
+  separator: { height: 6 },
+  docEmoji: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: Colors.foreground },
-  emptyDesc: { fontSize: 13, color: Colors.mutedForeground, textAlign: "center", paddingHorizontal: 40, lineHeight: 19 },
+  docBody: { flex: 1, gap: 3 },
+  docTitle: { fontSize: 14, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
+  docMeta: { fontSize: 12, color: Colors.mutedForeground },
+  docRight: { flexDirection: "row", alignItems: "center", gap: 8 },
 
-  sheetFooterRow: { flexDirection: "row", gap: 10, alignItems: "center" },
+  empty: { alignItems: "center", paddingTop: 72, gap: 10 },
+  emptyIcon: { fontSize: 40 },
+  emptyTitle: { fontSize: 17, fontWeight: "600", color: Colors.label },
+  emptyDesc: { fontSize: 14, color: Colors.mutedForeground, textAlign: "center", paddingHorizontal: 40, lineHeight: 20 },
+
+  sheetFooter: { flexDirection: "row", gap: 10, alignItems: "center" },
   deleteBtn: {
-    width: 48,
-    height: 50,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.destructive + "40",
-    backgroundColor: Colors.destructive + "10",
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.red + "50",
+    backgroundColor: Colors.red + "10",
     alignItems: "center",
     justifyContent: "center",
   },

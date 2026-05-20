@@ -7,51 +7,23 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { LinearGradient } from "expo-linear-gradient";
 import {
-  Zap,
-  FileText,
-  TrendingUp,
-  Shield,
   ChevronRight,
-  Crown,
-  Settings,
-  LogOut,
-  CheckCircle,
-  Info,
   Key,
+  Shield,
+  Info,
+  LogOut,
+  Check,
 } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";
 import { StorageService } from "../services/storage";
-import { GradientButton, DialogSheet, Badge } from "../components/ui";
+import { GradientButton, DialogSheet } from "../components/ui";
 
 const FREE_LIMIT = 8;
-
-const PLANS = [
-  {
-    id: "free",
-    name: "Ücretsiz",
-    price: "₺0",
-    period: "",
-    features: ["8 belge/ay", "Temel şablonlar", "Sohbet geçmişi"],
-    cta: "Mevcut Plan",
-    isPro: false,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "₺149",
-    period: "/ay",
-    features: ["Sınırsız belge", "Öncelikli AI", "Tüm şablonlar", "PDF çıktı (yakında)"],
-    cta: "Pro'ya Geç",
-    isPro: true,
-  },
-];
 
 export const ProfileScreen: React.FC = () => {
   const [signedIn, setSignedIn] = useState(false);
@@ -65,17 +37,12 @@ export const ProfileScreen: React.FC = () => {
   const [lovableKey, setLovableKey] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [])
-  );
+  useFocusEffect(useCallback(() => { loadData(); }, []));
 
   const loadData = async () => {
     const logged = await StorageService.getUserLoggedIn();
     setSignedIn(logged);
-    const q = await StorageService.getQuota();
-    setQuota(q);
+    setQuota(await StorageService.getQuota());
     const docs = await StorageService.getDocuments();
     setTotalDocs(docs.length);
     const keys = await StorageService.getApiKeys();
@@ -84,65 +51,40 @@ export const ProfileScreen: React.FC = () => {
     setLovableKey(keys.lovableKey);
   };
 
-  const handleLogin = async () => {
-    await StorageService.setUserLoggedIn(true);
-    setSignedIn(true);
-  };
-
-  const handleLogout = () => {
-    Alert.alert("Çıkış Yap", "Hesabınızdan çıkış yapmak istiyor musunuz?", [
-      { text: "Vazgeç", style: "cancel" },
-      { text: "Çıkış", style: "destructive", onPress: async () => {
-        await StorageService.setUserLoggedIn(false);
-        setSignedIn(false);
-      }},
-    ]);
-  };
-
   const saveApiSettings = async () => {
     setSaving(true);
     await StorageService.saveApiKeys({ provider, geminiKey, lovableKey });
     setSaving(false);
     setApiOpen(false);
-    Alert.alert("✓ Kaydedildi", "API ayarlarınız güncellendi.");
   };
 
-  const handleUpgrade = () => {
-    Alert.alert("Pro Plan", "Ödeme entegrasyonu çok yakında! Erken erişim listesine eklendi.", [
-      { text: "Harika!", onPress: () => { setIsPro(true); setPlansOpen(false); } },
-    ]);
-  };
-
-  const quotaUsed = FREE_LIMIT - quota;
-  const quotaPercent = (quota / FREE_LIMIT) * 100;
-
-  // ── Onboarding (not signed in) ─────────────────────────────────────────────
+  // ── Onboarding ─────────────────────────────────────────────────────────────
   if (!signedIn) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.onboarding} showsVerticalScrollIndicator={false}>
-          <LinearGradient colors={Colors.gradientHero as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.onboardingHero}>
-            <View style={styles.onboardingIconWrap}>
-              <Text style={styles.onboardingEmoji}>⚖️</Text>
-            </View>
-            <Text style={styles.onboardingTitle}>EvrakAI'ya Hoş Geldiniz</Text>
-            <Text style={styles.onboardingSub}>
-              Yapay zekâ ile saniyeler içinde hukuki, iş ve kişisel belgeler oluşturun.
+          {/* Hero */}
+          <View style={styles.heroSection}>
+            <View style={styles.heroIcon}><Text style={{ fontSize: 42 }}>⚖️</Text></View>
+            <Text style={styles.heroTitle}>EvrakAI</Text>
+            <Text style={styles.heroSub}>
+              Yapay zekâ destekli Türkçe belge asistanı.{"\n"}Dilekçe, sözleşme, ihtarname ve daha fazlası.
             </Text>
-          </LinearGradient>
+          </View>
 
-          <View style={styles.onboardingFeatures}>
+          {/* Features */}
+          <View style={styles.featureList}>
             {[
-              { emoji: "📄", title: "Akıllı Belge Oluşturma", desc: "Dilekçe, sözleşme, ihtarname ve daha fazlası" },
-              { emoji: "🤖", title: "Güçlü AI Motoru", desc: "Türkiye hukuku ve resmi yazışma kurallarına uygun" },
+              { emoji: "📄", title: "Akıllı Belge Oluşturma", desc: "Doğal dilde tarif edin, belge saniyeler içinde hazır olsun" },
               { emoji: "🔒", title: "Gizlilik Önce", desc: "Belgeleriniz yalnızca cihazınızda saklanır" },
+              { emoji: "⚡", title: "Hızlı ve Kolay", desc: "Karmaşık formlar yok. Sadece yazın, asistan halleder" },
             ].map((f, i) => (
-              <View key={i} style={styles.onboardingFeatureRow}>
-                <View style={styles.featureEmojiBg}>
-                  <Text style={styles.featureEmoji}>{f.emoji}</Text>
+              <View key={i} style={styles.featureRow}>
+                <View style={styles.featureEmojiWrap}>
+                  <Text style={{ fontSize: 18 }}>{f.emoji}</Text>
                 </View>
-                <View style={styles.featureTextWrap}>
+                <View style={{ flex: 1 }}>
                   <Text style={styles.featureTitle}>{f.title}</Text>
                   <Text style={styles.featureDesc}>{f.desc}</Text>
                 </View>
@@ -150,199 +92,187 @@ export const ProfileScreen: React.FC = () => {
             ))}
           </View>
 
+          {/* CTA */}
           <View style={styles.onboardingBtns}>
-            <GradientButton onPress={handleLogin} title="Hemen Başla — Ücretsiz" size="lg" />
-            <TouchableOpacity onPress={handleLogin} style={styles.signinLink}>
-              <Text style={styles.signinLinkText}>Zaten hesabım var → Giriş Yap</Text>
-            </TouchableOpacity>
+            <GradientButton
+              onPress={async () => { await StorageService.setUserLoggedIn(true); setSignedIn(true); }}
+              title="Başla — Ücretsiz"
+              size="lg"
+            />
+            <Text style={styles.terms}>
+              Devam ederek Gizlilik Politikamızı kabul etmiş olursunuz.
+            </Text>
           </View>
-
-          <Text style={styles.kvkk}>
-            Devam ederek KVKK kapsamında Gizlilik Politikamızı ve Kullanım Koşullarımızı kabul etmiş olursunuz.
-          </Text>
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // ── Logged In ──────────────────────────────────────────────────────────────
+  // ── Profile ────────────────────────────────────────────────────────────────
+  const quotaUsed = FREE_LIMIT - quota;
+  const providerLabel = provider === "mock" ? "Çevrimdışı Motor" : provider === "gemini" ? "Google Gemini" : "Lovable AI";
+
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* User Card */}
-        <View style={styles.userCard}>
-          <LinearGradient colors={Colors.gradientPrimary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
+        {/* Profile Header */}
+        <View style={styles.profileHeader}>
+          <View style={styles.avatar}>
             <Text style={styles.avatarText}>AY</Text>
-          </LinearGradient>
-          <View style={styles.userInfo}>
-            <View style={styles.userNameRow}>
-              <Text style={styles.userName}>Ahmet Yılmaz</Text>
-              {isPro && <Badge label="PRO" color="#fff" bg={Colors.pro} size="sm" />}
-            </View>
-            <Text style={styles.userEmail}>ahmet@evrakai.com</Text>
           </View>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-            <LogOut size={15} color={Colors.mutedForeground} />
+          <View style={{ flex: 1 }}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>Ahmet Yılmaz</Text>
+              {isPro && (
+                <View style={styles.proBadge}>
+                  <Text style={styles.proBadgeText}>PRO</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.email}>ahmet@evrakai.com</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => Alert.alert("Çıkış Yap", "Hesabınızdan çıkış yapmak istiyor musunuz?", [
+              { text: "Vazgeç", style: "cancel" },
+              { text: "Çıkış", style: "destructive", onPress: async () => { await StorageService.setUserLoggedIn(false); setSignedIn(false); } },
+            ])}
+            style={styles.logoutBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <LogOut size={16} color={Colors.mutedForeground} strokeWidth={1.5} />
           </TouchableOpacity>
         </View>
 
-        {/* Stats Row */}
+        {/* Stats */}
         <View style={styles.statsRow}>
           {[
-            { label: "Toplam Belge", value: totalDocs, icon: FileText, color: Colors.primary },
-            { label: "Bu Ay", value: Math.min(quotaUsed, totalDocs), icon: TrendingUp, color: Colors.success },
-            { label: "Kalan Kredi", value: isPro ? "∞" : quota, icon: Zap, color: Colors.warning },
-          ].map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <View key={i} style={styles.statCard}>
-                <View style={[styles.statIconBg, { backgroundColor: s.color + "20" }]}>
-                  <Icon size={14} color={s.color} />
-                </View>
-                <Text style={styles.statValue}>{s.value}</Text>
-                <Text style={styles.statLabel}>{s.label}</Text>
-              </View>
-            );
-          })}
+            { value: totalDocs, label: "Belge" },
+            { value: isPro ? "∞" : quotaUsed, label: "Bu Ay" },
+            { value: isPro ? "∞" : quota, label: "Kalan" },
+          ].map((s, i) => (
+            <View key={i} style={[styles.statCard, i < 2 && styles.statCardBorder]}>
+              <Text style={styles.statValue}>{s.value}</Text>
+              <Text style={styles.statLabel}>{s.label}</Text>
+            </View>
+          ))}
         </View>
 
-        {/* Quota Bar (free users) */}
+        {/* Quota */}
         {!isPro && (
-          <View style={styles.quotaSection}>
-            <View style={styles.quotaHeader}>
-              <Text style={styles.quotaSectionTitle}>Aylık Kredi Kullanımı</Text>
-              <Text style={styles.quotaNumbers}>{quotaUsed}/{FREE_LIMIT} kullanıldı</Text>
+          <View style={styles.section}>
+            <View style={styles.quotaCard}>
+              <View style={styles.quotaHeader}>
+                <Text style={styles.quotaTitle}>Aylık Kullanım</Text>
+                <Text style={styles.quotaNumbers}>{quotaUsed} / {FREE_LIMIT}</Text>
+              </View>
+              <View style={styles.quotaTrack}>
+                <View style={[styles.quotaFill, {
+                  width: `${(quotaUsed / FREE_LIMIT) * 100}%` as any,
+                  backgroundColor: quota <= 2 ? Colors.red : quota <= 4 ? Colors.orange : Colors.accent,
+                }]} />
+              </View>
+              {quota <= 3 && (
+                <Text style={styles.quotaWarn}>Krediniz azalıyor — Pro'ya geçerek sınırsız kullanın.</Text>
+              )}
             </View>
-            <View style={styles.quotaTrack}>
-              <View style={[styles.quotaFill, {
-                width: `${((quotaUsed / FREE_LIMIT) * 100).toFixed(0)}%` as any,
-                backgroundColor: quota <= 2 ? Colors.destructive : quota <= 4 ? Colors.warning : Colors.primary,
-              }]} />
-            </View>
-            {quota <= 3 && (
-              <Text style={styles.quotaWarn}>⚠️ Krediniz azalıyor. Pro'ya geçerek sınırsız kullanın.</Text>
-            )}
           </View>
         )}
 
-        {/* Plan Card */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Planım</Text>
-          <View style={styles.planCards}>
-            {PLANS.map((plan) => {
-              const active = isPro ? plan.id === "pro" : plan.id === "free";
-              return (
-                <TouchableOpacity
-                  key={plan.id}
-                  onPress={() => plan.isPro && !isPro && setPlansOpen(true)}
-                  activeOpacity={plan.isPro && !isPro ? 0.8 : 1}
-                  style={[styles.planCard, active && styles.planCardActive, plan.isPro && styles.planCardPro]}
-                >
-                  {plan.isPro && (
-                    <View style={styles.proLabel}>
-                      <Crown size={10} color="#fff" />
-                      <Text style={styles.proLabelText}>EN POPÜLER</Text>
-                    </View>
-                  )}
-                  <Text style={[styles.planName, plan.isPro && styles.planNamePro]}>{plan.name}</Text>
-                  <View style={styles.planPriceRow}>
-                    <Text style={[styles.planPrice, plan.isPro && styles.planPricePro]}>{plan.price}</Text>
-                    {plan.period ? <Text style={styles.planPeriod}>{plan.period}</Text> : null}
-                  </View>
-                  {plan.features.map((f, i) => (
-                    <View key={i} style={styles.planFeature}>
-                      <CheckCircle size={11} color={plan.isPro ? Colors.pro : Colors.success} />
-                      <Text style={[styles.planFeatureText, plan.isPro && styles.planFeatureTextPro]}>{f}</Text>
-                    </View>
-                  ))}
-                  <View style={[styles.planCta, active ? styles.planCtaActive : plan.isPro ? styles.planCtaPro : styles.planCtaInactive]}>
-                    <Text style={[styles.planCtaText, plan.isPro && !active ? styles.planCtaTextPro : active ? styles.planCtaTextActive : {}]}>
-                      {active ? "✓ " + plan.cta : plan.cta}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+        {/* Plan */}
+        {!isPro && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Plan</Text>
+            <TouchableOpacity onPress={() => setPlansOpen(true)} activeOpacity={0.75} style={styles.upgradeCard}>
+              <View style={styles.upgradeCardLeft}>
+                <Text style={styles.upgradeCardTitle}>Pro'ya Geç</Text>
+                <Text style={styles.upgradeCardDesc}>Sınırsız belge · ₺149/ay</Text>
+              </View>
+              <View style={styles.upgradeChevron}>
+                <ChevronRight size={14} color={Colors.accent} strokeWidth={2} />
+              </View>
+            </TouchableOpacity>
           </View>
-        </View>
+        )}
 
         {/* Menu */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ayarlar & Hesap</Text>
+          <Text style={styles.sectionLabel}>Ayarlar</Text>
           <View style={styles.menuCard}>
             {[
               {
-                icon: Key,
-                label: "Yapay Zekâ API Ayarları",
-                desc: provider === "mock" ? "Yerel Motor (Demo)" : provider === "gemini" ? "Google Gemini" : "Lovable AI",
+                Icon: Key,
+                label: "Yapay Zekâ Motoru",
+                value: providerLabel,
                 onPress: () => setApiOpen(true),
               },
               {
-                icon: Shield,
+                Icon: Shield,
                 label: "Gizlilik & KVKK",
-                desc: "Verileriniz yalnızca cihazınızda",
-                onPress: () => Alert.alert("Gizlilik", "KVKK kapsamında tüm verileriniz yalnızca cihazınızın yerel depolamasında tutulur. Sunucularımıza hiçbir belge içeriği iletilmez."),
+                value: "Veriler cihazda",
+                onPress: () => Alert.alert("Gizlilik", "KVKK kapsamında tüm verileriniz yalnızca cihazınızın yerel depolamasında tutulur."),
               },
               {
-                icon: Info,
+                Icon: Info,
                 label: "Hakkında",
-                desc: "EvrakAI v1.0.0",
-                onPress: () => Alert.alert("EvrakAI", "Yapay zekâ destekli Türkçe belge asistanı\nVersiyon 1.0.0\n\n© 2026 EvrakAI"),
+                value: "v1.0.0",
+                onPress: () => Alert.alert("EvrakAI", "Yapay zekâ destekli Türkçe belge asistanı\nVersiyon 1.0.0"),
               },
             ].map((item, i) => {
-              const Icon = item.icon;
+              const Icon = item.Icon;
               return (
-                <TouchableOpacity key={i} onPress={item.onPress} activeOpacity={0.75} style={[styles.menuRow, i < 2 && styles.menuRowBorder]}>
-                  <View style={styles.menuIconBg}>
-                    <Icon size={16} color={Colors.primary} />
+                <TouchableOpacity
+                  key={i}
+                  onPress={item.onPress}
+                  activeOpacity={0.7}
+                  style={[styles.menuRow, i < 2 && styles.menuRowDivider]}
+                >
+                  <View style={styles.menuIconWrap}>
+                    <Icon size={16} color={Colors.accent} strokeWidth={1.5} />
                   </View>
-                  <View style={styles.menuTextWrap}>
-                    <Text style={styles.menuLabel}>{item.label}</Text>
-                    <Text style={styles.menuDesc}>{item.desc}</Text>
-                  </View>
-                  <ChevronRight size={15} color={Colors.mutedForeground} />
+                  <Text style={styles.menuLabel}>{item.label}</Text>
+                  <Text style={styles.menuValue}>{item.value}</Text>
+                  <ChevronRight size={13} color={Colors.mutedForeground} strokeWidth={1.5} />
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        <Text style={styles.footer}>EvrakAI Mobile v1.0.0 · Yapay zekâ hukuki tavsiye vermez.</Text>
+        <Text style={styles.footer}>EvrakAI hukuki tavsiye vermez. Avukata danışmayı ihmal etmeyin.</Text>
       </ScrollView>
 
-      {/* API Settings Sheet */}
+      {/* API Sheet */}
       <DialogSheet
         visible={apiOpen}
         onClose={() => setApiOpen(false)}
-        title="AI Motoru Seç"
-        subtitle="Tercih ettiğiniz yapay zekâ sağlayıcısını seçin"
-        footer={
-          <GradientButton onPress={saveApiSettings} title="Kaydet" loading={saving} style={{ flex: 1 }} />
-        }
+        title="Yapay Zekâ Motoru"
+        subtitle="Tercih ettiğiniz sağlayıcıyı seçin"
+        footer={<GradientButton onPress={saveApiSettings} title="Kaydet" loading={saving} style={{ flex: 1 }} />}
       >
-        <View style={styles.apiContent}>
+        <View style={styles.providerList}>
           {([
-            { id: "mock", label: "Çevrimdışı Motor", desc: "Hızlı demo, API gerekmez", emoji: "🤖" },
-            { id: "gemini", label: "Google Gemini", desc: "Kendi API Key'iniz ile", emoji: "✨" },
-            { id: "lovable", label: "Lovable AI Gateway", desc: "Lovable proxy üzerinden", emoji: "💜" },
-          ] as const).map((p) => (
-            <TouchableOpacity key={p.id} onPress={() => setProvider(p.id)} style={[styles.providerRow, provider === p.id && styles.providerRowActive]}>
-              <Text style={styles.providerEmoji}>{p.emoji}</Text>
-              <View style={styles.providerInfo}>
-                <Text style={[styles.providerLabel, provider === p.id && styles.providerLabelActive]}>{p.label}</Text>
-                <Text style={styles.providerDesc}>{p.desc}</Text>
-              </View>
-              <View style={[styles.radio, provider === p.id && styles.radioActive]}>
-                {provider === p.id && <View style={styles.radioDot} />}
-              </View>
-            </TouchableOpacity>
-          ))}
+            { id: "mock", label: "Çevrimdışı Motor", desc: "API gerektirmez, demo modunda çalışır", emoji: "🤖" },
+            { id: "gemini", label: "Google Gemini", desc: "Kendi API anahtarınız ile güçlü sonuçlar", emoji: "✨" },
+            { id: "lovable", label: "Lovable AI", desc: "Lovable gateway üzerinden erişim", emoji: "💜" },
+          ] as const).map((p) => {
+            const active = provider === p.id;
+            return (
+              <TouchableOpacity key={p.id} onPress={() => setProvider(p.id)} activeOpacity={0.7} style={[styles.providerRow, active && styles.providerRowActive]}>
+                <Text style={{ fontSize: 20 }}>{p.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.providerLabel, active && styles.providerLabelActive]}>{p.label}</Text>
+                  <Text style={styles.providerDesc}>{p.desc}</Text>
+                </View>
+                {active && <Check size={16} color={Colors.accent} strokeWidth={2.5} />}
+              </TouchableOpacity>
+            );
+          })}
 
           {provider === "gemini" && (
-            <View style={styles.keyField}>
-              <Text style={styles.keyLabel}>Google Gemini API Key</Text>
+            <View style={styles.keyWrap}>
+              <Text style={styles.keyLabel}>Google Gemini API Anahtarı</Text>
               <TextInput
                 value={geminiKey}
                 onChangeText={setGeminiKey}
@@ -351,16 +281,15 @@ export const ProfileScreen: React.FC = () => {
                 secureTextEntry
                 style={styles.keyInput}
               />
-              <Text style={styles.keyHint}>console.cloud.google.com → API & Services → Gemini API</Text>
             </View>
           )}
           {provider === "lovable" && (
-            <View style={styles.keyField}>
-              <Text style={styles.keyLabel}>Lovable API Key</Text>
+            <View style={styles.keyWrap}>
+              <Text style={styles.keyLabel}>Lovable API Anahtarı</Text>
               <TextInput
                 value={lovableKey}
                 onChangeText={setLovableKey}
-                placeholder="lovable_key_…"
+                placeholder="lovable_…"
                 placeholderTextColor={Colors.mutedForeground}
                 secureTextEntry
                 style={styles.keyInput}
@@ -375,30 +304,35 @@ export const ProfileScreen: React.FC = () => {
         visible={plansOpen}
         onClose={() => setPlansOpen(false)}
         title="Pro Plana Geç"
-        subtitle="Sınırsız belge ve güçlü özellikler"
+        subtitle="İstediğinizde iptal edebilirsiniz"
         footer={
-          <GradientButton onPress={handleUpgrade} title="Pro'ya Geç — ₺149/ay" size="lg" style={{ flex: 1 }} />
+          <GradientButton
+            onPress={() => { Alert.alert("Pro", "Ödeme entegrasyonu yakında!"); setPlansOpen(false); setIsPro(true); }}
+            title="Pro'ya Geç — ₺149/ay"
+            size="lg"
+            style={{ flex: 1 }}
+          />
         }
       >
-        <View style={styles.plansContent}>
+        <View style={styles.planFeatureList}>
           {[
             "Sınırsız belge oluşturma",
             "Öncelikli AI yanıt süresi",
             "Tüm belge şablonları",
             "PDF dışa aktarma (yakında)",
-            "Belge geçmişi & arşiv",
+            "Belge arşivi",
             "Öncelikli destek",
           ].map((f, i) => (
-            <View key={i} style={styles.proFeatureRow}>
-              <LinearGradient colors={Colors.gradientPrimary as any} style={styles.proFeatureCheck}>
-                <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>✓</Text>
-              </LinearGradient>
-              <Text style={styles.proFeatureText}>{f}</Text>
+            <View key={i} style={styles.planFeatureRow}>
+              <View style={styles.planCheck}>
+                <Check size={11} color={Colors.accent} strokeWidth={3} />
+              </View>
+              <Text style={styles.planFeatureText}>{f}</Text>
             </View>
           ))}
-          <View style={styles.priceHighlight}>
-            <Text style={styles.priceHighlightText}>₺149</Text>
-            <Text style={styles.priceHighlightSub}>/ay · İstediğinizde iptal</Text>
+          <View style={styles.priceBlock}>
+            <Text style={styles.priceAmount}>₺149</Text>
+            <Text style={styles.pricePeriod}>/ay</Text>
           </View>
         </View>
       </DialogSheet>
@@ -409,205 +343,182 @@ export const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
-  onboarding: { flexGrow: 1, paddingBottom: 32 },
-  onboardingHero: {
-    alignItems: "center",
-    paddingTop: 60,
-    paddingBottom: 44,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-    marginBottom: 28,
-  },
-  onboardingIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 26,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
+  // Onboarding
+  onboarding: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 },
+  heroSection: { alignItems: "center", paddingTop: 56, paddingBottom: 40 },
+  heroIcon: {
+    width: 80, height: 80, borderRadius: 22,
+    backgroundColor: Colors.accentLight,
+    alignItems: "center", justifyContent: "center",
     marginBottom: 20,
   },
-  onboardingEmoji: { fontSize: 36 },
-  onboardingTitle: { fontSize: 24, fontWeight: "700", color: "#fff", textAlign: "center" },
-  onboardingSub: { fontSize: 14, color: "rgba(255,255,255,0.85)", textAlign: "center", marginTop: 10, lineHeight: 20, paddingHorizontal: 8 },
-
-  onboardingFeatures: { paddingHorizontal: 24, gap: 18, marginBottom: 32 },
-  onboardingFeatureRow: { flexDirection: "row", alignItems: "center", gap: 14 },
-  featureEmojiBg: {
-    width: 46,
-    height: 46,
+  heroTitle: { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.5, marginBottom: 10 },
+  heroSub: { fontSize: 16, color: Colors.mutedForeground, textAlign: "center", lineHeight: 22, letterSpacing: -0.2 },
+  featureList: { gap: 18, marginBottom: 40 },
+  featureRow: {
+    flexDirection: "row", alignItems: "flex-start", gap: 14,
+    backgroundColor: Colors.card,
     borderRadius: 14,
-    backgroundColor: Colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
+    padding: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separator,
+    ...Shadows.xs,
   },
-  featureEmoji: { fontSize: 20 },
-  featureTextWrap: { flex: 1 },
-  featureTitle: { fontSize: 14, fontWeight: "700", color: Colors.foreground },
-  featureDesc: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
+  featureEmojiWrap: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: Colors.background,
+    alignItems: "center", justifyContent: "center",
+  },
+  featureTitle: { fontSize: 14, fontWeight: "600", color: Colors.label, marginBottom: 3, letterSpacing: -0.2 },
+  featureDesc: { fontSize: 13, color: Colors.mutedForeground, lineHeight: 18 },
+  onboardingBtns: { gap: 14 },
+  terms: { fontSize: 11, color: Colors.mutedForeground, textAlign: "center", lineHeight: 16 },
 
-  onboardingBtns: { paddingHorizontal: 24, gap: 12 },
-  signinLink: { alignItems: "center", paddingVertical: 8 },
-  signinLinkText: { fontSize: 13, color: Colors.primary, fontWeight: "600" },
-  kvkk: { fontSize: 10, color: Colors.mutedForeground, textAlign: "center", marginTop: 20, paddingHorizontal: 32, lineHeight: 14 },
-
-  scrollContent: { paddingBottom: 32 },
-
-  userCard: {
+  // Profile
+  scroll: { paddingBottom: 40 },
+  profileHeader: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 14,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 18,
     backgroundColor: Colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.separator,
   },
   avatar: {
-    width: 50,
-    height: 50,
+    width: 48, height: 48, borderRadius: 14,
+    backgroundColor: Colors.accentLight,
+    alignItems: "center", justifyContent: "center",
+  },
+  avatarText: { fontSize: 16, fontWeight: "700", color: Colors.accent },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  name: { fontSize: 17, fontWeight: "600", color: Colors.label, letterSpacing: -0.4 },
+  proBadge: {
+    backgroundColor: Colors.purple,
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  proBadgeText: { fontSize: 9, fontWeight: "700", color: "#fff", letterSpacing: 0.5 },
+  email: { fontSize: 13, color: Colors.mutedForeground, marginTop: 2 },
+  logoutBtn: { padding: 6 },
+
+  statsRow: {
+    flexDirection: "row",
+    marginHorizontal: 20,
+    marginTop: 16,
+    backgroundColor: Colors.card,
     borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    ...Shadows.glow,
-  },
-  avatarText: { color: "#fff", fontSize: 17, fontWeight: "700" },
-  userInfo: { flex: 1, marginLeft: 14 },
-  userNameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  userName: { fontSize: 15, fontWeight: "700", color: Colors.foreground },
-  userEmail: { fontSize: 11, color: Colors.mutedForeground, marginTop: 3 },
-  logoutBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
-    backgroundColor: Colors.secondary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  statsRow: { flexDirection: "row", paddingHorizontal: 16, paddingTop: 16, gap: 10 },
-  statCard: {
-    flex: 1,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 18,
-    padding: 14,
-    alignItems: "center",
-    gap: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separator,
     ...Shadows.xs,
   },
-  statIconBg: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  statValue: { fontSize: 22, fontWeight: "700", color: Colors.foreground },
-  statLabel: { fontSize: 9, color: Colors.mutedForeground, textAlign: "center", fontWeight: "500" },
+  statCard: { flex: 1, alignItems: "center", paddingVertical: 16, gap: 4 },
+  statCardBorder: {
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: Colors.separator,
+  },
+  statValue: { fontSize: 24, fontWeight: "700", color: Colors.label, letterSpacing: -0.5 },
+  statLabel: { fontSize: 12, color: Colors.mutedForeground },
 
-  quotaSection: { marginHorizontal: 16, marginTop: 14, backgroundColor: Colors.card, borderRadius: 18, borderWidth: 1, borderColor: Colors.border, padding: 16, ...Shadows.xs },
-  quotaHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
-  quotaSectionTitle: { fontSize: 13, fontWeight: "600", color: Colors.foreground },
-  quotaNumbers: { fontSize: 12, color: Colors.mutedForeground },
-  quotaTrack: { height: 6, backgroundColor: Colors.border, borderRadius: 3, overflow: "hidden" },
-  quotaFill: { height: 6, borderRadius: 3 },
-  quotaWarn: { fontSize: 11, color: Colors.warningForeground, marginTop: 8, lineHeight: 15 },
+  section: { marginTop: 20, paddingHorizontal: 20 },
+  sectionLabel: { fontSize: 13, fontWeight: "600", color: Colors.mutedForeground, marginBottom: 8, letterSpacing: -0.1 },
 
-  section: { marginHorizontal: 16, marginTop: 20 },
-  sectionTitle: { fontSize: 13, fontWeight: "700", color: Colors.mutedForeground, letterSpacing: 0.3, marginBottom: 10, marginLeft: 2 },
-
-  planCards: { flexDirection: "row", gap: 10 },
-  planCard: {
-    flex: 1,
+  quotaCard: {
     backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 20,
-    padding: 14,
-    gap: 6,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separator,
+    padding: 16,
+    gap: 10,
     ...Shadows.xs,
   },
-  planCardActive: { borderColor: Colors.primary, borderWidth: 1.5 },
-  planCardPro: { backgroundColor: Colors.proLight, borderColor: Colors.pro },
-  proLabel: {
+  quotaHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  quotaTitle: { fontSize: 14, fontWeight: "500", color: Colors.label },
+  quotaNumbers: { fontSize: 13, color: Colors.mutedForeground },
+  quotaTrack: { height: 4, backgroundColor: Colors.background, borderRadius: 2, overflow: "hidden" },
+  quotaFill: { height: 4, borderRadius: 2 },
+  quotaWarn: { fontSize: 12, color: Colors.orange, lineHeight: 17 },
+
+  upgradeCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    backgroundColor: Colors.pro,
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    alignSelf: "flex-start",
-    marginBottom: 2,
+    backgroundColor: Colors.accentLight,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.accentMid,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
-  proLabelText: { fontSize: 8, fontWeight: "700", color: "#fff", letterSpacing: 0.5 },
-  planName: { fontSize: 14, fontWeight: "700", color: Colors.foreground },
-  planNamePro: { color: Colors.pro },
-  planPriceRow: { flexDirection: "row", alignItems: "flex-end", gap: 2 },
-  planPrice: { fontSize: 22, fontWeight: "700", color: Colors.foreground },
-  planPricePro: { color: Colors.pro },
-  planPeriod: { fontSize: 11, color: Colors.mutedForeground, marginBottom: 4 },
-  planFeature: { flexDirection: "row", alignItems: "center", gap: 5 },
-  planFeatureText: { fontSize: 11, color: Colors.mutedForeground },
-  planFeatureTextPro: { color: Colors.pro },
-  planCta: {
-    marginTop: 6,
-    paddingVertical: 8,
-    borderRadius: 12,
-    alignItems: "center",
+  upgradeCardLeft: { flex: 1 },
+  upgradeCardTitle: { fontSize: 15, fontWeight: "600", color: Colors.accent, letterSpacing: -0.2 },
+  upgradeCardDesc: { fontSize: 13, color: Colors.accent, opacity: 0.7, marginTop: 2 },
+  upgradeChevron: {
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: Colors.accentMid,
+    alignItems: "center", justifyContent: "center",
   },
-  planCtaActive: { backgroundColor: Colors.primaryLight },
-  planCtaPro: { backgroundColor: Colors.pro },
-  planCtaInactive: { backgroundColor: Colors.secondary },
-  planCtaText: { fontSize: 12, fontWeight: "700", color: Colors.mutedForeground },
-  planCtaTextPro: { color: "#fff" },
-  planCtaTextActive: { color: Colors.primary },
 
-  menuCard: { backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border, borderRadius: 20, overflow: "hidden", ...Shadows.xs },
-  menuRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16 },
-  menuRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
-  menuIconBg: { width: 36, height: 36, borderRadius: 11, backgroundColor: Colors.primaryLight, alignItems: "center", justifyContent: "center", marginRight: 12 },
-  menuTextWrap: { flex: 1 },
-  menuLabel: { fontSize: 13, fontWeight: "600", color: Colors.foreground },
-  menuDesc: { fontSize: 11, color: Colors.mutedForeground, marginTop: 2 },
+  menuCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separator,
+    overflow: "hidden",
+    ...Shadows.xs,
+  },
+  menuRow: { flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingHorizontal: 14, gap: 10 },
+  menuRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.separator },
+  menuIconWrap: {
+    width: 30, height: 30, borderRadius: 8,
+    backgroundColor: Colors.accentLight,
+    alignItems: "center", justifyContent: "center",
+  },
+  menuLabel: { flex: 1, fontSize: 14, color: Colors.label, letterSpacing: -0.2 },
+  menuValue: { fontSize: 13, color: Colors.mutedForeground, marginRight: 4 },
 
-  footer: { fontSize: 10, color: Colors.mutedForeground, textAlign: "center", marginTop: 24, paddingHorizontal: 24 },
+  footer: { fontSize: 11, color: Colors.mutedForeground, textAlign: "center", marginTop: 28, paddingHorizontal: 24, lineHeight: 16 },
 
-  apiContent: { gap: 10 },
+  // API Sheet
+  providerList: { gap: 8 },
   providerRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.card,
-    gap: 10,
-  },
-  providerRowActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
-  providerEmoji: { fontSize: 20 },
-  providerInfo: { flex: 1 },
-  providerLabel: { fontSize: 13, fontWeight: "600", color: Colors.foreground },
-  providerLabelActive: { color: Colors.primary },
-  providerDesc: { fontSize: 11, color: Colors.mutedForeground, marginTop: 2 },
-  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: Colors.border, alignItems: "center", justifyContent: "center" },
-  radioActive: { borderColor: Colors.primary },
-  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary },
-  keyField: { marginTop: 4, gap: 6 },
-  keyLabel: { fontSize: 12, fontWeight: "600", color: Colors.foreground },
-  keyInput: {
-    backgroundColor: Colors.input,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    gap: 12,
+    padding: 14,
     borderRadius: 12,
-    height: 42,
-    paddingHorizontal: 14,
-    fontSize: 13,
-    color: Colors.foreground,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separator,
+    backgroundColor: Colors.background,
   },
-  keyHint: { fontSize: 10, color: Colors.mutedForeground },
+  providerRowActive: { borderColor: Colors.accent, backgroundColor: Colors.accentLight },
+  providerLabel: { fontSize: 14, fontWeight: "500", color: Colors.label },
+  providerLabelActive: { color: Colors.accent, fontWeight: "600" },
+  providerDesc: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
+  keyWrap: { marginTop: 6, gap: 6 },
+  keyLabel: { fontSize: 13, fontWeight: "500", color: Colors.label },
+  keyInput: {
+    backgroundColor: Colors.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separatorOpaque,
+    borderRadius: 10,
+    height: 40,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: Colors.label,
+  },
 
-  plansContent: { gap: 12 },
-  proFeatureRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  proFeatureCheck: { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  proFeatureText: { fontSize: 14, color: Colors.foreground, flex: 1 },
-  priceHighlight: { flexDirection: "row", alignItems: "flex-end", justifyContent: "center", marginTop: 8 },
-  priceHighlightText: { fontSize: 40, fontWeight: "700", color: Colors.primary },
-  priceHighlightSub: { fontSize: 13, color: Colors.mutedForeground, marginBottom: 8, marginLeft: 4 },
+  // Plan Sheet
+  planFeatureList: { gap: 12 },
+  planFeatureRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  planCheck: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: Colors.accentLight,
+    alignItems: "center", justifyContent: "center",
+  },
+  planFeatureText: { fontSize: 15, color: Colors.label, letterSpacing: -0.2 },
+  priceBlock: { flexDirection: "row", alignItems: "flex-end", justifyContent: "center", marginTop: 12 },
+  priceAmount: { fontSize: 44, fontWeight: "700", color: Colors.accent, letterSpacing: -1.5 },
+  pricePeriod: { fontSize: 16, color: Colors.mutedForeground, marginBottom: 10, marginLeft: 4 },
 });

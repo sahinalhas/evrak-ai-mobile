@@ -9,124 +9,95 @@ import {
   Modal,
   Dimensions,
   Pressable,
+  Platform,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Shadows } from "../Theme";
 
-// ─── GradientButton ──────────────────────────────────────────────────────────
-type GradientButtonProps = {
+// ─── Button ───────────────────────────────────────────────────────────────────
+type ButtonProps = {
   onPress: () => void;
   title: string;
   loading?: boolean;
   disabled?: boolean;
-  variant?: "primary" | "secondary" | "outline" | "danger";
+  variant?: "filled" | "tinted" | "plain" | "destructive" | "gray";
   size?: "sm" | "md" | "lg";
   style?: object;
   textStyle?: object;
   icon?: React.ReactNode;
 };
 
-export const GradientButton: React.FC<GradientButtonProps> = ({
+export const GradientButton: React.FC<ButtonProps> = ({
   onPress,
   title,
   loading = false,
   disabled = false,
-  variant = "primary",
+  variant = "filled",
   size = "md",
   style,
   textStyle,
   icon,
 }) => {
-  const heights = { sm: 40, md: 50, lg: 56 };
-  const fontSizes = { sm: 13, md: 14, lg: 15 };
+  const heights = { sm: 36, md: 44, lg: 50 };
+  const radii = { sm: 10, md: 12, lg: 14 };
+  const fontSizes = { sm: 13, md: 15, lg: 16 };
 
-  const containerStyle = [
-    styles.btnBase,
-    { height: heights[size], borderRadius: size === "lg" ? 18 : 14 },
-    style,
-    (disabled || loading) && styles.disabled,
-  ];
+  const variantStyles: Record<string, { bg: string; text: string; border?: string }> = {
+    filled: { bg: Colors.accent, text: "#FFF" },
+    tinted: { bg: Colors.accentLight, text: Colors.accent },
+    plain: { bg: "transparent", text: Colors.accent },
+    destructive: { bg: Colors.destructive, text: "#FFF" },
+    gray: { bg: Colors.muted, text: Colors.label },
+  };
 
-  if (variant === "primary") {
-    return (
-      <TouchableOpacity onPress={onPress} disabled={disabled || loading} activeOpacity={0.82} style={containerStyle}>
-        <LinearGradient colors={Colors.gradientPrimary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.gradient}>
-          {loading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <View style={styles.btnContent}>
-              {icon}
-              <Text style={[styles.btnText, { fontSize: fontSizes[size] }, textStyle]}>{title}</Text>
-            </View>
-          )}
-        </LinearGradient>
-      </TouchableOpacity>
-    );
-  }
-
-  if (variant === "secondary") {
-    return (
-      <TouchableOpacity onPress={onPress} disabled={disabled || loading} activeOpacity={0.82} style={[containerStyle, styles.btnSecondary]}>
-        {loading ? (
-          <ActivityIndicator size="small" color={Colors.primary} />
-        ) : (
-          <View style={styles.btnContent}>
-            {icon}
-            <Text style={[styles.btnTextSecondary, { fontSize: fontSizes[size] }, textStyle]}>{title}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  }
-
-  if (variant === "danger") {
-    return (
-      <TouchableOpacity onPress={onPress} disabled={disabled || loading} activeOpacity={0.82} style={[containerStyle, styles.btnDanger]}>
-        {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <View style={styles.btnContent}>
-            {icon}
-            <Text style={[styles.btnText, { fontSize: fontSizes[size] }, textStyle]}>{title}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  }
+  const vs = variantStyles[variant];
 
   return (
-    <TouchableOpacity onPress={onPress} disabled={disabled || loading} activeOpacity={0.82} style={[containerStyle, styles.btnOutline]}>
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled || loading}
+      activeOpacity={0.7}
+      style={[
+        styles.btn,
+        {
+          height: heights[size],
+          borderRadius: radii[size],
+          backgroundColor: vs.bg,
+          borderWidth: variant === "plain" ? 0 : 0,
+        },
+        style,
+        (disabled || loading) && styles.disabled,
+      ]}
+    >
       {loading ? (
-        <ActivityIndicator size="small" color={Colors.primary} />
+        <ActivityIndicator size="small" color={vs.text} />
       ) : (
         <View style={styles.btnContent}>
           {icon}
-          <Text style={[styles.btnTextOutline, { fontSize: fontSizes[size] }, textStyle]}>{title}</Text>
+          <Text style={[styles.btnText, { color: vs.text, fontSize: fontSizes[size] }, textStyle]}>{title}</Text>
         </View>
       )}
     </TouchableOpacity>
   );
 };
 
-// ─── PulsingDots ─────────────────────────────────────────────────────────────
+// ─── PulsingDots ──────────────────────────────────────────────────────────────
 export const PulsingDots: React.FC = () => {
-  const dot1 = useRef(new Animated.Value(0.35)).current;
-  const dot2 = useRef(new Animated.Value(0.35)).current;
-  const dot3 = useRef(new Animated.Value(0.35)).current;
+  const dot1 = useRef(new Animated.Value(0.3)).current;
+  const dot2 = useRef(new Animated.Value(0.3)).current;
+  const dot3 = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
     const anim = (val: Animated.Value, delay: number) =>
       Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
-          Animated.timing(val, { toValue: 1, duration: 380, useNativeDriver: true }),
-          Animated.timing(val, { toValue: 0.35, duration: 380, useNativeDriver: true }),
+          Animated.timing(val, { toValue: 1, duration: 420, useNativeDriver: true }),
+          Animated.timing(val, { toValue: 0.3, duration: 420, useNativeDriver: true }),
         ])
       );
-
     const a1 = anim(dot1, 0);
-    const a2 = anim(dot2, 140);
-    const a3 = anim(dot3, 280);
+    const a2 = anim(dot2, 160);
+    const a3 = anim(dot3, 320);
     a1.start(); a2.start(); a3.start();
     return () => { a1.stop(); a2.stop(); a3.stop(); };
   }, []);
@@ -134,27 +105,28 @@ export const PulsingDots: React.FC = () => {
   return (
     <View style={styles.dotsContainer}>
       {[dot1, dot2, dot3].map((d, i) => (
-        <Animated.View key={i} style={[styles.dot, { opacity: d, transform: [{ scale: d }] }]} />
+        <Animated.View key={i} style={[styles.dot, { opacity: d }]} />
       ))}
     </View>
   );
 };
 
-// ─── Badge ───────────────────────────────────────────────────────────────────
+// ─── Badge ────────────────────────────────────────────────────────────────────
 type BadgeProps = {
   label: string;
   color?: string;
   bg?: string;
   size?: "sm" | "md";
 };
-
-export const Badge: React.FC<BadgeProps> = ({ label, color = Colors.primary, bg = Colors.primaryLight, size = "sm" }) => (
+export const Badge: React.FC<BadgeProps> = ({ label, color = Colors.accent, bg = Colors.accentLight, size = "sm" }) => (
   <View style={[styles.badge, { backgroundColor: bg }]}>
-    <Text style={[styles.badgeText, { color, fontSize: size === "sm" ? 9 : 11 }]}>{label}</Text>
+    <Text style={[styles.badgeText, { color, fontSize: size === "sm" ? 10 : 12 }]}>{label}</Text>
   </View>
 );
 
-// ─── DialogSheet ─────────────────────────────────────────────────────────────
+// ─── DialogSheet ──────────────────────────────────────────────────────────────
+const SCREEN_HEIGHT = Dimensions.get("window").height;
+
 type DialogSheetProps = {
   visible: boolean;
   onClose: () => void;
@@ -165,21 +137,19 @@ type DialogSheetProps = {
   maxHeight?: number | string;
 };
 
-const SCREEN_HEIGHT = Dimensions.get("window").height;
-
-export const DialogSheet: React.FC<DialogSheetProps> = ({ visible, onClose, title, subtitle, children, footer, maxHeight = "92%" }) => {
+export const DialogSheet: React.FC<DialogSheetProps> = ({ visible, onClose, title, subtitle, children, footer, maxHeight = "90%" }) => {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const bgAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(slideAnim, { toValue: 0, tension: 55, friction: 10, useNativeDriver: true }),
-        Animated.timing(bgAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.spring(slideAnim, { toValue: 0, tension: 65, friction: 12, useNativeDriver: true }),
+        Animated.timing(bgAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(slideAnim, { toValue: SCREEN_HEIGHT, duration: 240, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: SCREEN_HEIGHT, duration: 260, useNativeDriver: true }),
         Animated.timing(bgAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
       ]).start();
     }
@@ -191,16 +161,18 @@ export const DialogSheet: React.FC<DialogSheetProps> = ({ visible, onClose, titl
         <Animated.View style={[styles.backdrop, { opacity: bgAnim }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
-        <Animated.View style={[styles.sheetContainer, { maxHeight, transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.dragHandleContainer}>
-            <View style={styles.dragHandle} />
+        <Animated.View style={[styles.sheet, { maxHeight, transform: [{ translateY: slideAnim }] }]}>
+          {/* Handle */}
+          <View style={styles.handleWrap}>
+            <View style={styles.handle} />
           </View>
+          {/* Header */}
           <View style={styles.sheetHeader}>
             <View style={{ flex: 1 }}>
               <Text style={styles.sheetTitle}>{title}</Text>
               {subtitle ? <Text style={styles.sheetSubtitle}>{subtitle}</Text> : null}
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Text style={styles.closeBtnText}>✕</Text>
             </TouchableOpacity>
           </View>
@@ -212,165 +184,114 @@ export const DialogSheet: React.FC<DialogSheetProps> = ({ visible, onClose, titl
   );
 };
 
-// ─── ProBanner ───────────────────────────────────────────────────────────────
-type ProBannerProps = { onPress: () => void };
-export const ProBanner: React.FC<ProBannerProps> = ({ onPress }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={styles.proBannerContainer}>
-    <LinearGradient colors={Colors.gradientHero as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.proBanner}>
-      <View style={styles.proBannerLeft}>
-        <Text style={styles.proBannerEmoji}>⚡</Text>
-        <View>
-          <Text style={styles.proBannerTitle}>Pro'ya Geç</Text>
-          <Text style={styles.proBannerSub}>Sınırsız belge & öncelikli AI</Text>
-        </View>
+// ─── ProBanner ────────────────────────────────────────────────────────────────
+export const ProBanner: React.FC<{ onPress: () => void }> = ({ onPress }) => (
+  <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.proBanner}>
+    <View style={styles.proBannerLeft}>
+      <View style={styles.proBannerIcon}><Text style={{ fontSize: 14 }}>⚡</Text></View>
+      <View>
+        <Text style={styles.proBannerTitle}>Pro'ya Geç</Text>
+        <Text style={styles.proBannerSub}>Sınırsız belge & öncelikli AI</Text>
       </View>
-      <View style={styles.proBannerBtn}>
-        <Text style={styles.proBannerBtnText}>Yükselt →</Text>
-      </View>
-    </LinearGradient>
+    </View>
+    <Text style={styles.proBannerArrow}>→</Text>
   </TouchableOpacity>
 );
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  btnBase: {
-    overflow: "hidden",
+  btn: {
     justifyContent: "center",
     alignItems: "center",
-    ...Shadows.sm,
+    paddingHorizontal: 16,
   },
-  gradient: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  btnContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  btnText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  btnSecondary: {
-    backgroundColor: Colors.secondary,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  btnTextSecondary: {
-    color: Colors.primary,
-    fontWeight: "600",
-  },
-  btnOutline: {
-    backgroundColor: "transparent",
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-  },
-  btnTextOutline: {
-    color: Colors.foreground,
-    fontWeight: "600",
-  },
-  btnDanger: {
-    backgroundColor: Colors.destructive,
-  },
-  disabled: { opacity: 0.48 },
+  btnContent: { flexDirection: "row", alignItems: "center", gap: 6 },
+  btnText: { fontWeight: "600", letterSpacing: -0.2 },
+  disabled: { opacity: 0.4 },
+
   dotsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: 5,
-    paddingHorizontal: 4,
-    height: 20,
+    paddingHorizontal: 2,
   },
   dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: Colors.primary,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.accent,
   },
+
   badge: {
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 20,
     alignSelf: "flex-start",
   },
-  badgeText: {
-    fontWeight: "700",
-    letterSpacing: 0.2,
-  },
+  badgeText: { fontWeight: "600", letterSpacing: 0.1 },
+
   overlay: { flex: 1, justifyContent: "flex-end" },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: Colors.overlay,
   },
-  sheetContainer: {
+  sheet: {
     backgroundColor: Colors.card,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     ...Shadows.lg,
     overflow: "hidden",
   },
-  dragHandleContainer: {
-    height: 22,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  dragHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.border,
-  },
+  handleWrap: { alignItems: "center", paddingVertical: 10 },
+  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.separatorOpaque },
+
   sheetHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     paddingHorizontal: 20,
     paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.separator,
   },
-  sheetTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: Colors.foreground,
-  },
-  sheetSubtitle: {
-    fontSize: 11,
-    color: Colors.mutedForeground,
-    marginTop: 2,
-  },
+  sheetTitle: { fontSize: 17, fontWeight: "600", color: Colors.label, letterSpacing: -0.4 },
+  sheetSubtitle: { fontSize: 13, color: Colors.mutedForeground, marginTop: 2 },
   closeBtn: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.muted,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 10,
-    marginTop: 2,
   },
-  closeBtnText: {
-    fontSize: 9,
-    color: Colors.mutedForeground,
-    fontWeight: "700",
-  },
+  closeBtnText: { fontSize: 10, color: Colors.mutedForeground, fontWeight: "600" },
   sheetBody: { padding: 20 },
   sheetFooter: {
     padding: 16,
-    paddingBottom: 24,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    backgroundColor: Colors.muted,
+    paddingBottom: Platform.OS === "ios" ? 28 : 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.separator,
   },
-  proBannerContainer: { marginHorizontal: 16, marginBottom: 10, borderRadius: 18, overflow: "hidden", ...Shadows.lg },
-  proBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14 },
+
+  proBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: Colors.accentLight,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.accentMid,
+  },
   proBannerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  proBannerEmoji: { fontSize: 22 },
-  proBannerTitle: { fontSize: 14, fontWeight: "700", color: "#fff" },
-  proBannerSub: { fontSize: 11, color: "rgba(255,255,255,0.8)", marginTop: 1 },
-  proBannerBtn: { backgroundColor: "rgba(255,255,255,0.22)", paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
-  proBannerBtnText: { fontSize: 12, fontWeight: "700", color: "#fff" },
+  proBannerIcon: {
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: Colors.accent,
+    alignItems: "center", justifyContent: "center",
+  },
+  proBannerTitle: { fontSize: 14, fontWeight: "600", color: Colors.accent },
+  proBannerSub: { fontSize: 12, color: Colors.accent, opacity: 0.7, marginTop: 1 },
+  proBannerArrow: { fontSize: 16, color: Colors.accent, fontWeight: "500" },
 });
