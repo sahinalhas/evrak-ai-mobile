@@ -1,488 +1,333 @@
 import React, { useState, useCallback } from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  Share,
-  Alert,
+  StyleSheet, Text, View, FlatList, TextInput,
+  TouchableOpacity, Share, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import {
-  Search,
-  Star,
-  FileText,
-  Share2,
-  Trash2,
-  Download,
-  Mail,
-  Copy,
-  ChevronRight,
-  X,
-} from "lucide-react-native";
+import { Search, Trash2, Share2, Copy, FileText, X } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";
-import { StorageService, Document } from "../services/storage";
 import { DialogSheet, GradientButton } from "../components/ui";
 import { MarkdownView } from "../components/MarkdownView";
-import { exportToPDF, copyToClipboard, shareViaWhatsApp, shareViaEmail } from "../services/pdfExport";
+import { StorageService, SavedDocument } from "../services/storage";
 
-const CATEGORIES = ["Tümü", "Hukuki", "İş Hayatı", "Eğitim", "Kişisel"] as const;
-
-const CAT_CONFIG: Record<string, { color: string; bg: string; emoji: string }> = {
-  Hukuki:       { color: Colors.red,    bg: Colors.redLight,    emoji: "⚖️" },
-  "İş Hayatı": { color: Colors.orange, bg: Colors.orangeLight, emoji: "💼" },
-  Eğitim:       { color: Colors.blue,   bg: "#2563EB12",        emoji: "🎓" },
-  Kişisel:      { color: Colors.green,  bg: Colors.greenLight,  emoji: "👤" },
-  default:      { color: Colors.primary, bg: Colors.accentLight, emoji: "📄" },
+const CAT_LABELS: Record<string, string> = {
+  dilekce: "Dilekçe", basvuru: "Başvuru", taahut: "Taahhütname",
+  sozlesme: "Sözleşme", mektup: "Mektup", diger: "Diğer",
 };
 
+function guessCategory(content: string): string {
+  const c = content.toLowerCase();
+  if (c.includes("dilekç") || c.includes("sayın")) return "dilekce";
+  if (c.includes("başvur") || c.includes("talep")) return "basvuru";
+  if (c.includes("taahhüt")) return "taahut";
+  if (c.includes("sözleşme") || c.includes("taraflar")) return "sozlesme";
+  if (c.includes("mektup") || c.includes("referans") || c.includes("sevgili")) return "mektup";
+  return "diger";
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  if (diff === 0) return "Bugün";
+  if (diff === 1) return "Dün";
+  if (diff < 7) return `${diff} gün önce`;
+  return d.toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
+}
+
+function firstLines(content: string, n = 3): string {
+  return content.split("\n").filter(l => l.trim()).slice(0, n).join("\n");
+}
+
 export const DocumentsScreen: React.FC = () => {
+  const [docs, setDocs] = useState<SavedDocument[]>([]);
   const [query, setQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<(typeof CATEGORIES)[number]>("Tümü");
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<SavedDocument | null>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
 
-  useFocusEffect(useCallback(() => {
-    StorageService.getDocuments().then(setDocuments);
-  }, []));
+  useFocusEffect(useCallback(() => { load(); }, []));
 
-  const toggleFavorite = async (id: string) => {
-    const updated = documents.map((d) => (d.id === id ? { ...d, favorite: !d.favorite } : d));
-    setDocuments(updated);
-    await StorageService.saveDocuments(updated);
-  };
+  const load = async () => setDocs(await StorageService.getDocuments());
 
-  const deleteDocument = (id: string) => {
-    Alert.alert("Belgeyi Sil", "Bu belge kalıcı olarak silinecek.", [
+  const filtered = docs.filter(d => {
+    const matchQuery = !query || d.content.toLowerCase().includes(query.toLowerCase()) || d.preview?.toLowerCase().includes(query.toLowerCase());
+    const matchCat = !activeFilter || guessCategory(d.content) === activeFilter;
+    return matchQuery && matchCat;
+  });
+
+  const deleteDoc = (id: string) =>
+    Alert.alert("Sil", "Bu belge kalıcı olarak silinecek.", [
       { text: "Vazgeç", style: "cancel" },
       {
         text: "Sil", style: "destructive",
         onPress: async () => {
-          const updated = documents.filter((d) => d.id !== id);
-          setDocuments(updated);
-          await StorageService.saveDocuments(updated);
-          if (selectedDoc?.id === id) setSelectedDoc(null);
+          await StorageService.deleteDocument(id);
+          setSelectedDoc(null);
+          load();
         },
       },
     ]);
+
+  const shareDoc = async (content: string) => {
+    try { await Share.share({ message: content, title: "EvrakAI Belgesi" }); } catch {}
   };
 
-  const handleNativeShare = async (doc: Document) => {
-    try { await Share.share({ message: doc.content, title: doc.title }); } catch {}
+  const copyDoc = async (content: string) => {
+    try {
+      const { Clipboard } = await import("expo-clipboard");
+      await Clipboard.setStringAsync(content);
+      Alert.alert("Kopyalandı", "Belge panoya kopyalandı.");
+    } catch {}
   };
 
-  const handlePdfExport = (doc: Document) => {
-    setSelectedDoc(null);
-    setTimeout(() => exportToPDF(doc.content, doc.title), 300);
-  };
+  const cats = [...new Set(docs.map(d => guessCategory(d.content)))];
 
-  const handleCopy = async (doc: Document) => {
-    const ok = await copyToClipboard(doc.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-    if (!ok) Alert.alert("Kopyalandı", "Belge panoya kopyalandı.");
-  };
+  // ── Empty ──────────────────────────────────────────────────────────────────
+  const Empty = () => (
+    <View style={s.empty}>
+      <View style={s.emptyIcon}>
+        <FileText size={28} color={Colors.label3} strokeWidth={1.2} />
+      </View>
+      <Text style={s.emptyTitle}>
+        {query ? "Sonuç bulunamadı" : "Henüz belge yok"}
+      </Text>
+      <Text style={s.emptySub}>
+        {query
+          ? "Farklı bir arama deneyin"
+          : "Sohbet sekmesinden ilk belgenizi oluşturun"}
+      </Text>
+    </View>
+  );
 
-  const handleWhatsApp = (doc: Document) => { setShareOpen(false); shareViaWhatsApp(doc.content); };
-  const handleEmail = (doc: Document) => { setShareOpen(false); shareViaEmail(doc.content, doc.title); };
-
-  const filtered = documents.filter((d) => {
-    const matchesCat = activeCategory === "Tümü" || d.category === activeCategory;
-    const matchesQ =
-      d.title.toLowerCase().includes(query.toLowerCase()) ||
-      d.type.toLowerCase().includes(query.toLowerCase());
-    return matchesCat && matchesQ;
-  });
-
-  const favorites = filtered.filter((d) => d.favorite);
-  const rest = filtered.filter((d) => !d.favorite);
-
-  type ListItem = Document | { _section: string };
-
-  const listData: ListItem[] = [
-    ...(favorites.length > 0 ? [{ _section: "⭐ Favoriler" } as ListItem, ...favorites] : []),
-    ...(rest.length > 0
-      ? [{ _section: favorites.length > 0 ? "Tüm Belgeler" : "Belgeler" } as ListItem, ...rest]
-      : []),
-  ];
-
-  const renderDoc = ({ item }: { item: Document }) => {
-    const cfg = CAT_CONFIG[item.category] ?? CAT_CONFIG.default;
+  // ── Doc card ───────────────────────────────────────────────────────────────
+  const renderCard = ({ item }: { item: SavedDocument }) => {
+    const cat = guessCategory(item.content);
     return (
-      <TouchableOpacity
-        onPress={() => setSelectedDoc(item)}
-        activeOpacity={0.72}
-        style={styles.docCard}
-      >
-        <View style={[styles.docIconWrap, { backgroundColor: cfg.bg }]}>
-          <Text style={{ fontSize: 18 }}>{cfg.emoji}</Text>
-        </View>
-        <View style={styles.docBody}>
-          <Text style={styles.docTitle} numberOfLines={1}>{item.title}</Text>
-          <View style={styles.docMetaRow}>
-            <View style={[styles.catDot, { backgroundColor: cfg.color }]} />
-            <Text style={styles.docMeta}>{item.category} · {item.date}</Text>
+      <TouchableOpacity onPress={() => setSelectedDoc(item)}
+        activeOpacity={0.78} style={s.card}>
+        <View style={s.cardMain}>
+          <View style={s.cardIconWrap}>
+            <FileText size={16} color={Colors.accent} strokeWidth={1.8} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.cardTitle} numberOfLines={1}>
+              {item.preview || CAT_LABELS[cat]}
+            </Text>
+            <Text style={s.cardPreview} numberOfLines={2}>
+              {firstLines(item.content)}
+            </Text>
           </View>
         </View>
-        <View style={styles.docRight}>
-          <TouchableOpacity
-            onPress={() => toggleFavorite(item.id)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={styles.starBtn}
-          >
-            <Star
-              size={16}
-              color={item.favorite ? Colors.yellow : Colors.labelTertiary}
-              fill={item.favorite ? Colors.yellow : "transparent"}
-              strokeWidth={1.8}
-            />
-          </TouchableOpacity>
-          <ChevronRight size={15} color={Colors.labelTertiary} strokeWidth={2} />
+        <View style={s.cardFooter}>
+          <Text style={s.cardDate}>{formatDate(item.createdAt)}</Text>
+          <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+            <View style={s.catTag}>
+              <Text style={s.catTagText}>{CAT_LABELS[cat]}</Text>
+            </View>
+            <TouchableOpacity onPress={() => deleteDoc(item.id)} style={s.cardBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Trash2 size={13} color={Colors.label3} strokeWidth={1.8} />
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+    <SafeAreaView style={s.root} edges={["top"]}>
       <StatusBar style="dark" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Belgelerim</Text>
-          <Text style={styles.headerSub}>{documents.length} belge kaydedildi</Text>
-        </View>
+      {/* Large title nav */}
+      <View style={s.header}>
+        <Text style={s.pageTitle}>Belgelerim</Text>
+        <Text style={s.pageCount}>{docs.length} belge</Text>
       </View>
 
       {/* Search */}
-      <View style={styles.searchWrap}>
-        <View style={styles.searchBar}>
-          <Search size={16} color={Colors.labelTertiary} strokeWidth={2} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Belge ara…"
-            placeholderTextColor={Colors.labelTertiary}
-            style={styles.searchInput}
-          />
-          {query.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setQuery("")}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={styles.clearBtn}
-            >
-              <X size={12} color="#fff" strokeWidth={3} />
-            </TouchableOpacity>
-          )}
-        </View>
+      <View style={[s.searchWrap, searchFocused && s.searchFocused]}>
+        <Search size={15} color={Colors.label3} strokeWidth={2} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Belgelerinizde ara…"
+          placeholderTextColor={Colors.label3}
+          style={s.searchInput}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
+          clearButtonMode="while-editing"
+        />
+        {query.length > 0 && (
+          <TouchableOpacity onPress={() => setQuery("")}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <X size={14} color={Colors.label3} strokeWidth={2} />
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Category Filters */}
-      <FlatList
-        horizontal
-        data={CATEGORIES}
-        keyExtractor={(c) => c}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.catRow}
-        style={{ flexGrow: 0 }}
-        renderItem={({ item: c }) => {
-          const active = activeCategory === c;
-          const cfg = CAT_CONFIG[c];
-          return (
-            <TouchableOpacity
-              onPress={() => setActiveCategory(c)}
-              activeOpacity={0.7}
-              style={[
-                styles.catPill,
-                active && { backgroundColor: cfg?.color ?? Colors.primary, borderColor: "transparent" },
-              ]}
-            >
-              {cfg && <Text style={{ fontSize: 13 }}>{cfg.emoji} </Text>}
-              <Text style={[styles.catText, active && styles.catTextActive]}>{c}</Text>
+      {/* Category filter pills */}
+      {cats.length > 1 && (
+        <View style={s.filterRow}>
+          <TouchableOpacity
+            onPress={() => setActiveFilter(null)}
+            style={[s.filterPill, !activeFilter && s.filterPillActive]}>
+            <Text style={[s.filterText, !activeFilter && s.filterTextActive]}>Tümü</Text>
+          </TouchableOpacity>
+          {cats.map(c => (
+            <TouchableOpacity key={c}
+              onPress={() => setActiveFilter(activeFilter === c ? null : c)}
+              style={[s.filterPill, activeFilter === c && s.filterPillActive]}>
+              <Text style={[s.filterText, activeFilter === c && s.filterTextActive]}>
+                {CAT_LABELS[c]}
+              </Text>
             </TouchableOpacity>
-          );
-        }}
-      />
+          ))}
+        </View>
+      )}
 
-      {/* Document List */}
-      <FlatList<ListItem>
-        data={listData}
-        keyExtractor={(item, i) => ("id" in item ? item.id : `s-${i}`)}
-        contentContainerStyle={styles.listContent}
+      <View style={s.hairline} />
+
+      {/* List */}
+      <FlatList
+        data={filtered}
+        keyExtractor={d => d.id}
+        renderItem={renderCard}
+        contentContainerStyle={[s.list, filtered.length === 0 && { flex: 1 }]}
+        ListEmptyComponent={<Empty />}
+        ItemSeparatorComponent={() => <View style={s.separator} />}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <View style={styles.emptyIconWrap}>
-              <Text style={styles.emptyIcon}>📂</Text>
-            </View>
-            <Text style={styles.emptyTitle}>Belge bulunamadı</Text>
-            <Text style={styles.emptyDesc}>
-              {query
-                ? "Arama kriterlerine uyan belge yok."
-                : "Sohbet sekmesinden ilk belgenizi oluşturun."}
-            </Text>
-          </View>
-        }
-        renderItem={({ item }) => {
-          if ("_section" in item) {
-            return <Text style={styles.sectionHeader}>{item._section}</Text>;
-          }
-          return renderDoc({ item });
-        }}
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
       />
 
-      {/* Detail Sheet */}
-      {selectedDoc && (
-        <DialogSheet
-          visible
-          onClose={() => setSelectedDoc(null)}
-          title={selectedDoc.type}
-          subtitle={`${selectedDoc.date} · ${selectedDoc.status}`}
-          footer={
-            <View style={styles.sheetFooterRow}>
-              <TouchableOpacity
-                onPress={() => deleteDocument(selectedDoc.id)}
-                style={styles.deleteBtn}
-              >
-                <Trash2 size={16} color={Colors.red} strokeWidth={2} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handlePdfExport(selectedDoc)}
-                style={styles.pdfBtn}
-                activeOpacity={0.75}
-              >
-                <Download size={15} color={Colors.primary} strokeWidth={2} />
-                <Text style={styles.pdfBtnText}>PDF</Text>
-              </TouchableOpacity>
+      {/* Doc Detail Sheet */}
+      <DialogSheet
+        visible={!!selectedDoc}
+        onClose={() => setSelectedDoc(null)}
+        title={selectedDoc?.preview || "Belge"}
+        subtitle={selectedDoc ? formatDate(selectedDoc.createdAt) : ""}
+        maxHeight="92%"
+        footer={
+          selectedDoc && (
+            <View style={{ flexDirection: "row", gap: 10 }}>
               <GradientButton
-                onPress={() => setShareOpen(true)}
-                title="Paylaş"
-                icon={<Share2 size={15} color="#fff" />}
+                onPress={() => deleteDoc(selectedDoc.id)}
+                title="Sil"
+                variant="plain"
+                size="md"
+                style={{ paddingHorizontal: 4 }}
+                textStyle={{ color: Colors.red }}
+                icon={<Trash2 size={14} color={Colors.red} />}
+              />
+              <GradientButton
+                onPress={() => copyDoc(selectedDoc.content)}
+                title="Kopyala"
+                variant="tinted"
+                size="md"
                 style={{ flex: 1 }}
+                icon={<Copy size={13} color={Colors.accent} />}
+              />
+              <GradientButton
+                onPress={() => shareDoc(selectedDoc.content)}
+                title="Paylaş"
+                variant="filled"
+                size="md"
+                style={{ flex: 1 }}
+                icon={<Share2 size={13} color="#fff" />}
               />
             </View>
-          }
-        >
-          <MarkdownView content={selectedDoc.content} maxHeight={400} />
-        </DialogSheet>
-      )}
-
-      {/* Share Sheet */}
-      {selectedDoc && (
-        <DialogSheet
-          visible={shareOpen}
-          onClose={() => setShareOpen(false)}
-          title="Belgeyi Paylaş"
-          subtitle="Paylaşım yöntemini seçin"
-        >
-          <View style={styles.shareOptions}>
-            {[
-              { label: "WhatsApp", desc: "WhatsApp ile gönder", icon: "💬", bg: "#25D36615", onPress: () => handleWhatsApp(selectedDoc) },
-              { label: "E-posta", desc: "E-posta uygulamasını aç", iconEl: <Mail size={22} color={Colors.blue} strokeWidth={1.5} />, bg: Colors.blue + "12", onPress: () => handleEmail(selectedDoc) },
-              { label: copied ? "Kopyalandı! ✓" : "Panoya Kopyala", desc: "İstediğin yere yapıştır", iconEl: <Copy size={22} color={Colors.primary} strokeWidth={1.5} />, bg: Colors.accentLight, onPress: () => handleCopy(selectedDoc) },
-              { label: "Diğer Uygulamalar", desc: "Sistem paylaşım menüsünü aç", iconEl: <Share2 size={22} color={Colors.labelSecondary} strokeWidth={1.5} />, bg: Colors.surface, onPress: () => { setShareOpen(false); handleNativeShare(selectedDoc); } },
-            ].map((opt, i) => (
-              <TouchableOpacity key={i} onPress={opt.onPress} style={styles.shareOption} activeOpacity={0.75}>
-                <View style={[styles.shareIconBox, { backgroundColor: opt.bg }]}>
-                  {opt.icon ? <Text style={{ fontSize: 22 }}>{opt.icon}</Text> : opt.iconEl}
-                </View>
-                <View style={styles.shareOptionText}>
-                  <Text style={styles.shareOptionTitle}>{opt.label}</Text>
-                  <Text style={styles.shareOptionDesc}>{opt.desc}</Text>
-                </View>
-                <ChevronRight size={14} color={Colors.labelTertiary} strokeWidth={2} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </DialogSheet>
-      )}
+          )
+        }
+      >
+        {selectedDoc && <MarkdownView content={selectedDoc.content} />}
+      </DialogSheet>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: Colors.bg },
 
+  // Header
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 14,
+    flexDirection: "row", alignItems: "baseline", justifyContent: "space-between",
+    paddingHorizontal: 18, paddingTop: 6, paddingBottom: 14,
     backgroundColor: Colors.card,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.separator,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: Colors.label,
-    letterSpacing: -0.8,
-  },
-  headerSub: {
-    fontSize: 13,
-    color: Colors.labelTertiary,
-    marginTop: 2,
-    letterSpacing: -0.1,
-  },
+  pageTitle: { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.6 },
+  pageCount: { fontSize: 13, color: Colors.label3 },
 
-  searchWrap: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.separator,
-    borderRadius: 14,
-    paddingHorizontal: 13,
-    height: 44,
-    ...Shadows.xs,
+  // Search
+  searchWrap: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    marginHorizontal: 16, marginTop: 10, marginBottom: 10,
+    backgroundColor: Colors.fill,
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9,
+    borderWidth: 1, borderColor: "transparent",
   },
+  searchFocused: { borderColor: Colors.accent, backgroundColor: Colors.card },
   searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: Colors.label,
-    letterSpacing: -0.2,
-  },
-  clearBtn: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.labelTertiary,
-    alignItems: "center",
-    justifyContent: "center",
+    flex: 1, fontSize: 15, color: Colors.label, letterSpacing: -0.2,
   },
 
-  catRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 14 },
-  catPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.separator,
+  // Filters
+  filterRow: {
+    flexDirection: "row", flexWrap: "wrap",
+    paddingHorizontal: 16, gap: 7, marginBottom: 10,
   },
-  catText: { fontSize: 13, fontWeight: "600", color: Colors.labelSecondary },
-  catTextActive: { color: "#fff" },
-
-  listContent: { paddingHorizontal: 16, paddingBottom: 40, paddingTop: 4 },
-  sectionHeader: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Colors.labelTertiary,
-    letterSpacing: 0.2,
-    textTransform: "uppercase",
-    marginTop: 18,
-    marginBottom: 10,
-    marginLeft: 2,
+  filterPill: {
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 20, backgroundColor: Colors.fill,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: "transparent",
   },
-
-  docCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.card,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    borderRadius: 16,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: Colors.separator,
-    ...Shadows.sm,
-  },
-  docIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  docBody: { flex: 1, gap: 4 },
-  docTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: Colors.label,
-    letterSpacing: -0.3,
-  },
-  docMetaRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  catDot: { width: 5, height: 5, borderRadius: 2.5 },
-  docMeta: { fontSize: 12, color: Colors.labelTertiary },
-  docRight: { flexDirection: "row", alignItems: "center", gap: 10 },
-  starBtn: { padding: 2 },
-
-  empty: { alignItems: "center", paddingTop: 80, gap: 12 },
-  emptyIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
-  emptyIcon: { fontSize: 32 },
-  emptyTitle: { fontSize: 17, fontWeight: "700", color: Colors.label, letterSpacing: -0.4 },
-  emptyDesc: {
-    fontSize: 14,
-    color: Colors.labelTertiary,
-    textAlign: "center",
-    paddingHorizontal: 40,
-    lineHeight: 20,
-    letterSpacing: -0.1,
-  },
-
-  sheetFooterRow: { flexDirection: "row", gap: 10, alignItems: "center" },
-  deleteBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.red + "40",
-    backgroundColor: Colors.redLight,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pdfBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.primaryMid,
+  filterPillActive: {
     backgroundColor: Colors.accentLight,
+    borderColor: Colors.accentMid,
   },
-  pdfBtnText: { fontSize: 14, fontWeight: "700", color: Colors.primary },
+  filterText:       { fontSize: 13, fontWeight: "500", color: Colors.label2 },
+  filterTextActive: { color: Colors.accent, fontWeight: "600" },
 
-  shareOptions: { gap: 9 },
-  shareOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.separator,
+  hairline: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.separator },
+
+  // List
+  list: { paddingTop: 0, paddingBottom: 32 },
+  separator: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.separator, marginLeft: 72 },
+
+  // Card
+  card: {
+    backgroundColor: Colors.card,
+    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12,
   },
-  shareIconBox: {
-    width: 46,
-    height: 46,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
+  cardMain: { flexDirection: "row", gap: 12, marginBottom: 10 },
+  cardIconWrap: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: Colors.accentLight,
+    alignItems: "center", justifyContent: "center",
+    flexShrink: 0, marginTop: 2,
   },
-  shareOptionText: { flex: 1 },
-  shareOptionTitle: { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.3 },
-  shareOptionDesc: { fontSize: 12, color: Colors.labelTertiary, marginTop: 2 },
+  cardTitle: {
+    fontSize: 15, fontWeight: "600", color: Colors.label,
+    letterSpacing: -0.3, marginBottom: 4,
+  },
+  cardPreview: { fontSize: 13, color: Colors.label2, lineHeight: 19 },
+  cardFooter:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  cardDate:    { fontSize: 12, color: Colors.label3 },
+  cardBtn:     { padding: 4 },
+  catTag: {
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 6, backgroundColor: Colors.fill,
+  },
+  catTagText: { fontSize: 11, fontWeight: "500", color: Colors.label2 },
+
+  // Empty
+  empty: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 80 },
+  emptyIcon: {
+    width: 64, height: 64, borderRadius: 18,
+    backgroundColor: Colors.fill,
+    alignItems: "center", justifyContent: "center",
+    marginBottom: 18,
+  },
+  emptyTitle: { fontSize: 17, fontWeight: "600", color: Colors.label, marginBottom: 6 },
+  emptySub:   { fontSize: 15, color: Colors.label3, textAlign: "center", lineHeight: 22 },
 });

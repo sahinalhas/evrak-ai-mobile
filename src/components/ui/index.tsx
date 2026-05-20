@@ -14,9 +14,9 @@ import {
 } from "react-native";
 import { Colors, Shadows } from "../Theme";
 
-const SCREEN_HEIGHT = Dimensions.get("window").height;
+const { height: SCREEN_H } = Dimensions.get("window");
 
-// ─── PrimaryButton ────────────────────────────────────────────────────────────
+// ─── Button ───────────────────────────────────────────────────────────────────
 type ButtonProps = {
   onPress: () => void;
   title: string;
@@ -30,116 +30,100 @@ type ButtonProps = {
 };
 
 export const GradientButton: React.FC<ButtonProps> = ({
-  onPress,
-  title,
-  loading = false,
-  disabled = false,
-  variant = "filled",
-  size = "md",
-  style,
-  textStyle,
-  icon,
+  onPress, title, loading = false, disabled = false,
+  variant = "filled", size = "md", style, textStyle, icon,
 }) => {
-  const heights = { sm: 38, md: 46, lg: 52 };
-  const radii = { sm: 10, md: 13, lg: 16 };
-  const fontSizes = { sm: 13, md: 15, lg: 16 };
+  const H  = { sm: 38, md: 46, lg: 52 };
+  const R  = { sm: 11, md: 14, lg: 16 };
+  const FS = { sm: 14, md: 16, lg: 17 };
 
-  const variantStyles: Record<string, { bg: string; text: string }> = {
-    filled: { bg: Colors.primary, text: "#FFF" },
-    tinted: { bg: Colors.accentLight, text: Colors.primary },
-    plain: { bg: "transparent", text: Colors.primary },
-    destructive: { bg: Colors.destructive, text: "#FFF" },
-    gray: { bg: Colors.surface, text: Colors.label },
-    outline: { bg: "transparent", text: Colors.primary },
+  const V: Record<string, { bg: string; fg: string }> = {
+    filled:      { bg: Colors.accent, fg: "#FFF" },
+    tinted:      { bg: Colors.accentLight, fg: Colors.accent },
+    plain:       { bg: "transparent", fg: Colors.accent },
+    destructive: { bg: Colors.destructive, fg: "#FFF" },
+    gray:        { bg: Colors.fill, fg: Colors.label },
+    outline:     { bg: "transparent", fg: Colors.accent },
   };
-
-  const vs = variantStyles[variant];
-  const isOutline = variant === "outline";
+  const v = V[variant];
 
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.75}
+      activeOpacity={0.78}
       style={[
-        styles.btn,
-        {
-          height: heights[size],
-          borderRadius: radii[size],
-          backgroundColor: vs.bg,
-          borderWidth: isOutline ? 1.5 : 0,
-          borderColor: isOutline ? Colors.primary : "transparent",
-        },
+        bStyles.btn,
+        { height: H[size], borderRadius: R[size], backgroundColor: v.bg },
         variant === "filled" && Shadows.glow,
+        variant === "outline" && { borderWidth: 1.5, borderColor: Colors.accent },
         style,
-        (disabled || loading) && styles.disabled,
+        (disabled || loading) && bStyles.disabled,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator size="small" color={vs.text} />
-      ) : (
-        <View style={styles.btnContent}>
-          {icon}
-          <Text style={[styles.btnText, { color: vs.text, fontSize: fontSizes[size] }, textStyle]}>
-            {title}
-          </Text>
-        </View>
-      )}
+      {loading
+        ? <ActivityIndicator size="small" color={v.fg} />
+        : (
+          <View style={bStyles.inner}>
+            {icon}
+            <Text style={[bStyles.text, { color: v.fg, fontSize: FS[size] }, textStyle]}>
+              {title}
+            </Text>
+          </View>
+        )}
     </TouchableOpacity>
   );
 };
 
+const bStyles = StyleSheet.create({
+  btn:      { justifyContent: "center", alignItems: "center", paddingHorizontal: 18 },
+  inner:    { flexDirection: "row", alignItems: "center", gap: 7 },
+  text:     { fontWeight: "600", letterSpacing: -0.3 },
+  disabled: { opacity: 0.38 },
+});
+
 // ─── PulsingDots ──────────────────────────────────────────────────────────────
 export const PulsingDots: React.FC = () => {
-  const dots = [
-    useRef(new Animated.Value(0.25)).current,
-    useRef(new Animated.Value(0.25)).current,
-    useRef(new Animated.Value(0.25)).current,
-  ];
+  const dots = [0, 1, 2].map(() => useRef(new Animated.Value(0.3)).current);
 
   useEffect(() => {
-    const anims = dots.map((val, i) =>
+    const anims = dots.map((v, i) =>
       Animated.loop(
         Animated.sequence([
           Animated.delay(i * 150),
-          Animated.spring(val, { toValue: 1, speed: 6, bounciness: 10, useNativeDriver: true }),
-          Animated.spring(val, { toValue: 0.25, speed: 6, bounciness: 0, useNativeDriver: true }),
+          Animated.timing(v, { toValue: 1, duration: 380, useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0.3, duration: 380, useNativeDriver: true }),
         ])
       )
     );
-    anims.forEach((a) => a.start());
-    return () => anims.forEach((a) => a.stop());
+    anims.forEach(a => a.start());
+    return () => anims.forEach(a => a.stop());
   }, []);
 
   return (
-    <View style={styles.dotsContainer}>
-      {dots.map((d, i) => (
-        <Animated.View key={i} style={[styles.dot, { opacity: d, transform: [{ scale: d }] }]} />
+    <View style={{ flexDirection: "row", gap: 5, paddingVertical: 2 }}>
+      {dots.map((v, i) => (
+        <Animated.View key={i} style={{
+          width: 6, height: 6, borderRadius: 3,
+          backgroundColor: Colors.label3,
+          opacity: v,
+        }} />
       ))}
     </View>
   );
 };
 
 // ─── Badge ────────────────────────────────────────────────────────────────────
-type BadgeProps = {
-  label: string;
-  color?: string;
-  bg?: string;
-  size?: "sm" | "md";
-};
-export const Badge: React.FC<BadgeProps> = ({
-  label,
-  color = Colors.primary,
-  bg = Colors.accentLight,
-  size = "sm",
-}) => (
-  <View style={[styles.badge, { backgroundColor: bg }]}>
-    <Text style={[styles.badgeText, { color, fontSize: size === "sm" ? 10 : 12 }]}>{label}</Text>
+export const Badge: React.FC<{
+  label: string; color?: string; bg?: string; size?: "sm" | "md";
+}> = ({ label, color = Colors.accent, bg = Colors.accentLight, size = "sm" }) => (
+  <View style={{ backgroundColor: bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 }}>
+    <Text style={{ color, fontSize: size === "sm" ? 11 : 13, fontWeight: "600" }}>{label}</Text>
   </View>
 );
 
 // ─── DialogSheet ──────────────────────────────────────────────────────────────
-type DialogSheetProps = {
+type SheetProps = {
   visible: boolean;
   onClose: () => void;
   title: string;
@@ -149,204 +133,127 @@ type DialogSheetProps = {
   maxHeight?: number | string;
 };
 
-export const DialogSheet: React.FC<DialogSheetProps> = ({
-  visible,
-  onClose,
-  title,
-  subtitle,
-  children,
-  footer,
-  maxHeight = "92%",
+export const DialogSheet: React.FC<SheetProps> = ({
+  visible, onClose, title, subtitle, children, footer, maxHeight = "92%",
 }) => {
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const bgAnim = useRef(new Animated.Value(0)).current;
+  const slide = useRef(new Animated.Value(SCREEN_H)).current;
+  const bg    = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(slideAnim, { toValue: 0, tension: 70, friction: 14, useNativeDriver: true }),
-        Animated.timing(bgAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.spring(slide, { toValue: 0, tension: 72, friction: 14, useNativeDriver: true }),
+        Animated.timing(bg, { toValue: 1, duration: 220, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(slideAnim, { toValue: SCREEN_HEIGHT, duration: 240, useNativeDriver: true }),
-        Animated.timing(bgAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
+        Animated.timing(slide, { toValue: SCREEN_H, duration: 260, useNativeDriver: true }),
+        Animated.timing(bg, { toValue: 0, duration: 200, useNativeDriver: true }),
       ]).start();
     }
   }, [visible]);
 
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <Animated.View style={[styles.backdrop, { opacity: bgAnim }]}>
+      <View style={sStyles.overlay}>
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: Colors.overlay, opacity: bg }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
-        <Animated.View
-          style={[styles.sheet, { maxHeight, transform: [{ translateY: slideAnim }] }]}
-        >
-          <View style={styles.handleWrap}>
-            <View style={styles.handle} />
+
+        <Animated.View style={[sStyles.sheet, { maxHeight, transform: [{ translateY: slide }] }]}>
+          {/* Drag handle */}
+          <View style={sStyles.handleBar}>
+            <View style={sStyles.handle} />
           </View>
-          <View style={styles.sheetHeader}>
+
+          {/* Header */}
+          <View style={sStyles.header}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.sheetTitle}>{title}</Text>
-              {subtitle ? <Text style={styles.sheetSubtitle}>{subtitle}</Text> : null}
+              <Text style={sStyles.title}>{title}</Text>
+              {subtitle ? <Text style={sStyles.subtitle}>{subtitle}</Text> : null}
             </View>
-            <TouchableOpacity
-              onPress={onClose}
-              style={styles.closeBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.closeBtnText}>✕</Text>
+            <TouchableOpacity onPress={onClose} style={sStyles.closeBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={sStyles.closeX}>✕</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Body */}
           <ScrollView
             style={{ flexShrink: 1 }}
-            contentContainerStyle={styles.sheetBody}
+            contentContainerStyle={sStyles.body}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
             {children}
           </ScrollView>
-          {footer && <View style={styles.sheetFooter}>{footer}</View>}
+
+          {footer && <View style={sStyles.footer}>{footer}</View>}
         </Animated.View>
       </View>
     </Modal>
   );
 };
 
-// ─── ProBanner ────────────────────────────────────────────────────────────────
-export const ProBanner: React.FC<{ onPress: () => void }> = ({ onPress }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.proBanner}>
-    <View style={styles.proBannerLeft}>
-      <View style={styles.proBannerIcon}>
-        <Text style={{ fontSize: 14 }}>⚡</Text>
-      </View>
-      <View>
-        <Text style={styles.proBannerTitle}>Kredi Al</Text>
-        <Text style={styles.proBannerSub}>Sınırsız belge oluştur</Text>
-      </View>
-    </View>
-    <Text style={styles.proBannerArrow}>→</Text>
-  </TouchableOpacity>
-);
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  btn: {
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  btnContent: { flexDirection: "row", alignItems: "center", gap: 7 },
-  btnText: { fontWeight: "700", letterSpacing: -0.2 },
-  disabled: { opacity: 0.38 },
-
-  dotsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 2,
-    paddingVertical: 4,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: Colors.primary,
-  },
-
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-    alignSelf: "flex-start",
-  },
-  badgeText: { fontWeight: "700", letterSpacing: 0.1 },
-
-  overlay: { flex: 1, justifyContent: "flex-end" },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.overlay,
-  },
+const sStyles = StyleSheet.create({
+  overlay:   { flex: 1, justifyContent: "flex-end" },
   sheet: {
     backgroundColor: Colors.card,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     ...Shadows.lg,
     overflow: "hidden",
   },
-  handleWrap: { alignItems: "center", paddingTop: 12, paddingBottom: 4 },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.separatorOpaque,
-  },
-
-  sheetHeader: {
+  handleBar: { alignItems: "center", paddingTop: 10, paddingBottom: 2 },
+  handle:    { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.separatorOpaque },
+  header: {
     flexDirection: "row",
     alignItems: "flex-start",
     paddingHorizontal: 22,
-    paddingTop: 10,
-    paddingBottom: 16,
+    paddingTop: 12,
+    paddingBottom: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.separator,
   },
-  sheetTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: Colors.label,
-    letterSpacing: -0.5,
-  },
-  sheetSubtitle: {
-    fontSize: 13,
-    color: Colors.labelTertiary,
-    marginTop: 3,
-    letterSpacing: -0.1,
-  },
+  title:    { fontSize: 17, fontWeight: "600", color: Colors.label, letterSpacing: -0.4 },
+  subtitle: { fontSize: 13, color: Colors.label3, marginTop: 3 },
   closeBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: Colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 12,
-    marginTop: 2,
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: Colors.fill,
+    alignItems: "center", justifyContent: "center",
+    marginLeft: 12, marginTop: 1,
   },
-  closeBtnText: { fontSize: 10, color: Colors.labelSecondary, fontWeight: "700" },
-  sheetBody: { padding: 20, paddingBottom: 8 },
-  sheetFooter: {
-    padding: 18,
-    paddingBottom: Platform.OS === "ios" ? 32 : 18,
+  closeX: { fontSize: 10, color: Colors.label2, fontWeight: "700" },
+  body:   { padding: 20, paddingBottom: 12 },
+  footer: {
+    padding: 16,
+    paddingBottom: Platform.OS === "ios" ? 30 : 16,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.separator,
     backgroundColor: Colors.card,
   },
-
-  proBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: Colors.accentLight,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: Colors.accentMid,
-  },
-  proBannerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  proBannerIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  proBannerTitle: { fontSize: 14, fontWeight: "700", color: Colors.primary },
-  proBannerSub: { fontSize: 12, color: Colors.primary, opacity: 0.7, marginTop: 1 },
-  proBannerArrow: { fontSize: 16, color: Colors.primary, fontWeight: "600" },
 });
+
+// ─── ProBanner ────────────────────────────────────────────────────────────────
+export const ProBanner: React.FC<{ onPress: () => void }> = ({ onPress }) => (
+  <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={{
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    backgroundColor: Colors.accentLight, marginHorizontal: 16, marginBottom: 8,
+    borderRadius: 14, padding: 14,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.accentMid,
+  }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <View style={{
+        width: 32, height: 32, borderRadius: 8,
+        backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center",
+      }}>
+        <Text style={{ fontSize: 14 }}>⚡</Text>
+      </View>
+      <View>
+        <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.accent }}>Kredi Al</Text>
+        <Text style={{ fontSize: 12, color: Colors.accent, opacity: 0.7, marginTop: 1 }}>Sınırsız belge oluştur</Text>
+      </View>
+    </View>
+    <Text style={{ fontSize: 16, color: Colors.accent }}>→</Text>
+  </TouchableOpacity>
+);
