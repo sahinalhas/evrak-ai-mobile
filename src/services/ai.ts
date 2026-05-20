@@ -839,28 +839,25 @@ function generateMockResponse(messages: ChatMsg[]): AiResponse {
 
 export const AIService = {
   async sendMessage(messages: ChatMsg[]): Promise<AiResponse> {
-    // Always try the server-side AI first
+    const apiBase = typeof window !== "undefined"
+      ? `${window.location.protocol}//${window.location.hostname}:3001`
+      : "http://localhost:3001";
     try {
-      const apiBase = typeof window !== "undefined"
-        ? `${window.location.protocol}//${window.location.hostname}:3001`
-        : "http://localhost:3001";
       const response = await fetch(`${apiBase}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(20000),
       });
       if (!response.ok) throw new Error(`Sunucu hatası: ${response.status}`);
-      const data = await response.json() as AiResponse;
-      // If server says key is missing, fall through to mock silently
-      if (data.status === "need_type" && data.assistantMessage?.includes("GEMINI_API_KEY")) {
-        throw new Error("no_key");
-      }
-      return data;
+      return await response.json() as AiResponse;
     } catch (e) {
-      // Fall back to smart offline engine — transparent to user
-      await new Promise((r) => setTimeout(r, 900 + Math.random() * 600));
-      return generateMockResponse(messages);
+      return {
+        docType: null,
+        status: "need_type",
+        assistantMessage: "⚠️ Sunucuya bağlanılamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.",
+        document: null,
+      };
     }
   },
 };
