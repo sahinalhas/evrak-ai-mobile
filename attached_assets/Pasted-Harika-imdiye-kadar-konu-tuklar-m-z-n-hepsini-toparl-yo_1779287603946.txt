@@ -1,0 +1,231 @@
+Harika, şimdiye kadar konuştuklarımızın hepsini toparlıyorum. İşte Resmi Evrak Asistanı mobil uygulamanızın eksiksiz özellik listesi:
+
+---
+
+📱 RESMİ EVRAK ASİSTANI - TAM ÖZELLİK LİSTESİ
+
+🎯 UYGULAMANIN TEMEL MANTIĞI
+
+Kullanıcı doğal dil ile yazar, yapay zeka anlar ve resmi formatta belge üretir.
+
+Örnek: "Atatürk Üniversitesi Rektörlüğüne 3 günlük sağlık izni dilekçesi hazırla" → AI formatı ve konuyu anlar → eksiksiz belge çıkar.
+
+---
+
+📋 1. DESTEKLENEN BELGE TÜRLERİ (Özel Evrak - Yasal Riski Yok)
+
+Dilekçeler
+
+· Genel dilekçe (talep, şikayet, bilgi isteme)
+· İzin dilekçesi (okul, iş, askeri)
+· İstifa dilekçesi
+· Mazeret dilekçesi (rapor, yol, ailevi)
+
+İş ve Kariyer
+
+· İş başvuru yazısı (ön yazı / cover letter)
+· Referans mektubu (çalışan veya öğrenci için)
+· Niyet mektubu
+· Staj başvuru dilekçesi
+
+Sözleşmeler ve Taahhütler
+
+· Kira sözleşmesi (ev/iş yeri)
+· Borç senedi (adi senet - çek/bono değil)
+· Taahhütname
+· Adi vekaletname (basit işler için)
+
+Tutanaklar ve Raporlar
+
+· Toplantı tutanağı
+· Hasar tespit tutanağı
+· Durum raporu
+· Özel doktor raporu (hastane dışı)
+
+---
+
+🧠 2. YAPAY ZEKA ÖZELLİKLERİ
+
+Dil Modeli Altyapısı
+
+· Seçenek 1: ChatGPT (GPT-4) - Metin kalitesi daha yüksek
+· Seçenek 2: Gemini (Google) - Fine-tuning ve doğrulama için daha uygun
+· Öneri: MVP için ikisi de iş görür. İleride çoklu model desteği eklenebilir.
+
+AI Yetenekleri
+
+Özellik Açıklama
+Doğal Dil Anlama Kullanıcının "3 günlük izin" dediğini anlar
+Belge Türü Tanıma "Dilekçe mi, sözleşme mi, tutanak mı?" otomatik ayırt eder
+Format Kuralları Uygulama Font, marj, hitap, tarih konumunu bilir
+Kurum Formatını Öğrenme Bir kuruma ait 5-10 örnekle o kurumun stilini taklit eder
+Few-shot Prompting Az örnekle hızlı adaptasyon
+Fine-tuning Desteği 50-100 belge ile modeli kuruma özel eğitme
+
+Yapamayacakları (Yönlendirme)
+
+· Boşanma, miras, icra, tazminat gibi mahkeme işleri → "Avukata danışın"
+· Pasaport, ehliyet, diploma → "Bu belge devlet tarafından verilir"
+· Çek, bono, poliçe (kıymetli evraklar) → "Dikkatli olun, yasal risk taşır"
+
+---
+
+🏛️ 3. KURUMSAL FORMAT DESTEĞİ (En Değerli Özellik)
+
+Statik Şablon Entegrasyonu
+
+· Kurumların yayınladığı resmi Word/PDF şablonlarını sisteme yükleme
+· Boş alanları (isim, numara, tarih) AI ile otomatik doldurma
+
+Dinamik Format Öğrenme
+
+· Kurumun antetini (logo, font, marj, kağıt düzeni) taklit etme
+· Kuruma ait 5-10 örnek belge ile formatı öğrenme
+· Öğrenilen formata uygun sıfırdan yeni belge üretme
+
+Hedef Kurumlar (Öncelik Sırası)
+
+1. Üniversiteler (Atatürk Üniversitesi, İstanbul Üniversitesi, ODTÜ vb.)
+2. Büyükşehir Belediyeleri
+3. Bakanlıklar (MEB, SGK, İçişleri)
+4. Kamu kurumları (BTK, RTÜK, TÜBİTAK)
+
+Örnek Format Kuralları (Atatürk Üniversitesi baz alındı)
+
+· Font: Calibri Light, 12 punto
+· Kenar boşluğu: 2 cm (her yönden)
+· Satır aralığı: Tek
+· Tarih: Sağ üst köşe (GG.AA.YYYY)
+· Hitap: Tarihin hemen altında, sağda
+· Kapanış: "Gereğini arz ederim."
+· İmza: 3 boş satır, sağ alt
+
+---
+
+🎨 4. KULLANICI ARABİRİMİ ÖZELLİKLERİ
+
+Ana Ekran
+
+· Metin kutusu: "Ne tür bir belge hazırlamak istiyorsunuz?" (doğal dil girişi)
+· Kurum seçici: Atatürk Üniversitesi, MEB, SGK vb. (dropdown veya yazmaya başlayınca öneri)
+· Belge türü seçici: Dilekçe, Sözleşme, Tutanak, Mektup (opsiyonel)
+
+Belge Önizleme Ekranı
+
+· Düzenlenebilir belge metni
+· Font ve format görsel önizleme
+· "PDF Olarak Kaydet" butonu
+· "Word Olarak Kaydet" butonu
+
+Zorunlu Uyarı Alanı (Her belgede görünür)
+
+⚠️ UYARI: Bu belge yapay zeka tarafından oluşturulmuş bir taslaktır. Resmi kuruma vermeden önce içeriği kontrol ediniz ve gerekirse bir uzmana danışınız.
+
+---
+
+💾 5. DOSYA DESTEKLERİ
+
+Çıktı Formatları (MVP)
+
+· PDF (öncelikli, herkes açabilir)
+· DOCX (Word, düzenlenebilir)
+
+Çıktı Formatları (İleri Sürüm)
+
+· UDF (UYAP - Adalet Bakanlığı entegrasyonu için)
+· TIFF (çok sayfalı belgeler için)
+· Format dönüştürücü (UDF ↔ PDF ↔ DOCX)
+
+---
+
+🔮 6. GELİŞMİŞ / GELECEK ÖZELLİKLER
+
+Özellik Açıklama Zamanlama
+Sesli Komut "Ali Veli'ye 10.000 TL'lik borç senedi hazırla" de, AI yapsın Faz 2
+e-İmza Entegrasyonu BTK onaylı mobil imza ile belgeyi imzalama Faz 2
+Toplu İşleme 100 farklı kişi için aynı belgeyi tek seferde oluşturma Faz 3
+Mevzuat Takibi Resmi Gazete'yi takip edip şablonları otomatik güncelleme Faz 3
+OCR ile Basılı Belge Okuma Fotoğrafını çektiğiniz belgeyi dijitalleştirme Faz 3
+Belge Özetleme Uzun bir sözleşmenin özetini çıkarma Faz 3
+Yasal Uyumluluk Kontrolü Belgenin güncel mevzuata uygunluğunu kontrol etme Faz 3
+
+---
+
+📊 7. GELİR MODELİ (Premium Özellikler)
+
+Özellik Ücretsiz Sürüm Premium Sürüm
+Belge oluşturma 10 belge/ay Sınırsız
+Şablon sayısı 20 temel şablon 200+ şablon
+Kurumsal format ❌ ✅ (tüm kurumlar)
+Fine-tuning ❌ ✅ (kendi verinle eğit)
+e-İmza ❌ ✅
+Toplu işleme ❌ ✅
+Dosya dönüştürücü Sadece PDF PDF + UDF + TIFF + DOCX
+
+---
+
+🗂️ 8. ŞABLON KAYNAKLARI (Nereden Toplayacağız)
+
+Kaynak Türü Örnek Kullanım Amacı
+Üniversiteler Atatürk Üniversitesi Hukuk Müşavirliği Dilekçe şablonları
+Bakanlıklar MEB, SGK, İçişleri Bakanlığı Resmi yazışma formatları
+Kariyer siteleri TopTalent, Kariyer.net Ön yazı, CV, niyet mektubu
+Tasarım araçları Canva Görsel mektup şablonları
+Resmi kurumlar Kaymakamlıklar, Belediyeler Yerel yönetim formatları
+
+---
+
+🚀 9. GELİŞTİRME PLANI (Fazlar)
+
+Faz 1 (MVP - 4-6 Hafta)
+
+· Basit AI belge oluşturma (doğal dil girişi)
+· 10 temel şablon (dilekçe, sözleşme, tutanak)
+· PDF çıktı desteği
+· Zorunlu yasal uyarı
+· 5 kurum (hedef: Atatürk Üniversitesi, MEB, İstanbul BB, SGK, İşkur)
+
+Faz 2 (Beta - 2-3 Ay)
+
+· Sesli komut desteği
+· 50+ şablon
+· Kurumsal format öğrenme (fine-tuning)
+· e-İmza entegrasyonu (hazır API)
+· OCR ile basılı belge okuma
+
+Faz 3 (Tam Sürüm - 4-6 Ay)
+
+· Toplu işleme
+· Mevzuat takibi ve otomatik güncelleme
+· UDF format desteği (UYAP)
+· Çoklu dil desteği (Türkçe, İngilizce, Almanca)
+· Bulut senkronizasyonu
+
+---
+
+⚠️ 10. YASAL UYARILAR (Uygulama İçinde Görünmeli)
+
+Uyarı Nerede
+"Bu belge yapay zeka tarafından oluşturulmuştur. Resmi işlemler için mutlaka kontrol edin." Her belgenin altında
+"Boşanma, miras, icra gibi konular için avukata danışın." Ana ekranda
+"Bu uygulama hukuki tavsiye niteliği taşımaz." Kayıt ekranında
+"Çek ve bono gibi kıymetli evraklar için dikkatli olun." Borç senedi oluştururken
+
+---
+
+✅ ÖZET: UYGULAMANIN ANA DEĞER ÖNERİLERİ
+
+1. Yapay zeka + doğal dil → Kullanıcının "şu iş için belge hazırla" demesi yeterli
+2. Kurumsal formatları öğrenme → Rakipsiz özellik, her kuruma özel belge
+3. Yasal risk bilinci → Sadece güvenli belgeler, net uyarılar
+4. Basit arayüz + güçlü arka plan → Herkes kullanabilir
+5. Premium potansiyeli → Kurumsal şablonlar ve fine-tuning ücretlendirilir
+
+---
+
+İhtiyacınız olursa buradaki her bir maddeyi daha da detaylandırabilirim. Mesela:
+
+· Fine-tuning için teknik altyapı nasıl kurulur?
+· Kurumsal şablonları toplamak için web scraper nasıl yapılır?
+· MVP için hangi 10 belge ile başlamalıyız?
+· e-İmza entegrasyonu için hangi API'ler var?
