@@ -1691,9 +1691,7 @@ import { StorageService } from "./storage";
 
 export const AIService = {
   async sendMessage(messages: ChatMsg[]): Promise<AiResponse> {
-    const apiBase = typeof window !== "undefined" && window.location.hostname.includes(".replit.dev")
-      ? `https://${window.location.hostname.replace(/\.pike\.replit\.dev$/, "-3001.pike.replit.dev")}`
-      : "http://localhost:3001";
+    const apiBase = "";
     try {
       const userInfo = await StorageService.getUserInfo();
       const response = await fetch(`${apiBase}/api/chat`, {

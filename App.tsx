@@ -5,7 +5,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator, BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { MessageSquare, FolderOpen, User } from "lucide-react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Colors } from "./src/components/Theme";
+import { Colors, Shadows } from "./src/components/Theme";
 import { ChatScreen } from "./src/screens/ChatScreen";
 import { DocumentsScreen } from "./src/screens/DocumentsScreen";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
@@ -20,9 +20,9 @@ import {
 const Tab = createBottomTabNavigator();
 
 const TABS = [
-  { name: "Sohbet",   label: "Sohbet",     Icon: MessageSquare },
-  { name: "Belgeler", label: "Belgelerim",  Icon: FolderOpen },
-  { name: "Profil",   label: "Profil",      Icon: User },
+  { name: "Sohbet",   label: "Sohbet",    Icon: MessageSquare },
+  { name: "Belgeler", label: "Belgeler",   Icon: FolderOpen },
+  { name: "Profil",   label: "Profil",     Icon: User },
 ];
 
 function TabItem({ route, focused, onPress }: {
@@ -34,8 +34,8 @@ function TabItem({ route, focused, onPress }: {
 
   const handlePress = () => {
     Animated.sequence([
-      Animated.timing(scale, { toValue: 0.86, duration: 70, useNativeDriver: true }),
-      Animated.spring(scale, { toValue: 1, tension: 280, friction: 8, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 0.88, duration: 60, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, tension: 300, friction: 8, useNativeDriver: true }),
     ]).start();
     onPress();
   };
@@ -43,12 +43,11 @@ function TabItem({ route, focused, onPress }: {
   return (
     <TouchableOpacity onPress={handlePress} activeOpacity={1} style={s.tabItem}>
       <Animated.View style={[s.tabInner, { transform: [{ scale }] }]}>
-        {/* Icon pill — active gets a tinted background */}
-        <View style={[s.iconPill, focused && s.iconPillActive]}>
+        <View style={[s.iconWrap, focused && s.iconWrapActive]}>
           <Icon
-            size={21}
+            size={20}
             color={focused ? Colors.accent : Colors.label3}
-            strokeWidth={focused ? 2 : 1.6}
+            strokeWidth={focused ? 2.2 : 1.6}
           />
         </View>
         <Text style={[s.tabLabel, focused && s.tabLabelActive]}>
@@ -62,8 +61,7 @@ function TabItem({ route, focused, onPress }: {
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[s.tabBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      {/* Hairline top border */}
+    <View style={[s.tabBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       <View style={s.tabBorderTop} />
       {state.routes.map((route, i) => (
         <TabItem
@@ -105,9 +103,8 @@ const s = StyleSheet.create({
   tabBar: {
     flexDirection: "row",
     backgroundColor: Colors.card,
-    paddingTop: 6,
-    paddingHorizontal: 6,
-    position: "relative",
+    paddingTop: 8,
+    paddingHorizontal: 8,
   },
   tabBorderTop: {
     position: "absolute",
@@ -116,13 +113,13 @@ const s = StyleSheet.create({
     backgroundColor: Colors.separator,
   },
   tabItem:  { flex: 1, alignItems: "center" },
-  tabInner: { alignItems: "center", gap: 3, paddingVertical: 2 },
-  iconPill: {
-    width: 52, height: 32,
-    borderRadius: 12,
+  tabInner: { alignItems: "center", gap: 4, paddingVertical: 2 },
+  iconWrap: {
+    width: 48, height: 32,
+    borderRadius: 10,
     alignItems: "center", justifyContent: "center",
   },
-  iconPillActive: {
+  iconWrapActive: {
     backgroundColor: Colors.accentLight,
   },
   tabLabel: {

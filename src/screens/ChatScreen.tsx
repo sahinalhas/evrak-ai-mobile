@@ -6,7 +6,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Send, Copy, Share2, RotateCcw, Printer, X, ChevronRight } from "lucide-react-native";
+import { Send, Copy, Share2, RotateCcw, Printer, X, ChevronRight, Sparkles } from "lucide-react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";
 import { GradientButton, PulsingDots, DialogSheet } from "../components/ui";
@@ -22,7 +22,6 @@ type Message = {
   isDocument?: boolean;
 };
 
-// ─── Template preview data ───────────────────────────────────────────────────
 const TEMPLATE_INFO: Record<string, {
   label: string;
   needed: string[];
@@ -46,12 +45,12 @@ const TEMPLATE_INFO: Record<string, {
   "İş Başvurusu": {
     label: "İş Başvuru Yazısı",
     needed: ["Şirket ve pozisyon adı", "Deneyim yılınız", "Öne çıkarmak istediğiniz bir beceri", "Adınız ve iletişim bilgisi"],
-    sample: "# İŞ BAŞVURU YAZISI\n\n**…………… İnsan Kaynakları Departmanı'na,**\n\n…………… pozisyonuna başvurmak istediğimi saygıyla bildiririm. 5 yıllık sektör deneyimimle…",
+    sample: "# İŞ BAŞVURU YAZISI\n\n**…………… İnsan Kaynakları Departmanı'na,**\n\n…………… pozisyonuna başvurmak istediğimi saygıyla bildiririm.",
   },
   "Şikayet": {
     label: "Şikayet Dilekçesi",
-    needed: ["Şikayetinizin konusu", "Kurumun veya kişinin adı", "Yaşanan olay ve tarihi", "Talebiniz (özür, iade, işlem vb.)"],
-    sample: "# ŞİKAYET DİLEKÇESİ\n\n**…………… Müdürlüğü'ne,**\n\n…………… tarihinde yaşanan olay nedeniyle şikayetçi olduğumu bildiriyorum. Konunun incelenerek gereğinin yapılmasını…",
+    needed: ["Şikayetinizin konusu", "Kurumun veya kişinin adı", "Yaşanan olay ve tarihi", "Talebiniz"],
+    sample: "# ŞİKAYET DİLEKÇESİ\n\n**…………… Müdürlüğü'ne,**\n\n…………… tarihinde yaşanan olay nedeniyle şikayetçi olduğumu bildiriyorum.",
   },
   "Taahhütname": {
     label: "Taahhütname",
@@ -61,22 +60,22 @@ const TEMPLATE_INFO: Record<string, {
   "Referans Mektubu": {
     label: "Referans Mektubu",
     needed: ["Referans verilen kişinin adı ve görevi", "Birlikte çalışma süresi", "Öne çıkan 2-3 özellik", "Referans verenin adı ve unvanı"],
-    sample: "# REFERANS MEKTUBU\n\n…………… ile …………… süre boyunca birlikte çalışma fırsatı buldum. Kendisi, …………… konusundaki yetkinliği ve çalışma disipliniyle dikkat çekici bir profesyoneldir.",
+    sample: "# REFERANS MEKTUBU\n\n…………… ile …………… süre boyunca birlikte çalışma fırsatı buldum.",
   },
   "Kayıt Dondurma": {
     label: "Kayıt Dondurma",
-    needed: ["Üniversite / okul ve bölüm adı", "Öğrenci numarası", "Dondurma gerekçesi (sağlık, maddi vb.)", "Dondurulmak istenen dönem"],
-    sample: "# KAYIT DONDURMA TALEBİ\n\n**Fakülte Dekanlığı'na,**\n\n…………… Bölümü öğrencisi olarak, …………… gerekçesiyle 2026-2027 Güz dönemi için kaydımın dondurulmasını talep ediyorum.",
+    needed: ["Üniversite / okul ve bölüm adı", "Öğrenci numarası", "Dondurma gerekçesi", "Dondurulmak istenen dönem"],
+    sample: "# KAYIT DONDURMA TALEBİ\n\n**Fakülte Dekanlığı'na,**\n\n…………… Bölümü öğrencisi olarak, 2026-2027 Güz dönemi için kaydımın dondurulmasını talep ediyorum.",
   },
   "Nakil Talebi": {
     label: "Nakil Talebi",
     needed: ["Mevcut okul / bölüm", "Nakil olmak istediğiniz yer", "Nakil gerekçesi", "Adınız ve öğrenci numarası"],
-    sample: "# NAKİL TALEBİ\n\n**Öğrenci İşleri Daire Başkanlığı'na,**\n\n…………… bölümünden …………… bölümüne nakil olmak istediğimi arz ederim. Gerekçem: ……………",
+    sample: "# NAKİL TALEBİ\n\n**Öğrenci İşleri Daire Başkanlığı'na,**\n\n…………… bölümünden …………… bölümüne nakil olmak istediğimi arz ederim.",
   },
   "Not İtirazı": {
     label: "Not / Sınav İtirazı",
     needed: ["Ders ve öğretim görevlisi adı", "Sınav tarihi ve türü", "İtiraz gerekçeniz", "Öğrenci numarası"],
-    sample: "# SINAV SONUCU İTİRAZ DİLEKÇESİ\n\n**Öğretim Görevlisi'ne,**\n\n…………… dersi …………… sınavına ait notuma itiraz etmek istiyorum. Değerlendirme kriterlerine göre…",
+    sample: "# SINAV SONUCU İTİRAZ DİLEKÇESİ\n\n**Öğretim Görevlisi'ne,**\n\n…………… dersi sınavına ait notuma itiraz etmek istiyorum.",
   },
   "Bilgi Edinme": {
     label: "Bilgi Edinme Başvurusu",
@@ -112,11 +111,11 @@ export const ChatScreen: React.FC = () => {
 
   const onFocus = () => {
     setInputFocused(true);
-    Animated.timing(borderAnim, { toValue: 1, duration: 180, useNativeDriver: false }).start();
+    Animated.timing(borderAnim, { toValue: 1, duration: 200, useNativeDriver: false }).start();
   };
   const onBlur = () => {
     setInputFocused(false);
-    Animated.timing(borderAnim, { toValue: 0, duration: 180, useNativeDriver: false }).start();
+    Animated.timing(borderAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start();
   };
 
   const animatedBorder = borderAnim.interpolate({
@@ -152,7 +151,6 @@ export const ChatScreen: React.FC = () => {
         await StorageService.saveDocument({ content: reply, preview: raw });
         setActiveDoc({ content: reply });
 
-        // Feature 4: Profile nudge — show if no name saved
         const info = await StorageService.getUserInfo();
         if (!info.ad && !info.soyad) {
           setShowProfileNudge(true);
@@ -199,29 +197,33 @@ export const ChatScreen: React.FC = () => {
 
   const creditLow = credits > 0 && credits <= 2;
   const creditOut = credits === 0;
-
-  // ── Template preview content ─────────────────────────────────────────────
   const tmplInfo = previewTemplate ? TEMPLATE_INFO[previewTemplate] : null;
 
   return (
     <SafeAreaView style={s.root} edges={["top"]}>
       <StatusBar style="dark" />
 
-      {/* Nav */}
-      <View style={s.nav}>
-        <View>
-          <Text style={s.navTitle}>EvrakAI</Text>
-          <Text style={s.navSub}>Belge Asistanı</Text>
+      {/* Header */}
+      <View style={s.header}>
+        <View style={s.headerLeft}>
+          <View style={s.logoMark}>
+            <Sparkles size={14} color="#fff" strokeWidth={2.2} />
+          </View>
+          <View>
+            <Text style={s.headerTitle}>EvrakAI</Text>
+            <Text style={s.headerSub}>Belge Asistanı</Text>
+          </View>
         </View>
-        <View style={s.navEnd}>
-          <View style={[s.creditPill,
-            creditOut && s.creditPillRed,
-            creditLow && s.creditPillOrange,
+        <View style={s.headerRight}>
+          <View style={[
+            s.creditBadge,
+            creditOut && s.creditBadgeRed,
+            creditLow && s.creditBadgeOrange,
           ]}>
-            <View style={[s.creditDot,
-              { backgroundColor: creditOut ? Colors.red : creditLow ? Colors.orange : Colors.green },
-            ]} />
-            <Text style={[s.creditCount,
+            <View style={[s.creditDot, {
+              backgroundColor: creditOut ? Colors.red : creditLow ? Colors.orange : Colors.green,
+            }]} />
+            <Text style={[s.creditText,
               creditOut && { color: Colors.red },
               creditLow && { color: Colors.orange },
             ]}>
@@ -230,26 +232,31 @@ export const ChatScreen: React.FC = () => {
           </View>
           <TouchableOpacity onPress={resetChat} style={s.iconBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <RotateCcw size={16} color={Colors.label2} strokeWidth={1.8} />
+            <RotateCcw size={15} color={Colors.label3} strokeWidth={2} />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Template chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        style={{ backgroundColor: Colors.card, maxHeight: 46 }}
-        contentContainerStyle={s.chips}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={s.chipsScroll}
+        contentContainerStyle={s.chipsContent}
+      >
         {TEMPLATES.map(t => (
-          <TouchableOpacity key={t}
+          <TouchableOpacity
+            key={t}
             onPress={() => setPreviewTemplate(t)}
             style={[s.chip, previewTemplate === t && s.chipActive]}
-            activeOpacity={0.7}>
+            activeOpacity={0.72}
+          >
             <Text style={[s.chipText, previewTemplate === t && s.chipTextActive]}>{t}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      <View style={s.hairline} />
+      <View style={s.divider} />
 
       {/* Messages + Input */}
       <KeyboardAvoidingView
@@ -267,20 +274,24 @@ export const ChatScreen: React.FC = () => {
           {messages.map(m => (
             <View key={m.id} style={[s.row, m.role === "user" && s.rowUser]}>
               {m.role === "assistant" && (
-                <View style={s.aiAvatar}><Text style={{ fontSize: 12 }}>⚖</Text></View>
+                <View style={s.aiAvatar}>
+                  <Sparkles size={11} color={Colors.accent} strokeWidth={2} />
+                </View>
               )}
               <View style={[s.bubble, m.role === "user" ? s.bubbleUser : s.bubbleAI]}>
-                <Text style={[s.bubbleTxt, m.role === "user" && { color: "#fff" }]}>
+                <Text style={[s.bubbleTxt, m.role === "user" && s.bubbleTxtUser]}>
                   {m.content}
                 </Text>
                 {m.isDocument && m.role === "assistant" && (
                   <View style={s.docStrip}>
-                    <Text style={s.docBadge}>BELGE HAZIR</Text>
-                    <View style={{ flexDirection: "row", gap: 4 }}>
+                    <View style={s.docBadgeWrap}>
+                      <Text style={s.docBadge}>✓ BELGE HAZIR</Text>
+                    </View>
+                    <View style={{ flexDirection: "row", gap: 6 }}>
                       {[
-                        { Icon: Copy,    fn: () => copyText(m.content), tip: "Kopyala" },
-                        { Icon: Share2,  fn: () => shareText(m.content), tip: "Paylaş" },
-                        { Icon: Printer, fn: () => printDocument(m.content), tip: "Yazdır" },
+                        { Icon: Copy,    fn: () => copyText(m.content) },
+                        { Icon: Share2,  fn: () => shareText(m.content) },
+                        { Icon: Printer, fn: () => printDocument(m.content) },
                       ].map(({ Icon, fn }, i) => (
                         <TouchableOpacity key={i} onPress={fn} style={s.docBtn}>
                           <Icon size={13} color={Colors.accent} strokeWidth={2} />
@@ -295,30 +306,33 @@ export const ChatScreen: React.FC = () => {
 
           {loading && (
             <View style={s.row}>
-              <View style={s.aiAvatar}><Text style={{ fontSize: 12 }}>⚖</Text></View>
-              <View style={s.bubbleAI}><PulsingDots /></View>
+              <View style={s.aiAvatar}>
+                <Sparkles size={11} color={Colors.accent} strokeWidth={2} />
+              </View>
+              <View style={[s.bubble, s.bubbleAI, s.bubbleLoading]}>
+                <PulsingDots />
+              </View>
             </View>
           )}
 
-          {/* Feature 4 — Profile nudge */}
+          {/* Profile nudge */}
           {showProfileNudge && (
-            <View style={s.nudgeCard}>
-              <View style={{ flex: 1 }}>
+            <View style={s.nudge}>
+              <View style={s.nudgeLeft}>
                 <Text style={s.nudgeTitle}>Bir daha yazmayın</Text>
-                <Text style={s.nudgeSub}>
-                  Adınız, TCKN ve adresinizi bir kez kaydedin — tüm belgelere otomatik dolsun.
-                </Text>
+                <Text style={s.nudgeSub}>Bilgilerinizi bir kez kaydedin — tüm belgelere otomatik dolsun.</Text>
               </View>
-              <View style={s.nudgeActions}>
+              <View style={s.nudgeRight}>
                 <TouchableOpacity
                   onPress={() => { setShowProfileNudge(false); navigation.navigate("Profil"); }}
-                  style={s.nudgeBtn}>
-                  <Text style={s.nudgeBtnText}>Profili Aç</Text>
-                  <ChevronRight size={13} color={Colors.accent} strokeWidth={2.2} />
+                  style={s.nudgeBtn}
+                >
+                  <Text style={s.nudgeBtnTxt}>Profil</Text>
+                  <ChevronRight size={12} color={Colors.accent} strokeWidth={2.5} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setShowProfileNudge(false)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <X size={14} color={Colors.label3} strokeWidth={2} />
+                  <X size={13} color={Colors.label3} strokeWidth={2} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -343,8 +357,11 @@ export const ChatScreen: React.FC = () => {
             <TouchableOpacity
               onPress={() => send()}
               disabled={!input.trim() || loading}
-              activeOpacity={0.8}
-              style={[s.sendBtn, (!input.trim() || loading) && { backgroundColor: Colors.fill, shadowOpacity: 0 }]}
+              activeOpacity={0.82}
+              style={[
+                s.sendBtn,
+                (!input.trim() || loading) && s.sendBtnDisabled,
+              ]}
             >
               <Send size={15} color="#fff" strokeWidth={2.2} />
             </TouchableOpacity>
@@ -353,7 +370,7 @@ export const ChatScreen: React.FC = () => {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Feature 3 — Template Preview Sheet */}
+      {/* Template Preview Sheet */}
       <DialogSheet
         visible={!!previewTemplate}
         onClose={() => setPreviewTemplate(null)}
@@ -373,24 +390,28 @@ export const ChatScreen: React.FC = () => {
           />
         }
       >
-        <View style={{ gap: 18 }}>
-          {/* Needed info */}
+        <View style={{ gap: 20 }}>
           <View style={s.previewSection}>
-            <Text style={s.previewSectionTitle}>Gerekli Bilgiler</Text>
-            {tmplInfo?.needed.map((item, i) => (
-              <View key={i} style={s.neededRow}>
-                <View style={s.neededDot} />
-                <Text style={s.neededText}>{item}</Text>
-              </View>
-            ))}
-            <Text style={s.neededNote}>
-              Bilgileriniz profil sekmesinde kayıtlıysa sorulmaz, otomatik eklenir.
-            </Text>
+            <Text style={s.previewSectionLabel}>GEREKLİ BİLGİLER</Text>
+            <View style={{ gap: 10 }}>
+              {tmplInfo?.needed.map((item, i) => (
+                <View key={i} style={s.neededRow}>
+                  <View style={s.neededNum}>
+                    <Text style={s.neededNumTxt}>{i + 1}</Text>
+                  </View>
+                  <Text style={s.neededText}>{item}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={s.autoNote}>
+              <Text style={s.autoNoteText}>
+                💡 Profilde kayıtlı bilgiler otomatik eklenir, tekrar sorulmaz.
+              </Text>
+            </View>
           </View>
 
-          {/* Sample doc */}
           <View>
-            <Text style={s.previewSectionTitle}>Örnek Belge</Text>
+            <Text style={s.previewSectionLabel}>ÖRNEK BELGE</Text>
             <MarkdownView content={tmplInfo?.sample ?? ""} />
           </View>
         </View>
@@ -405,15 +426,21 @@ export const ChatScreen: React.FC = () => {
         maxHeight="92%"
         footer={
           <View style={{ flexDirection: "row", gap: 8 }}>
-            <GradientButton onPress={() => activeDoc && copyText(activeDoc.content)}
+            <GradientButton
+              onPress={() => activeDoc && copyText(activeDoc.content)}
               title="Kopyala" variant="tinted" size="md" style={{ flex: 1 }}
-              icon={<Copy size={13} color={Colors.accent} />} />
-            <GradientButton onPress={() => activeDoc && printDocument(activeDoc.content)}
-              title="PDF/Yazdır" variant="gray" size="md" style={{ flex: 1 }}
-              icon={<Printer size={13} color={Colors.label} />} />
-            <GradientButton onPress={() => activeDoc && shareText(activeDoc.content)}
+              icon={<Copy size={13} color={Colors.accent} />}
+            />
+            <GradientButton
+              onPress={() => activeDoc && printDocument(activeDoc.content)}
+              title="PDF" variant="gray" size="md" style={{ flex: 1 }}
+              icon={<Printer size={13} color={Colors.label} />}
+            />
+            <GradientButton
+              onPress={() => activeDoc && shareText(activeDoc.content)}
               title="Paylaş" variant="filled" size="md" style={{ flex: 1 }}
-              icon={<Share2 size={13} color="#fff" />} />
+              icon={<Share2 size={13} color="#fff" />}
+            />
           </View>
         }
       >
@@ -426,142 +453,180 @@ export const ChatScreen: React.FC = () => {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
 
-  // Nav
-  nav: {
+  // Header
+  header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 18, paddingTop: 4, paddingBottom: 12,
+    paddingHorizontal: 18, paddingTop: 6, paddingBottom: 14,
     backgroundColor: Colors.card,
   },
-  navTitle: { fontSize: 17, fontWeight: "700", color: Colors.label, letterSpacing: -0.4 },
-  navSub:   { fontSize: 11, color: Colors.label3, marginTop: 1 },
-  navEnd:   { flexDirection: "row", alignItems: "center", gap: 8 },
-  creditPill: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 11, paddingVertical: 6,
-    backgroundColor: Colors.fill, borderRadius: 20,
-  },
-  creditPillRed:    { backgroundColor: Colors.redLight },
-  creditPillOrange: { backgroundColor: Colors.warningLight },
-  creditDot:   { width: 6, height: 6, borderRadius: 3 },
-  creditCount: { fontSize: 13, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
-  iconBtn: {
-    width: 34, height: 34, borderRadius: 10,
-    backgroundColor: Colors.fill, alignItems: "center", justifyContent: "center",
-  },
-
-  // Chips
-  chips: { paddingHorizontal: 16, gap: 7, alignItems: "center", paddingVertical: 9 },
-  chip:  {
-    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20,
-    backgroundColor: Colors.bg,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separatorOpaque,
-  },
-  chipActive: {
-    backgroundColor: Colors.accentLight,
-    borderColor: Colors.accent,
-  },
-  chipText:       { fontSize: 13, fontWeight: "500", color: Colors.label2, letterSpacing: -0.1 },
-  chipTextActive: { color: Colors.accent, fontWeight: "600" },
-  hairline: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.separator },
-
-  // Feed
-  feed:        { flex: 1, backgroundColor: Colors.bg },
-  feedContent: { padding: 14, gap: 12, paddingBottom: 8 },
-  row:     { flexDirection: "row", alignItems: "flex-end", gap: 8 },
-  rowUser: { flexDirection: "row-reverse" },
-  aiAvatar: {
-    width: 28, height: 28, borderRadius: 8,
-    backgroundColor: Colors.fill,
-    alignItems: "center", justifyContent: "center",
-    flexShrink: 0, marginBottom: 2,
-  },
-  bubble:    { maxWidth: "80%", borderRadius: 18, padding: 13 },
-  bubbleAI: {
-    backgroundColor: Colors.card,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
-    borderBottomLeftRadius: 4, ...Shadows.xs,
-  },
-  bubbleUser: { backgroundColor: Colors.accent, borderBottomRightRadius: 4 },
-  bubbleTxt:  { fontSize: 15, color: Colors.label, lineHeight: 22, letterSpacing: -0.2 },
-
-  // Doc strip
-  docStrip: {
-    marginTop: 10, paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(88,86,214,0.2)",
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-  },
-  docBadge: {
-    fontSize: 9, fontWeight: "700", color: Colors.accent, letterSpacing: 0.5,
-    backgroundColor: Colors.accentLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5,
-  },
-  docBtn: {
-    width: 28, height: 28, borderRadius: 7,
-    backgroundColor: Colors.accentLight,
-    alignItems: "center", justifyContent: "center",
-  },
-
-  // Profile nudge (feature 4)
-  nudgeCard: {
-    flexDirection: "row", alignItems: "flex-start", gap: 12,
-    backgroundColor: Colors.accentLight,
-    borderRadius: 14,
-    borderWidth: 1, borderColor: Colors.accentMid,
-    padding: 14,
-    marginTop: 4,
-  },
-  nudgeTitle: { fontSize: 14, fontWeight: "700", color: Colors.accent, marginBottom: 4 },
-  nudgeSub:   { fontSize: 13, color: Colors.accent, opacity: 0.8, lineHeight: 18 },
-  nudgeActions: { alignItems: "flex-end", gap: 8, flexShrink: 0 },
-  nudgeBtn: {
-    flexDirection: "row", alignItems: "center", gap: 3,
-    backgroundColor: Colors.accent, borderRadius: 10,
-    paddingHorizontal: 10, paddingVertical: 6,
-  },
-  nudgeBtnText: { fontSize: 12, fontWeight: "700", color: "#fff" },
-
-  // Template preview sheet content
-  previewSection: {
-    backgroundColor: Colors.bg,
-    borderRadius: 14, padding: 14, gap: 9,
-  },
-  previewSectionTitle: {
-    fontSize: 12, fontWeight: "700", color: Colors.label3,
-    letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4,
-  },
-  neededRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  neededDot: {
-    width: 5, height: 5, borderRadius: 3,
-    backgroundColor: Colors.accent, flexShrink: 0,
-  },
-  neededText: { fontSize: 14, color: Colors.label, lineHeight: 20 },
-  neededNote: {
-    fontSize: 12, color: Colors.label3, marginTop: 6, lineHeight: 17,
-    paddingTop: 9, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.separator,
-  },
-
-  // Input
-  inputBar: {
-    backgroundColor: Colors.card,
-    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.separator,
-    paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10,
-  },
-  inputWrap: {
-    flexDirection: "row", alignItems: "flex-end",
-    backgroundColor: Colors.bg,
-    borderRadius: 18, borderWidth: 1.2,
-    paddingLeft: 14, paddingRight: 7, paddingVertical: 7,
-    gap: 6, marginBottom: 6,
-  },
-  input: {
-    flex: 1, fontSize: 15, color: Colors.label,
-    maxHeight: 100, letterSpacing: -0.2,
-    paddingTop: 3, paddingBottom: 3,
-  },
-  sendBtn: {
-    width: 34, height: 34, borderRadius: 10,
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  logoMark: {
+    width: 32, height: 32, borderRadius: 10,
     backgroundColor: Colors.accent,
     alignItems: "center", justifyContent: "center",
     ...Shadows.glow,
   },
-  disclaimer: { fontSize: 11, color: Colors.label3, textAlign: "center" },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: Colors.label, letterSpacing: -0.4 },
+  headerSub:   { fontSize: 11, color: Colors.label3, marginTop: 1, letterSpacing: 0.1 },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+
+  creditBadge: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 10, paddingVertical: 6,
+    backgroundColor: Colors.fill, borderRadius: 20,
+  },
+  creditBadgeRed:    { backgroundColor: Colors.redLight },
+  creditBadgeOrange: { backgroundColor: Colors.warningLight },
+  creditDot:  { width: 6, height: 6, borderRadius: 3 },
+  creditText: { fontSize: 12, fontWeight: "600", color: Colors.label, letterSpacing: -0.1 },
+
+  iconBtn: {
+    width: 32, height: 32, borderRadius: 10,
+    backgroundColor: Colors.fill,
+    alignItems: "center", justifyContent: "center",
+  },
+
+  // Chips
+  chipsScroll:  { backgroundColor: Colors.card, maxHeight: 50 },
+  chipsContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 7, alignItems: "center", flexDirection: "row" },
+  chip: {
+    paddingHorizontal: 13, paddingVertical: 6, borderRadius: 20,
+    backgroundColor: Colors.fill,
+  },
+  chipActive: { backgroundColor: Colors.accentLight },
+  chipText:       { fontSize: 13, fontWeight: "500", color: Colors.label2 },
+  chipTextActive: { color: Colors.accent, fontWeight: "600" },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.separator },
+
+  // Feed
+  feed:        { flex: 1, backgroundColor: Colors.bg },
+  feedContent: { padding: 16, gap: 14, paddingBottom: 10 },
+
+  row:     { flexDirection: "row", alignItems: "flex-end", gap: 10 },
+  rowUser: { flexDirection: "row-reverse" },
+
+  aiAvatar: {
+    width: 28, height: 28, borderRadius: 9,
+    backgroundColor: Colors.accentLight,
+    borderWidth: 1, borderColor: Colors.accentMid,
+    alignItems: "center", justifyContent: "center",
+    flexShrink: 0, marginBottom: 2,
+  },
+
+  bubble: { maxWidth: "82%", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 12 },
+  bubbleAI: {
+    backgroundColor: Colors.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separator,
+    borderBottomLeftRadius: 6,
+    ...Shadows.xs,
+  },
+  bubbleLoading: { paddingVertical: 14 },
+  bubbleUser: {
+    backgroundColor: Colors.accent,
+    borderBottomRightRadius: 6,
+    ...Shadows.glow,
+  },
+  bubbleTxt:     { fontSize: 15, color: Colors.label, lineHeight: 22, letterSpacing: -0.1 },
+  bubbleTxtUser: { color: "#fff" },
+
+  // Doc strip
+  docStrip: {
+    marginTop: 12, paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(79,70,229,0.15)",
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+  },
+  docBadgeWrap: {
+    backgroundColor: Colors.accentLight,
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 8,
+  },
+  docBadge: { fontSize: 10, fontWeight: "700", color: Colors.accent, letterSpacing: 0.3 },
+  docBtn: {
+    width: 30, height: 30, borderRadius: 9,
+    backgroundColor: Colors.accentLight,
+    alignItems: "center", justifyContent: "center",
+  },
+
+  // Profile nudge
+  nudge: {
+    flexDirection: "row", alignItems: "center", gap: 14,
+    backgroundColor: Colors.card,
+    borderRadius: 18,
+    borderWidth: 1, borderColor: Colors.accentMid,
+    paddingHorizontal: 16, paddingVertical: 14,
+    marginTop: 2,
+    ...Shadows.sm,
+  },
+  nudgeLeft:  { flex: 1 },
+  nudgeRight: { alignItems: "flex-end", gap: 10, flexShrink: 0 },
+  nudgeTitle: { fontSize: 13, fontWeight: "700", color: Colors.label, marginBottom: 3, letterSpacing: -0.2 },
+  nudgeSub:   { fontSize: 12, color: Colors.label2, lineHeight: 17 },
+  nudgeBtn: {
+    flexDirection: "row", alignItems: "center", gap: 2,
+    backgroundColor: Colors.accentLight,
+    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
+  },
+  nudgeBtnTxt: { fontSize: 12, fontWeight: "700", color: Colors.accent },
+
+  // Input bar
+  inputBar: {
+    paddingHorizontal: 14, paddingTop: 10, paddingBottom: Platform.OS === "ios" ? 12 : 10,
+    backgroundColor: Colors.card,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.separator,
+  },
+  inputWrap: {
+    flexDirection: "row", alignItems: "flex-end", gap: 10,
+    backgroundColor: Colors.bg,
+    borderRadius: 18, borderWidth: 1.5,
+    paddingLeft: 14, paddingRight: 6, paddingVertical: 7,
+  },
+  input: {
+    flex: 1, fontSize: 15, color: Colors.label,
+    maxHeight: 110, letterSpacing: -0.1,
+    paddingVertical: 4,
+  },
+  sendBtn: {
+    width: 36, height: 36, borderRadius: 12,
+    backgroundColor: Colors.accent,
+    alignItems: "center", justifyContent: "center",
+    marginBottom: 1,
+    ...Shadows.glow,
+  },
+  sendBtnDisabled: {
+    backgroundColor: Colors.fill,
+    shadowOpacity: 0,
+  },
+  disclaimer: {
+    fontSize: 11, color: Colors.label3, textAlign: "center",
+    marginTop: 7, letterSpacing: 0.1,
+  },
+
+  // Template preview sheet
+  previewSection: {
+    backgroundColor: Colors.bg,
+    borderRadius: 16, padding: 16,
+    gap: 14,
+  },
+  previewSectionLabel: {
+    fontSize: 11, fontWeight: "700", color: Colors.label3,
+    letterSpacing: 0.8, marginBottom: 2,
+  },
+  neededRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  neededNum: {
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: Colors.accentLight,
+    alignItems: "center", justifyContent: "center",
+    flexShrink: 0, marginTop: 1,
+  },
+  neededNumTxt: { fontSize: 11, fontWeight: "700", color: Colors.accent },
+  neededText:   { flex: 1, fontSize: 14, color: Colors.label, lineHeight: 20 },
+  autoNote: {
+    marginTop: 4, paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.separator,
+  },
+  autoNoteText: { fontSize: 12, color: Colors.label2, lineHeight: 17 },
 });

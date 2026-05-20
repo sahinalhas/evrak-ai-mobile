@@ -1,24 +1,15 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (
-      origin.includes(".replit.dev") ||
-      origin.includes("localhost") ||
-      origin.includes("127.0.0.1")
-    ) {
-      return callback(null, true);
-    }
-    callback(new Error("Not allowed by CORS"));
-  },
+  origin: true,
   credentials: true,
 }));
 app.use(express.json());
 
-const PORT = 3001;
+const PORT = process.env.PORT || 5000;
 
 const SYSTEM_PROMPT = `Sen "EvrakAI" adında, Türkiye'de vatandaşların resmi kurumlara vereceği özel evrak ve belgeleri hazırlayan deneyimli bir belge asistanısın.
 
@@ -81,19 +72,20 @@ SADECE geçerli bir JSON nesnesi döndür. Başka hiçbir metin, açıklama, kod
 }`;
 
 app.get("/api/health", (req, res) => {
-  const hasKey = !!process.env.GEMINI_API_KEY;
+  const hasKey = !!(process.env.AI_INTEGRATIONS_GEMINI_API_KEY || process.env.GEMINI_API_KEY);
   res.json({ ok: true, hasKey });
 });
 
 app.post("/api/chat", async (req, res) => {
   const { messages, userInfo } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.AI_INTEGRATIONS_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  const baseUrl = process.env.AI_INTEGRATIONS_GEMINI_BASE_URL;
 
   if (!apiKey) {
     return res.status(503).json({
       docType: null,
       status: "need_type",
-      assistantMessage: "⚠️ Sunucu AI motoru henüz yapılandırılmamış (GEMINI_API_KEY eksik).",
+      assistantMessage: "⚠️ Sunucu AI motoru henüz yapılandırılmamış.",
       document: null,
     });
   }
@@ -121,9 +113,12 @@ app.post("/api/chat", async (req, res) => {
   const effectivePrompt = SYSTEM_PROMPT + userInfoBlock;
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
+    const geminiBase = baseUrl
+      ? baseUrl.replace(/\/$/, "")
+      : "https://generativelanguage.googleapis.com";
+    const geminiUrl = `${geminiBase}/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -141,11 +136,10 @@ app.post("/api/chat", async (req, res) => {
           generationConfig: {
             responseMimeType: "application/json",
             temperature: 0.2,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 8192,
           },
         }),
-      }
-    );
+      });
 
     if (!response.ok) {
       const errBody = await response.text();
@@ -188,7 +182,17 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+const fs = require("fs");
+const distDir = path.join(__dirname, "dist");
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir));
+  app.get("/{*splat}", (req, res) => {
+    res.sendFile(path.join(distDir, "index.html"));
+  });
+}
+
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`EvrakAI API sunucusu port ${PORT}'de çalışıyor`);
-  console.log(`Gemini API Key: ${process.env.GEMINI_API_KEY ? "✓ Yapılandırıldı" : "✗ Eksik"}`);
+  console.log(`EvrakAI sunucusu port ${PORT}'de çalışıyor`);
+  const hasAiKey = !!(process.env.AI_INTEGRATIONS_GEMINI_API_KEY || process.env.GEMINI_API_KEY);
+  console.log(`Gemini AI: ${hasAiKey ? "✓ Yapılandırıldı" : "✗ Eksik"}`);
 });

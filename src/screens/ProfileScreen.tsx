@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import {
   ChevronRight, Shield, Info, LogOut,
-  ShoppingCart, User, Pencil, FileText, Zap, Check,
+  ShoppingCart, Pencil, FileText, Zap, Check, Sparkles,
 } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";
@@ -15,9 +15,9 @@ import { StorageService, UserInfo } from "../services/storage";
 import { GradientButton, DialogSheet } from "../components/ui";
 
 const PACKAGES = [
-  { id: "p1",  credits: 1,  price: "₺29",  priceNum: 29,  label: "1 Belge",        badge: null },
-  { id: "p3",  credits: 3,  price: "₺59",  priceNum: 59,  label: "3 Belge",         badge: "Popüler" },
-  { id: "p10", credits: 10, price: "₺129", priceNum: 129, label: "10 Belge",         badge: "En İyi" },
+  { id: "p1",  credits: 1,  price: "₺29",  priceNum: 29,  label: "1 Belge",  badge: null },
+  { id: "p3",  credits: 3,  price: "₺59",  priceNum: 59,  label: "3 Belge",  badge: "Popüler" },
+  { id: "p10", credits: 10, price: "₺129", priceNum: 129, label: "10 Belge", badge: "En İyi" },
 ];
 
 export const ProfileScreen: React.FC = () => {
@@ -25,8 +25,8 @@ export const ProfileScreen: React.FC = () => {
   const [credits, setCredits] = useState(0);
   const [totalDocs, setTotalDocs] = useState(0);
   const [userInfo, setUserInfo] = useState<UserInfo>({ ad: "", soyad: "", tckn: "", telefon: "", adres: "", eposta: "" });
-  const [draft, setDraft] = useState<UserInfo>({ ad: "", soyad: "", tckn: "", telefon: "", adres: "", eposta: "" });
-  const [buyOpen, setBuyOpen] = useState(false);
+  const [draft, setDraft]       = useState<UserInfo>({ ad: "", soyad: "", tckn: "", telefon: "", adres: "", eposta: "" });
+  const [buyOpen, setBuyOpen]   = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [selectedPkg, setSelectedPkg] = useState("p3");
   const [saving, setSaving] = useState(false);
@@ -63,40 +63,43 @@ export const ProfileScreen: React.FC = () => {
   const signOut = () =>
     Alert.alert("Çıkış Yap", "Hesabınızdan çıkmak istiyor musunuz?", [
       { text: "Vazgeç", style: "cancel" },
-      { text: "Çıkış", style: "destructive", onPress: async () => { await StorageService.setUserLoggedIn(false); setSignedIn(false); } },
+      {
+        text: "Çıkış", style: "destructive",
+        onPress: async () => { await StorageService.setUserLoggedIn(false); setSignedIn(false); },
+      },
     ]);
 
-  const hasInfo = !!(userInfo.ad || userInfo.soyad);
+  const hasInfo     = !!(userInfo.ad || userInfo.soyad);
   const displayName = [userInfo.ad, userInfo.soyad].filter(Boolean).join(" ") || "Kullanıcı";
-  const initials = ((userInfo.ad?.[0] ?? "") + (userInfo.soyad?.[0] ?? "")).toUpperCase() || "AI";
-  const creditOut = credits === 0;
-  const creditLow = credits > 0 && credits <= 2;
+  const initials    = ((userInfo.ad?.[0] ?? "") + (userInfo.soyad?.[0] ?? "")).toUpperCase() || "AI";
+  const creditOut   = credits === 0;
+  const creditLow   = credits > 0 && credits <= 2;
 
   // ─── Onboarding ─────────────────────────────────────────────────────────────
   if (!signedIn) {
     return (
       <SafeAreaView style={s.root}>
         <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={s.onboardingContent} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={s.onboardContent} showsVerticalScrollIndicator={false}>
 
-          <View style={s.onboardingHero}>
-            <View style={s.appIconWrap}>
-              <Text style={{ fontSize: 40 }}>⚖️</Text>
+          <View style={s.hero}>
+            <View style={s.heroIcon}>
+              <Sparkles size={36} color="#fff" strokeWidth={1.8} />
             </View>
-            <Text style={s.appName}>EvrakAI</Text>
-            <Text style={s.appTagline}>
+            <Text style={s.heroTitle}>EvrakAI</Text>
+            <Text style={s.heroSubtitle}>
               Yapay zekâ ile Türkçe hukuki belgeler.{"\n"}Saniyeler içinde hazır.
             </Text>
           </View>
 
-          <View style={s.featureGroup}>
+          <View style={s.featureCard}>
             {[
-              { icon: "📄", title: "Akıllı Belge Oluşturma", body: "Doğal dilde anlatın, belge anında hazır olsun" },
-              { icon: "🔒", title: "Gizlilik Önce",          body: "Tüm veriler yalnızca cihazınızda saklanır" },
-              { icon: "⚡", title: "Hızlı & Kolay",          body: "Form yok — sadece konuşun, asistan halleder" },
+              { emoji: "📄", title: "Akıllı Belge Oluşturma", body: "Doğal dilde anlatın, belge anında hazır olsun" },
+              { emoji: "🔒", title: "Gizlilik Önce",           body: "Tüm veriler yalnızca cihazınızda saklanır" },
+              { emoji: "⚡", title: "Hızlı & Kolay",           body: "Form yok — sadece konuşun, asistan halleder" },
             ].map((f, i, arr) => (
               <View key={i} style={[s.featureRow, i < arr.length - 1 && s.featureRowBorder]}>
-                <View style={s.featureEmoji}><Text style={{ fontSize: 18 }}>{f.icon}</Text></View>
+                <View style={s.featureEmoji}><Text style={{ fontSize: 18 }}>{f.emoji}</Text></View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.featureTitle}>{f.title}</Text>
                   <Text style={s.featureBody}>{f.body}</Text>
@@ -122,33 +125,38 @@ export const ProfileScreen: React.FC = () => {
   return (
     <SafeAreaView style={s.root} edges={["top"]}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={{ paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 52 }} showsVerticalScrollIndicator={false}>
 
-        {/* Large title */}
+        {/* Header */}
         <View style={s.header}>
           <Text style={s.pageTitle}>Profil</Text>
           <TouchableOpacity onPress={signOut} style={s.headerBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <LogOut size={16} color={Colors.label2} strokeWidth={1.8} />
+            <LogOut size={15} color={Colors.label3} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
-        {/* User card — inset grouped */}
+        {/* User card */}
         <View style={s.section}>
           <TouchableOpacity onPress={openInfoForm} activeOpacity={0.78} style={s.userCard}>
-            <View style={s.userAvatar}>
-              <Text style={s.userInitials}>{initials}</Text>
+            <View style={s.avatar}>
+              <Text style={s.avatarInitials}>{initials}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.userName}>{displayName}</Text>
               <Text style={s.userMeta}>
                 {hasInfo
-                  ? [userInfo.tckn && `TC·${userInfo.tckn}`, userInfo.telefon].filter(Boolean).join("  ·  ") || "Bilgiler kaydedildi"
+                  ? [userInfo.tckn && `TC · ${userInfo.tckn}`, userInfo.telefon].filter(Boolean).join("   ·   ") || "Bilgiler kaydedildi"
                   : "Kişisel bilgilerini ekle →"}
               </Text>
             </View>
             {hasInfo
-              ? <View style={s.activeBadge}><Check size={10} color={Colors.green} strokeWidth={3} /><Text style={s.activeText}>Aktif</Text></View>
+              ? (
+                <View style={s.activeBadge}>
+                  <Check size={10} color={Colors.green} strokeWidth={3} />
+                  <Text style={s.activeText}>Aktif</Text>
+                </View>
+              )
               : <ChevronRight size={15} color={Colors.label3} strokeWidth={2} />
             }
           </TouchableOpacity>
@@ -156,15 +164,18 @@ export const ProfileScreen: React.FC = () => {
 
         {/* Stats */}
         <View style={[s.section, { marginTop: 0 }]}>
-          <View style={s.statsCard}>
+          <View style={s.statsRow}>
             {[
-              { value: totalDocs.toString(), label: "Belge" },
-              { value: credits.toString(),   label: "Kredi", alert: creditOut || creditLow },
-              { value: "∞",                  label: "Süre" },
+              { value: totalDocs.toString(), label: "Belge",  alert: false },
+              { value: credits.toString(),   label: "Kredi",  alert: creditOut || creditLow },
+              { value: "∞",                  label: "Süre",   alert: false },
             ].map((stat, i, arr) => (
               <React.Fragment key={i}>
                 <View style={s.statItem}>
-                  <Text style={[s.statValue, stat.alert && { color: creditOut ? Colors.red : Colors.orange }]}>
+                  <Text style={[
+                    s.statValue,
+                    stat.alert && { color: creditOut ? Colors.red : Colors.orange },
+                  ]}>
                     {stat.value}
                   </Text>
                   <Text style={s.statLabel}>{stat.label}</Text>
@@ -177,29 +188,29 @@ export const ProfileScreen: React.FC = () => {
 
         {/* Kredi */}
         <View style={s.section}>
-          <Text style={s.groupLabel}>KREDİ</Text>
+          <Text style={s.sectionLabel}>KREDİ</Text>
           <View style={s.groupCard}>
             <View style={s.listRow}>
-              <View style={[s.rowIcon, { backgroundColor: creditOut ? Colors.redLight : Colors.accentLight }]}>
+              <View style={[s.rowIconWrap, { backgroundColor: creditOut ? Colors.redLight : Colors.accentLight }]}>
                 <Zap size={15} color={creditOut ? Colors.red : Colors.accent} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.rowTitle}>
                   {creditOut ? "Kredi bitti" : `${credits} belge kredisi`}
                 </Text>
-                <Text style={s.rowSub}>Süresiz · belge başına 1 kredi</Text>
+                <Text style={s.rowSub}>Belge başına 1 kredi · Süresiz</Text>
               </View>
-              <TouchableOpacity onPress={() => setBuyOpen(true)} style={s.buyBtn} activeOpacity={0.8}>
+              <TouchableOpacity onPress={() => setBuyOpen(true)} style={s.buyBtn} activeOpacity={0.82}>
                 <ShoppingCart size={12} color="#fff" strokeWidth={2.2} />
-                <Text style={s.buyBtnText}>Al</Text>
+                <Text style={s.buyBtnText}>Satın Al</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        {/* Bilgi & Gizlilik */}
+        {/* Bilgi */}
         <View style={s.section}>
-          <Text style={s.groupLabel}>BİLGİ</Text>
+          <Text style={s.sectionLabel}>BİLGİ</Text>
           <View style={s.groupCard}>
             {[
               {
@@ -220,13 +231,15 @@ export const ProfileScreen: React.FC = () => {
             ].map((item, i, arr) => {
               const Icon = item.icon;
               return (
-                <TouchableOpacity key={i} onPress={item.onPress} activeOpacity={0.72}
-                  style={[s.listRow, i < arr.length - 1 && s.listRowBorder]}>
-                  <View style={[s.rowIcon, { backgroundColor: item.iconBg }]}>
+                <TouchableOpacity
+                  key={i} onPress={item.onPress} activeOpacity={0.72}
+                  style={[s.listRow, i < arr.length - 1 && s.listRowBorder]}
+                >
+                  <View style={[s.rowIconWrap, { backgroundColor: item.iconBg }]}>
                     <Icon size={15} color={item.iconColor} strokeWidth={1.8} />
                   </View>
                   <Text style={s.rowTitle}>{item.title}</Text>
-                  <Text style={s.rowSub2}>{item.sub}</Text>
+                  <Text style={s.rowSubRight}>{item.sub}</Text>
                   <ChevronRight size={14} color={Colors.label3} strokeWidth={2} />
                 </TouchableOpacity>
               );
@@ -240,25 +253,32 @@ export const ProfileScreen: React.FC = () => {
       </ScrollView>
 
       {/* Personal Info Sheet */}
-      <DialogSheet visible={infoOpen} onClose={() => setInfoOpen(false)}
+      <DialogSheet
+        visible={infoOpen}
+        onClose={() => setInfoOpen(false)}
         title="Kişisel Bilgiler"
         subtitle="Belgelerinize otomatik eklenir"
         footer={
-          <GradientButton onPress={saveInfo} title={saving ? "Kaydediliyor…" : "Kaydet"}
-            loading={saving} size="lg" style={{ flex: 1 }} />
+          <GradientButton
+            onPress={saveInfo}
+            title={saving ? "Kaydediliyor…" : "Kaydet"}
+            loading={saving}
+            size="lg"
+            style={{ flex: 1 }}
+          />
         }
       >
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: 14 }}>
             {([
-              { key: "ad",      label: "Ad",             placeholder: "Ahmet",          kb: "default",     cap: "words" },
-              { key: "soyad",   label: "Soyad",          placeholder: "Yılmaz",         kb: "default",     cap: "words" },
-              { key: "tckn",    label: "T.C. Kimlik No", placeholder: "12345678901",    kb: "numeric",     cap: "none",  max: 11 },
-              { key: "telefon", label: "Telefon",        placeholder: "0532 000 00 00", kb: "phone-pad",   cap: "none" },
-              { key: "eposta",  label: "E-posta",        placeholder: "isim@mail.com",  kb: "email-address",cap: "none" },
+              { key: "ad",      label: "Ad",             placeholder: "Ahmet",           kb: "default",      cap: "words" },
+              { key: "soyad",   label: "Soyad",          placeholder: "Yılmaz",          kb: "default",      cap: "words" },
+              { key: "tckn",    label: "T.C. Kimlik No", placeholder: "12345678901",     kb: "numeric",      cap: "none", max: 11 },
+              { key: "telefon", label: "Telefon",        placeholder: "0532 000 00 00",  kb: "phone-pad",    cap: "none" },
+              { key: "eposta",  label: "E-posta",        placeholder: "isim@mail.com",   kb: "email-address",cap: "none" },
               { key: "adres",   label: "Adres",          placeholder: "Mahalle, Cadde, No, İlçe/İl", kb: "default", cap: "sentences", multi: true },
             ] as const).map(f => (
-              <View key={f.key} style={{ gap: 5 }}>
+              <View key={f.key} style={{ gap: 6 }}>
                 <Text style={s.formLabel}>{f.label}</Text>
                 <TextInput
                   value={draft[f.key]}
@@ -275,16 +295,20 @@ export const ProfileScreen: React.FC = () => {
             ))}
             <View style={s.privacyNote}>
               <Shield size={12} color={Colors.green} strokeWidth={2} />
-              <Text style={s.privacyText}>Bilgiler yalnızca cihazınızda saklanır, hiçbir sunucuya gönderilmez.</Text>
+              <Text style={s.privacyText}>
+                Bilgiler yalnızca cihazınızda saklanır, hiçbir sunucuya gönderilmez.
+              </Text>
             </View>
           </View>
         </KeyboardAvoidingView>
       </DialogSheet>
 
       {/* Buy Credits Sheet */}
-      <DialogSheet visible={buyOpen} onClose={() => setBuyOpen(false)}
+      <DialogSheet
+        visible={buyOpen}
+        onClose={() => setBuyOpen(false)}
         title="Kredi Al"
-        subtitle="1 kredi = 1 belge oluşturma hakkı · Süresiz geçerli"
+        subtitle="1 kredi = 1 belge · Süresiz geçerli"
         footer={
           <GradientButton
             onPress={buyCredits}
@@ -295,33 +319,38 @@ export const ProfileScreen: React.FC = () => {
           />
         }
       >
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: 10 }}>
           {PACKAGES.map(pkg => {
             const sel = selectedPkg === pkg.id;
             return (
-              <TouchableOpacity key={pkg.id} onPress={() => setSelectedPkg(pkg.id)}
+              <TouchableOpacity
+                key={pkg.id}
+                onPress={() => setSelectedPkg(pkg.id)}
                 activeOpacity={0.78}
-                style={[s.pkgRow, sel && s.pkgRowActive]}>
+                style={[s.pkgRow, sel && s.pkgRowActive]}
+              >
                 <View style={[s.pkgRadio, sel && s.pkgRadioActive]}>
                   {sel && <View style={s.pkgRadioFill} />}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                     <Text style={[s.pkgTitle, sel && { color: Colors.accent }]}>{pkg.label}</Text>
                     {pkg.badge && (
-                      <View style={s.pkgBadge}>
+                      <View style={[s.pkgBadge, sel && { backgroundColor: Colors.accentMid }]}>
                         <Text style={s.pkgBadgeText}>{pkg.badge}</Text>
                       </View>
                     )}
                   </View>
-                  <Text style={s.pkgSub}>{Math.round(pkg.priceNum / pkg.credits)}₺/belge</Text>
+                  <Text style={s.pkgPerDoc}>{Math.round(pkg.priceNum / pkg.credits)}₺/belge</Text>
                 </View>
                 <Text style={[s.pkgPrice, sel && { color: Colors.accent }]}>{pkg.price}</Text>
               </TouchableOpacity>
             );
           })}
           <View style={s.pkgNote}>
-            <Text style={s.pkgNoteText}>Krediler süresiz geçerlidir. İnternet bağlantısı gerektirmez.</Text>
+            <Text style={s.pkgNoteText}>
+              Krediler süresiz geçerlidir. İnternet bağlantısı gerektirmez.
+            </Text>
           </View>
         </View>
       </DialogSheet>
@@ -333,46 +362,52 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
 
   // Onboarding
-  onboardingContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 48 },
-  onboardingHero: { alignItems: "center", paddingTop: 56, paddingBottom: 44 },
-  appIconWrap: {
-    width: 88, height: 88, borderRadius: 24,
+  onboardContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 52 },
+  hero: { alignItems: "center", paddingTop: 60, paddingBottom: 48 },
+  heroIcon: {
+    width: 92, height: 92, borderRadius: 26,
     backgroundColor: Colors.accent,
     alignItems: "center", justifyContent: "center",
-    marginBottom: 22, ...Shadows.glow,
+    marginBottom: 24, ...Shadows.glow,
   },
-  appName:    { fontSize: 30, fontWeight: "700", color: Colors.label, letterSpacing: -0.8, marginBottom: 10 },
-  appTagline: { fontSize: 16, color: Colors.label2, textAlign: "center", lineHeight: 24, letterSpacing: -0.2 },
-  featureGroup: {
+  heroTitle: {
+    fontSize: 32, fontWeight: "700", color: Colors.label,
+    letterSpacing: -0.8, marginBottom: 12,
+  },
+  heroSubtitle: {
+    fontSize: 16, color: Colors.label2,
+    textAlign: "center", lineHeight: 25, letterSpacing: -0.2,
+  },
+  featureCard: {
     backgroundColor: Colors.card,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.separator,
     overflow: "hidden",
-    marginBottom: 22,
-    ...Shadows.sm,
+    marginBottom: 24,
+    ...Shadows.card,
   },
   featureRow: {
     flexDirection: "row", alignItems: "center", gap: 14,
-    paddingHorizontal: 16, paddingVertical: 14,
+    paddingHorizontal: 18, paddingVertical: 16,
   },
   featureRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.separator,
   },
   featureEmoji: {
-    width: 38, height: 38, borderRadius: 10,
+    width: 42, height: 42, borderRadius: 12,
     backgroundColor: Colors.fill,
     alignItems: "center", justifyContent: "center",
   },
-  featureTitle: { fontSize: 15, fontWeight: "600", color: Colors.label, marginBottom: 2 },
-  featureBody:  { fontSize: 13, color: Colors.label2, lineHeight: 18 },
-  termsNote:    { fontSize: 12, color: Colors.label3, textAlign: "center", marginTop: 14 },
+  featureTitle: { fontSize: 15, fontWeight: "600", color: Colors.label, marginBottom: 2, letterSpacing: -0.2 },
+  featureBody:  { fontSize: 13, color: Colors.label2, lineHeight: 19 },
+  termsNote:    { fontSize: 12, color: Colors.label3, textAlign: "center", marginTop: 16, lineHeight: 18 },
 
   // Profile
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 18, paddingTop: 4, paddingBottom: 14,
+    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16,
     backgroundColor: Colors.card,
   },
   pageTitle: { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.6 },
@@ -383,114 +418,122 @@ const s = StyleSheet.create({
   },
 
   section: { marginTop: 20, paddingHorizontal: 16 },
-  groupLabel: {
-    fontSize: 12, fontWeight: "600", color: Colors.label3,
-    letterSpacing: 0.5, marginBottom: 8,
+  sectionLabel: {
+    fontSize: 11, fontWeight: "700", color: Colors.label3,
+    letterSpacing: 0.8, marginBottom: 10,
   },
 
   // User card
   userCard: {
-    flexDirection: "row", alignItems: "center", gap: 12,
+    flexDirection: "row", alignItems: "center", gap: 14,
     backgroundColor: Colors.card,
-    borderRadius: 16, padding: 14,
+    borderRadius: 20, padding: 16,
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
-    ...Shadows.sm,
+    ...Shadows.card,
   },
-  userAvatar: {
-    width: 50, height: 50, borderRadius: 14,
+  avatar: {
+    width: 52, height: 52, borderRadius: 16,
     backgroundColor: Colors.accent,
     alignItems: "center", justifyContent: "center",
     ...Shadows.glow,
   },
-  userInitials: { fontSize: 18, fontWeight: "700", color: "#fff" },
-  userName:     { fontSize: 16, fontWeight: "600", color: Colors.label, letterSpacing: -0.3 },
-  userMeta:     { fontSize: 12, color: Colors.label3, marginTop: 3 },
-  activeBadge:  {
+  avatarInitials: { fontSize: 18, fontWeight: "700", color: "#fff" },
+  userName:       { fontSize: 16, fontWeight: "600", color: Colors.label, letterSpacing: -0.3 },
+  userMeta:       { fontSize: 12, color: Colors.label3, marginTop: 3 },
+  activeBadge: {
     flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: Colors.successLight,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+    paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10,
   },
-  activeText:   { fontSize: 11, fontWeight: "600", color: Colors.green },
+  activeText: { fontSize: 11, fontWeight: "600", color: Colors.green },
 
   // Stats
-  statsCard: {
-    flexDirection: "row", backgroundColor: Colors.card,
-    borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
-    overflow: "hidden", ...Shadows.sm,
+  statsRow: {
+    flexDirection: "row",
+    backgroundColor: Colors.card,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
+    overflow: "hidden",
+    ...Shadows.card,
   },
-  statItem:    { flex: 1, alignItems: "center", paddingVertical: 18, gap: 4 },
-  statDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.separator, marginVertical: 14 },
-  statValue:   { fontSize: 26, fontWeight: "700", color: Colors.label, letterSpacing: -0.6 },
+  statItem:    { flex: 1, alignItems: "center", paddingVertical: 20, gap: 5 },
+  statDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.separator, marginVertical: 16 },
+  statValue:   { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.8 },
   statLabel:   { fontSize: 12, color: Colors.label3 },
 
-  // Group card / list rows
+  // Group card
   groupCard: {
     backgroundColor: Colors.card,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
-    overflow: "hidden", ...Shadows.sm,
+    overflow: "hidden",
+    ...Shadows.card,
   },
   listRow: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    paddingHorizontal: 14, paddingVertical: 13,
+    flexDirection: "row", alignItems: "center", gap: 13,
+    paddingHorizontal: 16, paddingVertical: 14,
   },
   listRowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.separator,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.separator,
   },
-  rowIcon: {
-    width: 32, height: 32, borderRadius: 8,
+  rowIconWrap: {
+    width: 34, height: 34, borderRadius: 10,
     alignItems: "center", justifyContent: "center",
   },
-  rowTitle: { flex: 1, fontSize: 15, fontWeight: "500", color: Colors.label, letterSpacing: -0.2 },
-  rowSub:   { fontSize: 12, color: Colors.label3 },
-  rowSub2:  { fontSize: 12, color: Colors.label3, marginRight: 4 },
+  rowTitle:    { flex: 1, fontSize: 15, fontWeight: "500", color: Colors.label, letterSpacing: -0.2 },
+  rowSub:      { fontSize: 12, color: Colors.label3 },
+  rowSubRight: { fontSize: 12, color: Colors.label3, marginRight: 4 },
 
-  // Buy credit button inside list row
   buyBtn: {
     flexDirection: "row", alignItems: "center", gap: 5,
     backgroundColor: Colors.accent,
-    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10,
+    paddingHorizontal: 13, paddingVertical: 8, borderRadius: 12,
     ...Shadows.glow,
   },
-  buyBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+  buyBtnText: { fontSize: 12, fontWeight: "700", color: "#fff", letterSpacing: -0.1 },
 
   footNote: {
     fontSize: 12, color: Colors.label3, textAlign: "center",
-    marginTop: 28, marginHorizontal: 32, lineHeight: 18,
+    marginTop: 32, marginHorizontal: 36, lineHeight: 19,
   },
 
   // Form
   formLabel: { fontSize: 13, fontWeight: "500", color: Colors.label2 },
   formInput: {
     backgroundColor: Colors.bg,
-    borderRadius: 12, borderWidth: 1, borderColor: Colors.separator,
-    paddingHorizontal: 13, paddingVertical: 11,
-    fontSize: 15, color: Colors.label,
+    borderRadius: 14, borderWidth: 1.5, borderColor: Colors.separator,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 15, color: Colors.label, letterSpacing: -0.1,
   },
-  formInputMulti: { height: 78, textAlignVertical: "top", paddingTop: 11 },
+  formInputMulti: { height: 82, textAlignVertical: "top", paddingTop: 12 },
   privacyNote: {
-    flexDirection: "row", alignItems: "flex-start", gap: 8,
+    flexDirection: "row", alignItems: "flex-start", gap: 9,
     backgroundColor: Colors.successLight,
-    borderRadius: 12, padding: 12,
+    borderRadius: 14, padding: 13,
   },
   privacyText: { flex: 1, fontSize: 12, color: Colors.green, lineHeight: 18 },
 
   // Packages
   pkgRow: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    padding: 14, borderRadius: 14,
+    flexDirection: "row", alignItems: "center", gap: 13,
+    padding: 16, borderRadius: 16,
     borderWidth: 1.5, borderColor: Colors.separator,
     backgroundColor: Colors.bg,
   },
   pkgRowActive: { borderColor: Colors.accent, backgroundColor: Colors.accentLight },
-  pkgRadio:     { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: Colors.separatorOpaque, alignItems: "center", justifyContent: "center" },
+  pkgRadio: {
+    width: 22, height: 22, borderRadius: 11,
+    borderWidth: 2, borderColor: Colors.separatorOpaque,
+    alignItems: "center", justifyContent: "center",
+  },
   pkgRadioActive: { borderColor: Colors.accent },
-  pkgRadioFill:   { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.accent },
-  pkgTitle:  { fontSize: 15, fontWeight: "600", color: Colors.label },
-  pkgSub:    { fontSize: 12, color: Colors.label3, marginTop: 2 },
-  pkgPrice:  { fontSize: 18, fontWeight: "700", color: Colors.label, letterSpacing: -0.5 },
-  pkgBadge:  { backgroundColor: Colors.accentLight, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
-  pkgBadgeText: { fontSize: 10, fontWeight: "700", color: Colors.accent },
-  pkgNote:      { backgroundColor: Colors.fill, borderRadius: 12, padding: 12 },
-  pkgNoteText:  { fontSize: 13, color: Colors.label2, lineHeight: 18 },
+  pkgRadioFill:   { width: 11, height: 11, borderRadius: 6, backgroundColor: Colors.accent },
+  pkgTitle:  { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
+  pkgPerDoc: { fontSize: 12, color: Colors.label3, marginTop: 2 },
+  pkgPrice:  { fontSize: 20, fontWeight: "700", color: Colors.label, letterSpacing: -0.5 },
+  pkgBadge:  { backgroundColor: Colors.accentLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  pkgBadgeText: { fontSize: 10, fontWeight: "700", color: Colors.accent, letterSpacing: 0.1 },
+  pkgNote:   { backgroundColor: Colors.fill, borderRadius: 14, padding: 14 },
+  pkgNoteText: { fontSize: 13, color: Colors.label2, lineHeight: 19 },
 });

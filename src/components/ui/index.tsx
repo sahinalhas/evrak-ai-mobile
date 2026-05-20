@@ -33,9 +33,9 @@ export const GradientButton: React.FC<ButtonProps> = ({
   onPress, title, loading = false, disabled = false,
   variant = "filled", size = "md", style, textStyle, icon,
 }) => {
-  const H  = { sm: 38, md: 46, lg: 52 };
-  const R  = { sm: 11, md: 14, lg: 16 };
-  const FS = { sm: 14, md: 16, lg: 17 };
+  const H  = { sm: 40, md: 48, lg: 54 };
+  const R  = { sm: 12, md: 14, lg: 16 };
+  const FS = { sm: 14, md: 15, lg: 16 };
 
   const V: Record<string, { bg: string; fg: string }> = {
     filled:      { bg: Colors.accent, fg: "#FFF" },
@@ -51,7 +51,7 @@ export const GradientButton: React.FC<ButtonProps> = ({
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.78}
+      activeOpacity={0.82}
       style={[
         bStyles.btn,
         { height: H[size], borderRadius: R[size], backgroundColor: v.bg },
@@ -76,23 +76,23 @@ export const GradientButton: React.FC<ButtonProps> = ({
 };
 
 const bStyles = StyleSheet.create({
-  btn:      { justifyContent: "center", alignItems: "center", paddingHorizontal: 18 },
+  btn:      { justifyContent: "center", alignItems: "center", paddingHorizontal: 20 },
   inner:    { flexDirection: "row", alignItems: "center", gap: 7 },
-  text:     { fontWeight: "600", letterSpacing: -0.3 },
-  disabled: { opacity: 0.38 },
+  text:     { fontWeight: "600", letterSpacing: -0.2 },
+  disabled: { opacity: 0.36 },
 });
 
 // ─── PulsingDots ──────────────────────────────────────────────────────────────
 export const PulsingDots: React.FC = () => {
-  const dots = [0, 1, 2].map(() => useRef(new Animated.Value(0.3)).current);
+  const dots = [0, 1, 2].map(() => useRef(new Animated.Value(0.25)).current);
 
   useEffect(() => {
     const anims = dots.map((v, i) =>
       Animated.loop(
         Animated.sequence([
-          Animated.delay(i * 150),
-          Animated.timing(v, { toValue: 1, duration: 380, useNativeDriver: true }),
-          Animated.timing(v, { toValue: 0.3, duration: 380, useNativeDriver: true }),
+          Animated.delay(i * 140),
+          Animated.timing(v, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0.25, duration: 400, useNativeDriver: true }),
         ])
       )
     );
@@ -101,11 +101,11 @@ export const PulsingDots: React.FC = () => {
   }, []);
 
   return (
-    <View style={{ flexDirection: "row", gap: 5, paddingVertical: 2 }}>
+    <View style={{ flexDirection: "row", gap: 5, paddingVertical: 3 }}>
       {dots.map((v, i) => (
         <Animated.View key={i} style={{
-          width: 6, height: 6, borderRadius: 3,
-          backgroundColor: Colors.label3,
+          width: 7, height: 7, borderRadius: 3.5,
+          backgroundColor: Colors.accent,
           opacity: v,
         }} />
       ))}
@@ -118,7 +118,7 @@ export const Badge: React.FC<{
   label: string; color?: string; bg?: string; size?: "sm" | "md";
 }> = ({ label, color = Colors.accent, bg = Colors.accentLight, size = "sm" }) => (
   <View style={{ backgroundColor: bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 }}>
-    <Text style={{ color, fontSize: size === "sm" ? 11 : 13, fontWeight: "600" }}>{label}</Text>
+    <Text style={{ color, fontSize: size === "sm" ? 11 : 13, fontWeight: "600", letterSpacing: 0.1 }}>{label}</Text>
   </View>
 );
 
@@ -142,13 +142,13 @@ export const DialogSheet: React.FC<SheetProps> = ({
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(slide, { toValue: 0, tension: 72, friction: 14, useNativeDriver: true }),
-        Animated.timing(bg, { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.spring(slide, { toValue: 0, tension: 68, friction: 13, useNativeDriver: true }),
+        Animated.timing(bg, { toValue: 1, duration: 240, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(slide, { toValue: SCREEN_H, duration: 260, useNativeDriver: true }),
-        Animated.timing(bg, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(slide, { toValue: SCREEN_H, duration: 280, useNativeDriver: true }),
+        Animated.timing(bg, { toValue: 0, duration: 220, useNativeDriver: true }),
       ]).start();
     }
   }, [visible]);
@@ -196,38 +196,38 @@ export const DialogSheet: React.FC<SheetProps> = ({
 };
 
 const sStyles = StyleSheet.create({
-  overlay:   { flex: 1, justifyContent: "flex-end" },
+  overlay: { flex: 1, justifyContent: "flex-end" },
   sheet: {
     backgroundColor: Colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     ...Shadows.lg,
     overflow: "hidden",
   },
-  handleBar: { alignItems: "center", paddingTop: 10, paddingBottom: 2 },
-  handle:    { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.separatorOpaque },
+  handleBar: { alignItems: "center", paddingTop: 12, paddingBottom: 4 },
+  handle:    { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.separatorOpaque },
   header: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingHorizontal: 22,
-    paddingTop: 12,
-    paddingBottom: 14,
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    paddingBottom: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.separator,
   },
-  title:    { fontSize: 17, fontWeight: "600", color: Colors.label, letterSpacing: -0.4 },
-  subtitle: { fontSize: 13, color: Colors.label3, marginTop: 3 },
+  title:    { fontSize: 18, fontWeight: "700", color: Colors.label, letterSpacing: -0.4 },
+  subtitle: { fontSize: 13, color: Colors.label3, marginTop: 3, letterSpacing: -0.1 },
   closeBtn: {
-    width: 28, height: 28, borderRadius: 14,
+    width: 30, height: 30, borderRadius: 15,
     backgroundColor: Colors.fill,
     alignItems: "center", justifyContent: "center",
-    marginLeft: 12, marginTop: 1,
+    marginLeft: 14, marginTop: 2,
   },
   closeX: { fontSize: 10, color: Colors.label2, fontWeight: "700" },
-  body:   { padding: 20, paddingBottom: 12 },
+  body:   { padding: 22, paddingBottom: 14 },
   footer: {
-    padding: 16,
-    paddingBottom: Platform.OS === "ios" ? 30 : 16,
+    padding: 18,
+    paddingBottom: Platform.OS === "ios" ? 32 : 18,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.separator,
     backgroundColor: Colors.card,
@@ -236,24 +236,24 @@ const sStyles = StyleSheet.create({
 
 // ─── ProBanner ────────────────────────────────────────────────────────────────
 export const ProBanner: React.FC<{ onPress: () => void }> = ({ onPress }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={{
+  <TouchableOpacity onPress={onPress} activeOpacity={0.82} style={{
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     backgroundColor: Colors.accentLight, marginHorizontal: 16, marginBottom: 8,
-    borderRadius: 14, padding: 14,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.accentMid,
+    borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: Colors.accentMid,
   }}>
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
       <View style={{
-        width: 32, height: 32, borderRadius: 8,
+        width: 36, height: 36, borderRadius: 10,
         backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center",
       }}>
-        <Text style={{ fontSize: 14 }}>⚡</Text>
+        <Text style={{ fontSize: 16 }}>⚡</Text>
       </View>
       <View>
-        <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.accent }}>Kredi Al</Text>
-        <Text style={{ fontSize: 12, color: Colors.accent, opacity: 0.7, marginTop: 1 }}>Sınırsız belge oluştur</Text>
+        <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.accent, letterSpacing: -0.2 }}>Kredi Al</Text>
+        <Text style={{ fontSize: 12, color: Colors.accent, opacity: 0.65, marginTop: 1 }}>Sınırsız belge oluştur</Text>
       </View>
     </View>
-    <Text style={{ fontSize: 16, color: Colors.accent }}>→</Text>
+    <Text style={{ fontSize: 18, color: Colors.accent, fontWeight: "300" }}>›</Text>
   </TouchableOpacity>
 );

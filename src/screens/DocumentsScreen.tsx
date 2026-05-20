@@ -17,6 +17,15 @@ const CAT_LABELS: Record<string, string> = {
   sozlesme: "Sözleşme", mektup: "Mektup", diger: "Diğer",
 };
 
+const CAT_COLORS: Record<string, { bg: string; text: string }> = {
+  dilekce:  { bg: "rgba(79,70,229,0.08)",  text: "#4F46E5" },
+  basvuru:  { bg: "rgba(16,185,129,0.08)", text: "#059669" },
+  taahut:   { bg: "rgba(245,158,11,0.08)", text: "#D97706" },
+  sozlesme: { bg: "rgba(239,68,68,0.08)",  text: "#DC2626" },
+  mektup:   { bg: "rgba(99,102,241,0.08)", text: "#6366F1" },
+  diger:    { bg: "rgba(0,0,0,0.05)",       text: "#6B7280" },
+};
+
 function guessCategory(content: string): string {
   const c = content.toLowerCase();
   if (c.includes("dilekç") || c.includes("sayın")) return "dilekce";
@@ -37,8 +46,8 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
 }
 
-function firstLines(content: string, n = 3): string {
-  return content.split("\n").filter(l => l.trim()).slice(0, n).join("\n");
+function firstLine(content: string): string {
+  return content.split("\n").filter(l => l.trim()).slice(0, 2).join(" ").replace(/[#*_]/g, "").trim();
 }
 
 export const DocumentsScreen: React.FC = () => {
@@ -49,17 +58,18 @@ export const DocumentsScreen: React.FC = () => {
   const [searchFocused, setSearchFocused] = useState(false);
 
   useFocusEffect(useCallback(() => { load(); }, []));
-
   const load = async () => setDocs(await StorageService.getDocuments());
 
   const filtered = docs.filter(d => {
-    const matchQuery = !query || d.content.toLowerCase().includes(query.toLowerCase()) || d.preview?.toLowerCase().includes(query.toLowerCase());
+    const matchQuery = !query ||
+      d.content.toLowerCase().includes(query.toLowerCase()) ||
+      d.preview?.toLowerCase().includes(query.toLowerCase());
     const matchCat = !activeFilter || guessCategory(d.content) === activeFilter;
     return matchQuery && matchCat;
   });
 
   const deleteDoc = (id: string) =>
-    Alert.alert("Sil", "Bu belge kalıcı olarak silinecek.", [
+    Alert.alert("Belgeyi Sil", "Bu belge kalıcı olarak silinecek.", [
       { text: "Vazgeç", style: "cancel" },
       {
         text: "Sil", style: "destructive",
@@ -85,50 +95,55 @@ export const DocumentsScreen: React.FC = () => {
 
   const cats = [...new Set(docs.map(d => guessCategory(d.content)))];
 
-  // ── Empty ──────────────────────────────────────────────────────────────────
   const Empty = () => (
     <View style={s.empty}>
       <View style={s.emptyIcon}>
-        <FileText size={28} color={Colors.label3} strokeWidth={1.2} />
+        <FileText size={30} color={Colors.label3} strokeWidth={1.2} />
       </View>
       <Text style={s.emptyTitle}>
         {query ? "Sonuç bulunamadı" : "Henüz belge yok"}
       </Text>
       <Text style={s.emptySub}>
         {query
-          ? "Farklı bir arama deneyin"
+          ? "Farklı anahtar kelimeler deneyin"
           : "Sohbet sekmesinden ilk belgenizi oluşturun"}
       </Text>
     </View>
   );
 
-  // ── Doc card ───────────────────────────────────────────────────────────────
   const renderCard = ({ item }: { item: SavedDocument }) => {
     const cat = guessCategory(item.content);
+    const catStyle = CAT_COLORS[cat];
     return (
-      <TouchableOpacity onPress={() => setSelectedDoc(item)}
-        activeOpacity={0.78} style={s.card}>
-        <View style={s.cardMain}>
-          <View style={s.cardIconWrap}>
+      <TouchableOpacity
+        onPress={() => setSelectedDoc(item)}
+        activeOpacity={0.76}
+        style={s.card}
+      >
+        <View style={s.cardRow}>
+          <View style={s.cardIcon}>
             <FileText size={16} color={Colors.accent} strokeWidth={1.8} />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, gap: 3 }}>
             <Text style={s.cardTitle} numberOfLines={1}>
               {item.preview || CAT_LABELS[cat]}
             </Text>
             <Text style={s.cardPreview} numberOfLines={2}>
-              {firstLines(item.content)}
+              {firstLine(item.content)}
             </Text>
           </View>
         </View>
-        <View style={s.cardFooter}>
+        <View style={s.cardMeta}>
           <Text style={s.cardDate}>{formatDate(item.createdAt)}</Text>
-          <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
-            <View style={s.catTag}>
-              <Text style={s.catTagText}>{CAT_LABELS[cat]}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={[s.catTag, { backgroundColor: catStyle.bg }]}>
+              <Text style={[s.catTagText, { color: catStyle.text }]}>{CAT_LABELS[cat]}</Text>
             </View>
-            <TouchableOpacity onPress={() => deleteDoc(item.id)} style={s.cardBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity
+              onPress={() => deleteDoc(item.id)}
+              style={s.deleteBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
               <Trash2 size={13} color={Colors.label3} strokeWidth={1.8} />
             </TouchableOpacity>
           </View>
@@ -141,45 +156,53 @@ export const DocumentsScreen: React.FC = () => {
     <SafeAreaView style={s.root} edges={["top"]}>
       <StatusBar style="dark" />
 
-      {/* Large title nav */}
       <View style={s.header}>
-        <Text style={s.pageTitle}>Belgelerim</Text>
-        <Text style={s.pageCount}>{docs.length} belge</Text>
+        <View>
+          <Text style={s.pageTitle}>Belgelerim</Text>
+          {docs.length > 0 && (
+            <Text style={s.pageCount}>{docs.length} belge kaydedildi</Text>
+          )}
+        </View>
       </View>
 
       {/* Search */}
-      <View style={[s.searchWrap, searchFocused && s.searchFocused]}>
-        <Search size={15} color={Colors.label3} strokeWidth={2} />
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Belgelerinizde ara…"
-          placeholderTextColor={Colors.label3}
-          style={s.searchInput}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          clearButtonMode="while-editing"
-        />
-        {query.length > 0 && (
-          <TouchableOpacity onPress={() => setQuery("")}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <X size={14} color={Colors.label3} strokeWidth={2} />
-          </TouchableOpacity>
-        )}
+      <View style={s.searchContainer}>
+        <View style={[s.searchBar, searchFocused && s.searchBarFocused]}>
+          <Search size={15} color={searchFocused ? Colors.accent : Colors.label3} strokeWidth={2} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Belgelerinizde ara…"
+            placeholderTextColor={Colors.label3}
+            style={s.searchInput}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            clearButtonMode="while-editing"
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery("")}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <X size={14} color={Colors.label3} strokeWidth={2} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {/* Category filter pills */}
+      {/* Category filters */}
       {cats.length > 1 && (
-        <View style={s.filterRow}>
+        <View style={s.filters}>
           <TouchableOpacity
             onPress={() => setActiveFilter(null)}
-            style={[s.filterPill, !activeFilter && s.filterPillActive]}>
+            style={[s.filterChip, !activeFilter && s.filterChipActive]}
+          >
             <Text style={[s.filterText, !activeFilter && s.filterTextActive]}>Tümü</Text>
           </TouchableOpacity>
           {cats.map(c => (
-            <TouchableOpacity key={c}
+            <TouchableOpacity
+              key={c}
               onPress={() => setActiveFilter(activeFilter === c ? null : c)}
-              style={[s.filterPill, activeFilter === c && s.filterPillActive]}>
+              style={[s.filterChip, activeFilter === c && s.filterChipActive]}
+            >
               <Text style={[s.filterText, activeFilter === c && s.filterTextActive]}>
                 {CAT_LABELS[c]}
               </Text>
@@ -188,9 +211,8 @@ export const DocumentsScreen: React.FC = () => {
         </View>
       )}
 
-      <View style={s.hairline} />
+      {cats.length > 1 && <View style={s.divider} />}
 
-      {/* List */}
       <FlatList
         data={filtered}
         keyExtractor={d => d.id}
@@ -201,7 +223,7 @@ export const DocumentsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Doc Detail Sheet */}
+      {/* Detail Sheet */}
       <DialogSheet
         visible={!!selectedDoc}
         onClose={() => setSelectedDoc(null)}
@@ -210,7 +232,7 @@ export const DocumentsScreen: React.FC = () => {
         maxHeight="92%"
         footer={
           selectedDoc && (
-            <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flexDirection: "row", gap: 8 }}>
               <GradientButton
                 onPress={() => deleteDoc(selectedDoc.id)}
                 title="Sil"
@@ -249,85 +271,81 @@ export const DocumentsScreen: React.FC = () => {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
 
-  // Header
   header: {
-    flexDirection: "row", alignItems: "baseline", justifyContent: "space-between",
-    paddingHorizontal: 18, paddingTop: 6, paddingBottom: 14,
+    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16,
     backgroundColor: Colors.card,
   },
   pageTitle: { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.6 },
-  pageCount: { fontSize: 13, color: Colors.label3 },
+  pageCount: { fontSize: 13, color: Colors.label3, marginTop: 2 },
 
-  // Search
-  searchWrap: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    marginHorizontal: 16, marginTop: 10, marginBottom: 10,
+  searchContainer: {
+    paddingHorizontal: 14, paddingVertical: 10,
+    backgroundColor: Colors.card,
+  },
+  searchBar: {
+    flexDirection: "row", alignItems: "center", gap: 9,
     backgroundColor: Colors.fill,
-    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9,
-    borderWidth: 1, borderColor: "transparent",
+    borderRadius: 14, paddingHorizontal: 13, paddingVertical: 10,
+    borderWidth: 1.5, borderColor: "transparent",
   },
-  searchFocused: { borderColor: Colors.accent, backgroundColor: Colors.card },
-  searchInput: {
-    flex: 1, fontSize: 15, color: Colors.label, letterSpacing: -0.2,
+  searchBarFocused: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.card,
+    ...Shadows.xs,
   },
+  searchInput: { flex: 1, fontSize: 15, color: Colors.label, letterSpacing: -0.1 },
 
-  // Filters
-  filterRow: {
+  filters: {
     flexDirection: "row", flexWrap: "wrap",
-    paddingHorizontal: 16, gap: 7, marginBottom: 10,
+    paddingHorizontal: 14, paddingBottom: 12, paddingTop: 4,
+    gap: 7, backgroundColor: Colors.card,
   },
-  filterPill: {
-    paddingHorizontal: 12, paddingVertical: 5,
+  filterChip: {
+    paddingHorizontal: 13, paddingVertical: 6,
     borderRadius: 20, backgroundColor: Colors.fill,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: "transparent",
   },
-  filterPillActive: {
-    backgroundColor: Colors.accentLight,
-    borderColor: Colors.accentMid,
-  },
+  filterChipActive: { backgroundColor: Colors.accentLight },
   filterText:       { fontSize: 13, fontWeight: "500", color: Colors.label2 },
   filterTextActive: { color: Colors.accent, fontWeight: "600" },
 
-  hairline: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.separator },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.separator },
 
-  // List
-  list: { paddingTop: 0, paddingBottom: 32 },
-  separator: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.separator, marginLeft: 72 },
+  list:      { paddingBottom: 36 },
+  separator: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.separator, marginLeft: 70 },
 
-  // Card
   card: {
     backgroundColor: Colors.card,
-    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14,
+    gap: 12,
   },
-  cardMain: { flexDirection: "row", gap: 12, marginBottom: 10 },
-  cardIconWrap: {
-    width: 38, height: 38, borderRadius: 10,
+  cardRow: { flexDirection: "row", gap: 13 },
+  cardIcon: {
+    width: 40, height: 40, borderRadius: 12,
     backgroundColor: Colors.accentLight,
     alignItems: "center", justifyContent: "center",
-    flexShrink: 0, marginTop: 2,
+    flexShrink: 0,
   },
   cardTitle: {
     fontSize: 15, fontWeight: "600", color: Colors.label,
-    letterSpacing: -0.3, marginBottom: 4,
+    letterSpacing: -0.3,
   },
   cardPreview: { fontSize: 13, color: Colors.label2, lineHeight: 19 },
-  cardFooter:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  cardMeta:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginLeft: 53 },
   cardDate:    { fontSize: 12, color: Colors.label3 },
-  cardBtn:     { padding: 4 },
+  deleteBtn:   { padding: 4 },
   catTag: {
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 6, backgroundColor: Colors.fill,
+    paddingHorizontal: 9, paddingVertical: 3,
+    borderRadius: 8,
   },
-  catTagText: { fontSize: 11, fontWeight: "500", color: Colors.label2 },
+  catTagText: { fontSize: 11, fontWeight: "600" },
 
-  // Empty
-  empty: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 80 },
+  empty: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 32 },
   emptyIcon: {
-    width: 64, height: 64, borderRadius: 18,
+    width: 68, height: 68, borderRadius: 20,
     backgroundColor: Colors.fill,
     alignItems: "center", justifyContent: "center",
-    marginBottom: 18,
+    marginBottom: 20,
   },
-  emptyTitle: { fontSize: 17, fontWeight: "600", color: Colors.label, marginBottom: 6 },
-  emptySub:   { fontSize: 15, color: Colors.label3, textAlign: "center", lineHeight: 22 },
+  emptyTitle: { fontSize: 17, fontWeight: "600", color: Colors.label, marginBottom: 7, letterSpacing: -0.3 },
+  emptySub:   { fontSize: 14, color: Colors.label3, textAlign: "center", lineHeight: 21 },
 });
