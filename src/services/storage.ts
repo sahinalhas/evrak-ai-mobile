@@ -129,6 +129,19 @@ export const StorageService = {
     }
   },
 
+  async updateDocument(id: string, content: string): Promise<void> {
+    try {
+      const documents = await this.getDocuments();
+      const idx = documents.findIndex(d => d.id === id);
+      if (idx !== -1) {
+        documents[idx] = { ...documents[idx], content };
+        await this.saveDocuments(documents);
+      }
+    } catch (e) {
+      console.error("Error updating document:", e);
+    }
+  },
+
   async deleteDocument(id: string): Promise<void> {
     try {
       const documents = await this.getDocuments();
