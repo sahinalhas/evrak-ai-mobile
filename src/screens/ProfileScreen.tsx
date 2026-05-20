@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import {
   ChevronRight, Shield, Info, LogOut,
-  ShoppingCart, Pencil, FileText, Zap, Check, Sparkles,
+  ShoppingCart, FileText, Zap, Check, Sparkles,
 } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";

@@ -11,7 +11,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";
 import { GradientButton, PulsingDots, DialogSheet } from "../components/ui";
 import { MarkdownView } from "../components/MarkdownView";
-import { AIService } from "../services/ai";
+import { AIService, ChatMsg } from "../services/ai";
 import { StorageService } from "../services/storage";
 import { printDocument } from "../utils/printDocument";
 
@@ -20,6 +20,7 @@ type Message = {
   role: "user" | "assistant";
   content: string;
   isDocument?: boolean;
+  documentContent?: string;
 };
 
 const TEMPLATE_INFO: Record<string, {
@@ -96,7 +97,6 @@ export const ChatScreen: React.FC = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [credits, setCredits] = useState(0);
-  const [userInfo, setUserInfo] = useState<any>(null);
   const [inputFocused, setInputFocused] = useState(false);
   const [activeDoc, setActiveDoc] = useState<{ content: string } | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<string | null>(null);
@@ -106,7 +106,6 @@ export const ChatScreen: React.FC = () => {
 
   useFocusEffect(useCallback(() => {
     StorageService.getCredits().then(setCredits);
-    StorageService.getUserInfo().then(info => setUserInfo(info));
   }, []));
 
   const onFocus = () => {
@@ -137,19 +136,33 @@ export const ChatScreen: React.FC = () => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
 
     try {
-      const svc = new AIService();
-      const reply = await svc.sendMessage(raw, messages.filter(m => m.id !== "welcome"));
-      const isDoc = AIService.isDocumentResponse(reply);
+      // Build proper ChatMsg history for the AI service
+      const history: ChatMsg[] = [
+        ...messages
+          .filter(m => m.id !== "welcome")
+          .map(m => ({ role: m.role, content: m.content })),
+        { role: "user" as const, content: raw },
+      ];
+
+      const response = await AIService.sendMessage(history);
+      const isDoc = response.status === "ready" && !!response.document;
+      const bubbleContent = response.assistantMessage;
+      const docContent = response.document ?? undefined;
+
       const aiMsg: Message = {
-        id: (Date.now() + 1).toString(), role: "assistant", content: reply, isDocument: isDoc,
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: bubbleContent,
+        isDocument: isDoc,
+        documentContent: docContent,
       };
       setMessages(p => [...p, aiMsg]);
 
-      if (isDoc) {
+      if (isDoc && docContent) {
         const nc = await StorageService.useCredit();
         setCredits(nc);
-        await StorageService.saveDocument({ content: reply, preview: raw });
-        setActiveDoc({ content: reply });
+        await StorageService.saveDocument({ content: docContent, preview: raw });
+        setActiveDoc({ content: docContent });
 
         const info = await StorageService.getUserInfo();
         if (!info.ad && !info.soyad) {
@@ -289,9 +302,9 @@ export const ChatScreen: React.FC = () => {
                     </View>
                     <View style={{ flexDirection: "row", gap: 6 }}>
                       {[
-                        { Icon: Copy,    fn: () => copyText(m.content) },
-                        { Icon: Share2,  fn: () => shareText(m.content) },
-                        { Icon: Printer, fn: () => printDocument(m.content) },
+                        { Icon: Copy,    fn: () => copyText(m.documentContent ?? m.content) },
+                        { Icon: Share2,  fn: () => shareText(m.documentContent ?? m.content) },
+                        { Icon: Printer, fn: () => printDocument(m.documentContent ?? m.content) },
                       ].map(({ Icon, fn }, i) => (
                         <TouchableOpacity key={i} onPress={fn} style={s.docBtn}>
                           <Icon size={13} color={Colors.accent} strokeWidth={2} />
