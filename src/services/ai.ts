@@ -12,26 +12,22 @@ export type AiResponse = {
 // ─── System Prompt (Real AI providers) ────────────────────────────────────────
 const SYSTEM_PROMPT = `Sen "EvrakAI" adında, Türkiye'de vatandaşların resmi kurumlara vereceği özel evrak ve belgeleri hazırlayan deneyimli bir belge asistanısın.
 
-YAPABİLECEKLERİN (Desteklenen Belge Türleri):
-- Genel Dilekçe (talep, şikayet, bilgi isteme)
-- İzin Talebi (okul, iş, mazeret)
+YAPABİLECEKLERİN (Desteklenen Belge Türleri — Özel Evrak):
+- Genel Dilekçe (talep, bilgi isteme, başvuru)
+- İzin Talebi (okul, iş, mazeret izni)
 - İstifa Dilekçesi
 - İş Başvuru Yazısı (ön yazı / cover letter)
-- Kira Sözleşmesi (konut veya iş yeri)
-- Borç Senedi (adi senet — çek/bono değil)
-- Referans Mektubu (çalışan veya öğrenci için)
-- Vekaletname (adi, basit işler için)
-- Tutanak (toplantı, hasar tespit, teslim-tesellüm)
-- Taahhütname
-- İş Sözleşmesi
 - Kayıt Dondurma Dilekçesi
-- İhtarname
 - Şikayet Dilekçesi
+- Taahhütname
+- Referans Mektubu
 
 YAPAMAYACAKLARIN (Kullanıcıyı doğru yönlendir):
+- Kira sözleşmesi, iş sözleşmesi, borç senedi gibi taraflar arası sözleşmeler → "Bu belgeler iki taraf arasında düzenlenir, ilerleyen sürümde eklenecek."
+- Vekaletname, ihtarname gibi hukuki bildirim belgeleri → "Bu belgeler ilerleyen sürümde eklenecek."
 - Boşanma, miras, icra, nafaka gibi mahkeme işleri → "Bu konuda bir avukattan destek almanızı öneririm."
 - Pasaport, ehliyet, diploma gibi devletin verdiği belgeler → "Bu belge resmi devlet kurumları tarafından düzenlenir."
-- Çek, bono, poliçe (kıymetli evraklar) → "Bu tür belgeler özel hukuki risk taşır, avukata danışın."
+- Çek, bono, poliçe → "Bu tür belgeler özel hukuki risk taşır, avukata danışın."
 
 GÖREVİN:
 1. Kullanıcının mesajını analiz et, hangi belgeyi istediğini tespit et.
@@ -114,38 +110,25 @@ const TODAY = new Date().toLocaleDateString("tr-TR", { day: "2-digit", month: "2
 // ─── Document Type Detection ──────────────────────────────────────────────────
 
 type DocKind =
-  | "Kira Sözleşmesi"
   | "İstifa Dilekçesi"
-  | "İhtarname"
   | "İzin Talebi"
   | "Kayıt Dondurma Dilekçesi"
-  | "Vekaletname"
   | "Taahhütname"
-  | "İş Sözleşmesi"
   | "Şikayet Dilekçesi"
   | "İş Başvuru Yazısı"
-  | "Borç Senedi"
   | "Referans Mektubu"
-  | "Tutanak"
   | "Dilekçe"
   | null;
 
 function detectDocType(text: string): DocKind {
-  if (/kira\s*sözleşme|kiralama\s*sözleş|ev\s*kirala|dükkan\s*kirala|işyeri\s*kirala/i.test(text)) return "Kira Sözleşmesi";
   if (/istifa|ayrılma|bırakmak\s*istiy|görevimden\s*(ayrıl|çekil)|iş\s*bırak/i.test(text)) return "İstifa Dilekçesi";
-  if (/ihtar|ihtarname|uyar[ıi]|hukuki\s*ihbar|tebliğ|ihbar/i.test(text)) return "İhtarname";
   if (/yıllık\s*izin|izin\s*tale|tatil\s*tale|izin\s*form|mazeret\s*izin/i.test(text)) return "İzin Talebi";
   if (/kayıt\s*dondur|öğrenim\s*dondur|üniversite.*dondur|dondurma.*dilekçe|okul.*dondur/i.test(text)) return "Kayıt Dondurma Dilekçesi";
-  if (/vekaletname|vekalet\s*ver|avukat.*yetki|noter.*vekalet/i.test(text)) return "Vekaletname";
   if (/taahhüt|taahhütname|taahh/i.test(text)) return "Taahhütname";
-  if (/iş\s*sözleşme|istihdam\s*sözleşme|hizmet\s*sözleşme|çalışma\s*sözleşme|işe\s*alım/i.test(text)) return "İş Sözleşmesi";
   if (/şikayet\s*dilekçe|şikayetçi|şikayetim\s*var|şikayet\s*etmek|ihbar\s*dilekçe/i.test(text)) return "Şikayet Dilekçesi";
   if (/iş\s*başvur|başvuru\s*mektup|cover\s*letter|ön\s*yaz|kariyer.*başvur|pozisyon.*başvur|staj\s*başvur/i.test(text)) return "İş Başvuru Yazısı";
-  if (/borç\s*sened|adi\s*senet|senet\s*yaz|alacak\s*sened|borç\s*belgesi/i.test(text)) return "Borç Senedi";
   if (/referans\s*mektup|tavsiye\s*mektup|referans\s*yaz|recommendation/i.test(text)) return "Referans Mektubu";
-  if (/tutanak|toplantı\s*tutanak|hasar\s*tespit|durum\s*rapor|tespit\s*tutanak/i.test(text)) return "Tutanak";
   if (/dilekçe|başvuru\s*dilekçe|resmi\s*başvur|kuruma\s*yaz/i.test(text)) return "Dilekçe";
-  if (/kira/i.test(text)) return "Kira Sözleşmesi";
   if (/izin/i.test(text)) return "İzin Talebi";
   return null;
 }
@@ -1060,22 +1043,10 @@ function generateMockResponse(messages: ChatMsg[]): AiResponse {
     };
   }
 
-  if (docType === "Kira Sözleşmesi") {
-    const { fields, missing } = extractKira(uHistory);
-    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Kira sözleşmesini hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri yazmanız yeterli.`, document: null };
-    return { docType, status: "ready", assistantMessage: "Kira sözleşmenizi resmi mevzuata (TBK 6098) uygun olarak hazırladım. Boş alanları kendi bilgilerinizle doldurabilirsiniz.", document: genKiraSozlesmesi(fields) };
-  }
-
   if (docType === "İstifa Dilekçesi") {
     const { fields, missing } = extractIstifa(uHistory);
     if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `İstifa dilekçenizi hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBilgileri paylaştığınızda hemen hazırlayacağım.`, document: null };
     return { docType, status: "ready", assistantMessage: "İstifa dilekçeniz resmi formatta hazırlandı. Tarihleri ve boş alanları gözden geçirip imzalayabilirsiniz.", document: genIstifaDilekcesi(fields) };
-  }
-
-  if (docType === "İhtarname") {
-    const { fields, missing } = extractIhtar(uHistory);
-    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `İhtarname hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaştığınızda oluşturacağım.`, document: null };
-    return { docType, status: "ready", assistantMessage: "İhtarnameniz hazır. Hukuki geçerlilik için noter kanalıyla göndermenizi tavsiye ederim.", document: genIhtarname(fields) };
   }
 
   if (docType === "İzin Talebi") {
@@ -1090,18 +1061,6 @@ function generateMockResponse(messages: ChatMsg[]): AiResponse {
     return { docType, status: "ready", assistantMessage: "Kayıt dondurma dilekçeniz hazır. Gerekli eklerle birlikte Öğrenci İşleri'ne teslim edebilirsiniz.", document: genKayitDondurma(fields) };
   }
 
-  if (docType === "Vekaletname") {
-    const { fields, missing } = extractVekaletname(uHistory);
-    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Vekaletname hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
-    return { docType, status: "ready", assistantMessage: "Vekaletnameniz hazırlandı. Hukuki geçerlilik için noter onayı gerekmektedir.", document: genVekaletname(fields) };
-  }
-
-  if (docType === "İş Sözleşmesi") {
-    const { fields, missing } = extractIsSozlesmesi(uHistory);
-    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `İş sözleşmesi hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
-    return { docType, status: "ready", assistantMessage: "İş sözleşmeniz 4857 sayılı İş Kanunu'na uygun olarak hazırlandı. İmzalamadan önce hukuki danışmanlık almanızı tavsiye ederim.", document: genIsSozlesmesi(fields) };
-  }
-
   if (docType === "Şikayet Dilekçesi") {
     const { fields, missing } = extractSikayet(uHistory);
     if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Şikayet dilekçenizi hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
@@ -1114,22 +1073,10 @@ function generateMockResponse(messages: ChatMsg[]): AiResponse {
     return { docType, status: "ready", assistantMessage: "İş başvuru yazınız (ön yazı) hazır. CV'nizle birlikte ilgili kişiye iletebilirsiniz.", document: genIsBasvuruYazisi(fields) };
   }
 
-  if (docType === "Borç Senedi") {
-    const { fields, missing } = extractBorcSenedi(uHistory);
-    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `⚠️ Borç senedi icra takibine dayanak olabilir. Hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
-    return { docType, status: "ready", assistantMessage: "Adi borç senedi hazırlandı. ⚠️ Bu belge icra takibine dayanak olabilir — imzalamadan önce her iki taraf da koşulları dikkatlice okusun.", document: genBorcSenedi(fields) };
-  }
-
   if (docType === "Referans Mektubu") {
     const { fields, missing } = extractReferans(uHistory);
     if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Referans mektubunu hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
     return { docType, status: "ready", assistantMessage: "Referans mektubunuz hazır. İmzaladıktan sonra ilgili kişiye veya kuruma iletebilirsiniz.", document: genReferansMektubu(fields) };
-  }
-
-  if (docType === "Tutanak") {
-    const { fields, missing } = extractTutanak(uHistory);
-    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Tutanak hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
-    return { docType, status: "ready", assistantMessage: "Tutanağınız hazır. Tüm taraflarca imzalandıktan sonra geçerli olacaktır.", document: genTutanak(fields) };
   }
 
   if (docType === "Taahhütname") {
