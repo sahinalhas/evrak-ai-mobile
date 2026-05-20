@@ -6,9 +6,9 @@ export type Document = {
   type: string;
   date: string;
   status: "Tamamlandı" | "Taslak";
-  category: "Hukuki" | "İş Hayatı" | "Eğitim" | "Kişisel" | "Vatandaşlık";
+  category: "Hukuki" | "İş Hayatı" | "Eğitim" | "Kişisel";
   favorite: boolean;
-  content: string;
+  content: string; // The generated document content
 };
 
 export type UserInfo = {
@@ -22,35 +22,27 @@ export type UserInfo = {
 
 const EMPTY_USER_INFO: UserInfo = { ad: "", soyad: "", tckn: "", telefon: "", adres: "", eposta: "" };
 
-const DATA_VERSION = "v3";
-
 const KEYS = {
   DOCUMENTS: "evrak_ai_documents",
-  DATA_VERSION: "evrak_ai_data_version",
   CREDITS: "evrak_ai_credits",
   USER_LOGGED_IN: "evrak_ai_user_logged_in",
   USER_INFO: "evrak_ai_user_info",
 };
 
 const MOCK_DOCUMENTS: Document[] = [
-  { id: "1", title: "Şikayet Dilekçesi — Market", type: "Şikayet Dilekçesi", date: "12 May 2026", status: "Tamamlandı", category: "Hukuki", favorite: true, content: "# ŞİKAYET DİLEKÇESİ\n\n**Tarih:** 12.05.2026\n\n**TÜKETİCİ HAKEM HEYETİ BAŞKANLIĞI'NA**\n\n**KONU:** Ayıplı ürün iadesi talebi\n\n---\n\nSayın Yetkililer,\n\n10.05.2026 tarihinde satın aldığım ürünün ayıplı çıkması nedeniyle 6502 sayılı Tüketicinin Korunması Hakkında Kanun kapsamında iade hakkımı kullanmak istiyorum.\n\nGereğini saygılarımla arz ederim.\n\n**Ahmet Yılmaz**\n\nİmza: ………………………………\n**Tarih:** 12.05.2026\n\n---\n\n⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır.*" },
-  { id: "2", title: "İstifa Dilekçesi", type: "İstifa Dilekçesi", date: "08 May 2026", status: "Tamamlandı", category: "İş Hayatı", favorite: false, content: "# İSTİFA DİLEKÇESİ\n\n**Tarih:** 08.05.2026\n\n---\n\n**YÖNETİM KURULU BAŞKANLIĞI'NA**\n\n---\n\n**KONU:** İstifa Bildirimi\n\nŞirketiniz bünyesinde 12.04.2024 tarihinden bu yana yürütmekte olduğum Yazılım Geliştirici görevimden, kişisel kariyer planlarım doğrultusunda istifa etmek istediğimi bildiririm.\n\nBilgi ve gereğini saygılarımla arz ederim.\n\n**Ad Soyad:** Ahmet Yılmaz\n**İmza:** ………………………………\n**Tarih:** 08.05.2026\n\n---\n\n⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır.*" },
-  { id: "3", title: "Kayıt Dondurma — Güz 2026", type: "Kayıt Dondurma Dilekçesi", date: "02 May 2026", status: "Taslak", category: "Eğitim", favorite: false, content: "# KAYIT DONDURMA TALEBİ\n\n**Tarih:** 02.05.2026\n\n---\n\n**MÜHENDİSLİK FAKÜLTESİ DEKANLIĞI'NA**\n\n---\n\nFakülteniz Bilgisayar Mühendisliği Bölümü 2. Sınıf öğrencisiyim. Sağlık sebeplerim nedeniyle 2026-2027 Eğitim-Öğretim yılı Güz dönemi için kaydımın dondurulmasını talep etmekteyim.\n\nGerekli evraklar ekte sunulmuştur.\n\n**Ad Soyad:** Ahmet Yılmaz\n**İmza:** ………………………………\n**Tarih:** 02.05.2026\n\n---\n\n⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır.*" },
-  { id: "4", title: "Bilgi Edinme — Belediye", type: "Bilgi Edinme Başvurusu", date: "27 Nis 2026", status: "Tamamlandı", category: "Vatandaşlık", favorite: true, content: "# BİLGİ EDİNME BAŞVURUSU\n*(4982 Sayılı Bilgi Edinme Hakkı Kanunu Kapsamında)*\n\n**Tarih:** 27.04.2026\n\n---\n\n**ÇANKAYA BELEDİYESİ BAŞKANLIĞI'NA**\n\n---\n\n**KONU:** İmar planı değişikliğine ilişkin bilgi talebi\n\n4982 sayılı Kanun çerçevesinde, mahallemizde yapılan imar planı değişikliğine ait resmi karar ve gerekçelerini talep ediyorum.\n\nBilgi ve belgelerin tarafıma iletilmesini saygılarımla arz ederim.\n\n**Ad Soyad:** Ahmet Yılmaz\n**İmza:** ………………………………\n\n---\n\n⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır.*" },
-  { id: "5", title: "Yıllık İzin Talebi", type: "İzin Talebi", date: "19 Nis 2026", status: "Tamamlandı", category: "İş Hayatı", favorite: false, content: "# YILLIK İZİN TALEP FORMU\n\n**Tarih:** 19.04.2026\n\n---\n\n**İNSAN KAYNAKLARI MÜDÜRLÜĞÜ'NE**\n\n---\n\n| Alan | Bilgi |\n|---|---|\n| Ad Soyad | **Ahmet Yılmaz** |\n| Unvan | Yazılım Geliştirici |\n| İzin Türü | **Yıllık İzin** |\n| Başlangıç | 22.06.2026 |\n| Bitiş | 26.06.2026 |\n| Toplam Süre | 5 iş günü |\n\nOnayınıza sunarım.\n\n**İmza:** ………………………………\n**Tarih:** 19.04.2026\n\n---\n\n⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır.*" },
+  { id: "1", title: "Ev Kira Sözleşmesi", type: "Kira Sözleşmesi", date: "12 May 2026", status: "Tamamlandı", category: "Hukuki", favorite: true, content: "# KİRA SÖZLEŞMESİ\n\n**1. TARAFLAR**\n\n**Kiraya Veren:** Ahmet Yılmaz\n**Kiracı:** Mehmet Demir\n\n**2. KİRALANAN TAŞINMAZ**\n\n**Adres:** Atatürk Mah. Cumhuriyet Cad. No: 45 Daire: 8 Çankaya/Ankara\n\n**3. SÜRE VE BEDEL**\n\n**Sözleşme Süresi:** 1 Yıl\n**Başlangıç Tarihi:** 15.05.2026\n**Aylık Kira Bedeli:** 18.000 TL" },
+  { id: "2", title: "İstifa Dilekçesi", type: "İstifa", date: "08 May 2026", status: "Tamamlandı", category: "İş Hayatı", favorite: false, content: "# İSTİFA DİLEKÇESİ\n\n**Tarih:** 08.05.2026\n\n**Yönetim Kurulu Başkanlığı'na,**\n\nŞirketiniz bünyesinde 12.04.2024 tarihinden bu yana yürütmekte olduğum Yazılım Geliştirici görevimden, kişisel kariyer planlarım doğrultusunda istifa etmek istediğimi bildiririm.\n\nİstifamın kabulünü ve gerekli işlemlerin başlatılmasını saygılarımla talep ederim.\n\n**Ahmet Yılmaz**\n\nİmza: [..........]" },
+  { id: "3", title: "Üniversite Kayıt Dondurma", type: "Dilekçe", date: "02 May 2026", status: "Taslak", category: "Eğitim", favorite: false, content: "# KAYIT DONDURMA TALEBİ\n\n**Tarih:** 02.05.2026\n\n**Mühendislik Fakültesi Dekanlığı'na,**\n\nFakülteniz Bilgisayar Mühendisliği Bölümü 2. Sınıf 202610204 numaralı öğrencisiyim. Sağlık sebeplerim nedeniyle 2026-2027 Eğitim-Öğretim yılı Güz dönemi için kaydımın dondurulmasını talep etmekteyim.\n\nGerekli evraklar ekte sunulmuştur. Bilgilerinize arz ederim.\n\n**Ahmet Yılmaz**" },
+  { id: "4", title: "Komşuya İhtarname", type: "İhtarname", date: "27 Nis 2026", status: "Tamamlandı", category: "Hukuki", favorite: true, content: "# İHTARNAME\n\n**İHTAR EDEN:** Ahmet Yılmaz\n**MUHATAP:** Gürültü Yapan Komşu\n\n**KONU:** Apartman gürültü kurallarına riayet edilmesi ihtarıdır.\n\n**AÇIKLAMALAR:**\n\nGece geç saatlerde yüksek sesli müzik ve gürültü nedeniyle apartman huzuru bozulmaktadır. Bu durumun devam etmesi halinde yasal yollara başvurulacağı ihtar olunur.\n\n**İhtar Eden:** Ahmet Yılmaz" },
+  { id: "5", title: "Yıllık İzin Talebi", type: "İzin", date: "19 Nis 2026", status: "Tamamlandı", category: "İş Hayatı", favorite: false, content: "# YILLIK İZİN TALEP FORMU\n\n**İzin İsteyen Personel:** Ahmet Yılmaz\n**Unvanı:** Yazılım Geliştirici\n**İzin Türü:** Yıllık İzin\n**İzin Süresi:** 5 İş Günü\n**Başlangıç:** 22.06.2026\n**Bitiş:** 26.06.2026\n\nOnayınıza sunarım.\n\n**Personel İmza:** [..........]" },
 ];
 
 export const StorageService = {
   async getDocuments(): Promise<Document[]> {
     try {
-      const storedVersion = await AsyncStorage.getItem(KEYS.DATA_VERSION);
-      if (storedVersion !== DATA_VERSION) {
-        await AsyncStorage.setItem(KEYS.DOCUMENTS, JSON.stringify(MOCK_DOCUMENTS));
-        await AsyncStorage.setItem(KEYS.DATA_VERSION, DATA_VERSION);
-        return MOCK_DOCUMENTS;
-      }
       const data = await AsyncStorage.getItem(KEYS.DOCUMENTS);
       if (!data) {
+        // Seed initial data
         await AsyncStorage.setItem(KEYS.DOCUMENTS, JSON.stringify(MOCK_DOCUMENTS));
         return MOCK_DOCUMENTS;
       }
