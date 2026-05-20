@@ -1,0 +1,93 @@
+Harika bir iş modeli düşünmüşsünüz. Bu fikir, dünyada LegalZoom, Rocket Lawyer gibi milyar dolarlık şirketlerin temelini oluşturan yapıyla neredeyse birebir örtüşüyor. Üstelik sizin "AI + Avukat Onayı" hibrit modeliniz, pazarda çok güçlü bir konum elde etmenizi sağlayabilir.
+
+Aşağıda bu modelin nasıl işleyeceğini, sizin ve avukatların nasıl kazanacağını detaylandırdım.
+
+---
+
+💡 İş Modeli Nasıl İşleyecek?
+
+Bu modelde sadece bir yazılım değil, iki tarafı (kullanıcı & avukat) buluşturan bir pazar yeri (marketplace) kuruyorsunuz. Siz köprü oluyorsunuz.
+
+Süreç şöyle işleyebilir:
+
+1. Kullanıcı uygulamanızda AI ile belge taslağını oluşturur.
+2. "Avukata Gönder" butonuna tıklar.
+3. Sistem, belge türüne veya kullanıcının seçtiği şehre göre uygun bir avukata bildirim gönderir.
+4. Avukat kendi panelinden belgeyi inceler, düzeltir (word'de "düzenlemeleri izle" modu gibi) ve onaylar.
+5. Kullanıcı avukatın onayladığı, güvenli belgeyi indirir.
+
+---
+
+💰 Para Nasıl Kazanılır? (Gelir Modeliniz)
+
+Bu sistemde 3 farklı gelir kapısı var. Dünyadaki başarılı örneklerin kullandığı modeller bunlar:
+
+1. Kullanıcıdan Alınacak Ücretler (B2C)
+
+· Tek Seferlik İnceleme Ücreti: Kullanıcı, avukata gönderdiği her belge için sabit bir ücret (örneğin 150-300 TL) öder. Bu ücretin bir kısmı avukata gider, bir kısmı size kalır.
+· Abonelik (Premium): Aylık veya yıllık üyelik yapan kullanıcılar, "sınırsız avukat incelemesi" veya "önceki incelemelerde indirim" gibi haklara sahip olur.
+· Avukata Yönlendirme (Lead Fee): Kullanıcı "dilekçeyi onaylatmak yerine tamamen avukata havale etmek" isterse, onu avukata yönlendirirsiniz ve avukattan yönlendirme ücreti alırsınız.
+
+2. Avukatlardan Alınacak Ücretler (B2B)
+
+· Komisyon (Commission): Kullanıcının ödediği inceleme ücretinin belirli bir yüzdesi (%15 - %30 arası) sizin platform komisyonunuz olur. Bu sektörde en yaygın modeldir.
+· Abonelik (Avukatlar için): Avukatlar platformda görünmek, daha fazla iş almak için aylık sabit bir ücret ödeyebilir. Örneğin, Laine isimli platform avukatlara ücretsiz profil ve iş fırsatı sunarken, gelişmiş özellikler için aylık 399 İsviçre Frangı talep ediyor.
+
+3. Size Kalan Net Kazanç
+
+Sizin platform sahibi olarak en büyük avantajınız, sabit maliyetinizin düşük olması. Bir avukatın saatlik ücreti 250 dolar iken, AI bir belgeyi dakikalar içinde hazırlıyor. Siz bu "verimlilik farkını" size ve avukata kâr olarak yansıtıyorsunuz.
+
+---
+
+👨‍⚖️ Avukatlar Bu Sisteme Neden Gelsin?
+
+Avukatlar için de bu model cazip. Çünkü:
+
+· Yeni Müvekkil Ağı: Avukatlar doğrudan sizin platformunuz üzerinden hazır müşteriye ulaşır. LegalSea gibi girişimler tam olarak bu ihtiyacı görüyor.
+· Zaman Kazancı: Avukatlar, AI'ın hazırladığı taslağı sıfırdan yazmaya göre çok daha hızlı inceler. Bir AI aracı, binlerce sayfayı 20-30 dakikada tarayıp riskli kısımları işaretleyebiliyor. Bu da avukatın sadece kritik noktalara odaklanmasını sağlıyor.
+· Düşük Riskli İş: Özellikle yeşil (düşük risk) veya sarı (orta risk) olarak işaretlenen belgelerde avukatın iş yükü çok hafifliyor.
+
+Ufkunuzu Açacak Bir Örnek: ABD'deki 360 Business Law isimli firma, tıpkı sizin düşündüğünüz gibi bir sistem kurdu. Müvekkil belgeyi yüklüyor, AI "Kırmızı/Sarı/Yeşil" etiketiyle risk seviyesini belirliyor. Sadece kırmızı (yüksek risk) etiketli belgeler avukata gidiyor. Bu sayede inceleme ücretleri %70 oranında düşüyor.
+
+---
+
+🚀 Sistemi Nasıl Kurabilirsiniz?
+
+Bu modeli hayata geçirmek için şu temel özellikleri eklemelisiniz:
+
+1. Hibrit İnceleme Modülü (Kırmızı/Sarı/Yeşil Etiketleme):
+   · AI belgeyi hazırladıktan sonra otomatik olarak analiz etsin.
+   · Yeşil: "Bu belgede hata yok, direkt kullan" (onaya gerek yok).
+   · Sarı: "Ufak tefek düzeltmeler gerekli, avukat baksın" (isteğe bağlı inceleme).
+   · Kırmızı: "Bu belge ciddi hukuki risk taşıyor, mutlaka avukat onaylasın" (zorunlu inceleme).
+   · Bu sayede avukatlar işe boğulmaz, sadece gerçekten ihtiyaç duyulan yerde devreye girer.
+2. Avukat Pazar Yeri:
+   · Uygulamanızın içinde bir "Avukat Bul" sayfası olsun.
+   · Avukatlar uzmanlık alanlarını (iş hukuku, aile hukuku, icra vb.) ve ücretlerini girsin.
+   · Kullanıcılar puan ve yorumlara göre avukat seçebilsin.
+3. Entegre Ödeme Sistemi:
+   · Kullanıcı ödemeyi sizinki üzerinden yapsın, siz komisyonunuzu kesip kalanı otomatik olarak avukatın hesabına aktarın.
+4. Güvenli Çalışma Alanı:
+   · Avukat ile kullanıcı arasındaki yazışmalar ve belge paylaşımı, uygulama içinde şifreli olarak gerçekleşsin.
+
+---
+
+🛠️ Geliştirme Planı Önerisi
+
+Direkt "avukat onayı" ile başlamak yerine şöyle bir yol izleyebilirsiniz:
+
+Adım Süre Hedef
+MVP (Başlangıç) Hafta 1-4 Sadece AI ile belge oluşturma. Uyarı: "Bu belgeyi bir avukata onaylatın" yaz.
+Beta 1.0 Hafta 5-8 Kendi çevrenizdeki 5 avukatla anlaşın. Onay sistemini manuel olarak başlatın (telegram/whatsapp'tan haberleşin).
+Sürüm 2.0 Hafta 9-12 Ödeme sistemini entegre edin. Avukatlarla resmi sözleşme yapın. Kullanıcıdan ücret alınmaya başlayın.
+Sürüm 3.0 3-6 Ay sonra Yeni avukatların sisteme kendi başvurabildiği, tam otomatik Pazar Yeri modülünü açın.
+
+⚠️ Kritik Uyarı
+
+Bu modelde en önemli konu "Sorumluluk (Liability)" .
+
+· Avukat hatalı onay verirse? Kullanıcı zarara uğrarsa?
+· Bu durum için avukatlarla yapacağınız sözleşmede "Yapılan hukuki işlemlerin tüm sorumluluğu avukata aittir" maddesi koyun.
+· Kendi hizmet şartlarınızda da "Biz sadece teknoloji sağlayıcısıyız, hukuki hizmet sağlamıyoruz" yazın.
+
+Bu modelle, günde binlerce belge üreten bir platforma dönüşme potansiyeliniz var. Aklınıza takılan bir nokta olursa (örneğin avukatlarla nasıl anlaşma yapılır, komisyon oranları nasıl belirlenir), detaylandırabilirim.
