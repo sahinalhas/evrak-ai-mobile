@@ -10,22 +10,49 @@ export type AiResponse = {
 };
 
 // ─── System Prompt (Real AI providers) ────────────────────────────────────────
-const SYSTEM_PROMPT = `Sen "EvrakAI" adında, Türkiye hukuk ve resmi yazışma kurallarına hâkim, deneyimli bir belge asistanısın.
+const SYSTEM_PROMPT = `Sen "EvrakAI" adında, Türkiye'de vatandaşların resmi kurumlara vereceği özel evrak ve belgeleri hazırlayan deneyimli bir belge asistanısın.
+
+YAPABİLECEKLERİN (Desteklenen Belge Türleri):
+- Genel Dilekçe (talep, şikayet, bilgi isteme)
+- İzin Talebi (okul, iş, mazeret)
+- İstifa Dilekçesi
+- İş Başvuru Yazısı (ön yazı / cover letter)
+- Kira Sözleşmesi (konut veya iş yeri)
+- Borç Senedi (adi senet — çek/bono değil)
+- Referans Mektubu (çalışan veya öğrenci için)
+- Vekaletname (adi, basit işler için)
+- Tutanak (toplantı, hasar tespit, teslim-tesellüm)
+- Taahhütname
+- İş Sözleşmesi
+- Kayıt Dondurma Dilekçesi
+- İhtarname
+- Şikayet Dilekçesi
+
+YAPAMAYACAKLARIN (Kullanıcıyı doğru yönlendir):
+- Boşanma, miras, icra, nafaka gibi mahkeme işleri → "Bu konuda bir avukattan destek almanızı öneririm."
+- Pasaport, ehliyet, diploma gibi devletin verdiği belgeler → "Bu belge resmi devlet kurumları tarafından düzenlenir."
+- Çek, bono, poliçe (kıymetli evraklar) → "Bu tür belgeler özel hukuki risk taşır, avukata danışın."
 
 GÖREVİN:
-1. Kullanıcının mesajlarını analiz et ve hangi resmi belgeyi (Dilekçe, Kira Sözleşmesi, İhtarname, İstifa Dilekçesi, İzin Talebi, Kayıt Dondurma, Vekaletname, Taahhütname, İş Sözleşmesi, Şikayet Dilekçesi vb.) istediğini tespit et.
-2. O belge türü için Türkiye'de geçerli formatta GEREKLİ TÜM BİLGİLERİ kafanda listele.
-3. Kullanıcının verdiği mesajlardan hangi bilgilerin VERİLDİĞİNİ ve hangilerinin EKSİK olduğunu çıkar.
-4. SADECE eksik olan bilgileri kullanıcıdan iste — verilmiş bilgileri TEKRAR SORMA.
-5. Tüm gerekli bilgiler tamamlandığında belgeyi profesyonel, resmi Türkçe ile tam formatta hazırla.
+1. Kullanıcının mesajını analiz et, hangi belgeyi istediğini tespit et.
+2. O belge için gerekli tüm bilgileri belirle.
+3. Verilen bilgilerden eksik olanları tek seferde sor — verilmiş bilgileri tekrar sorma.
+4. Tüm bilgiler tamamlandığında belgeyi profesyonel, resmi Türkçe ile tam formatta hazırla.
 
 KRİTİK KURALLAR:
 - Kullanıcı tek mesajda tüm bilgileri vermişse hemen belgeyi hazırla, soru sorma.
-- Eksik bilgi varsa hepsini TEK mesajda numaralı/madde madde sor; tek tek değil.
-- Verilmiş bilgileri asla tekrar sorma.
-- Belge türü belirsizse kullanıcıdan ne yapmak istediğini netleştir.
-- Belge hazırlanırken Markdown kullan: # başlık, ## alt başlık, **kalın**. Sonunda tarih ve imza alanı bırak.
-- Uydurma bilgi ekleme; eksik kritik olmayan alanlar için [..........] bırakabilirsin.
+- Eksik bilgi varsa hepsini TEK mesajda numaralı liste ile sor.
+- Borç Senedi oluştururken mutlaka şu uyarıyı ekle: "⚠️ Bu belge icra takibine dayanak olabilir, imzalamadan önce dikkatli olun."
+- Vekaletname oluştururken: "Noter onayı gerektiren işlemler için resmi vekaletname alın" uyarısını ekle.
+- Her belgenin sonuna: "⚠️ Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz." uyarısını ekle.
+- Belge hazırlarken Markdown kullan: # başlık, ## alt başlık, **kalın**. Sonunda tarih ve imza alanı bırak.
+- Uydurma bilgi ekleme; eksik alanlar için [..........] bırak.
+
+FORMAT KURALLARI:
+- Tarih: Sağ üst köşe veya belge başında (GG.AA.YYYY)
+- Hitap: Kuruma hitap sağda, büyük harfle
+- Kapanış: "Gereğini arz ederim." veya "Saygılarımla,"
+- İmza alanı: Alt kısımda 3 boş satır
 
 ÇIKTI FORMATI:
 SADECE geçerli bir JSON nesnesi döndür. Başka hiçbir metin, açıklama, kod bloğu işareti kullanma.
@@ -96,6 +123,10 @@ type DocKind =
   | "Taahhütname"
   | "İş Sözleşmesi"
   | "Şikayet Dilekçesi"
+  | "İş Başvuru Yazısı"
+  | "Borç Senedi"
+  | "Referans Mektubu"
+  | "Tutanak"
   | "Dilekçe"
   | null;
 
@@ -109,6 +140,10 @@ function detectDocType(text: string): DocKind {
   if (/taahhüt|taahhütname|taahh/i.test(text)) return "Taahhütname";
   if (/iş\s*sözleşme|istihdam\s*sözleşme|hizmet\s*sözleşme|çalışma\s*sözleşme|işe\s*alım/i.test(text)) return "İş Sözleşmesi";
   if (/şikayet\s*dilekçe|şikayetçi|şikayetim\s*var|şikayet\s*etmek|ihbar\s*dilekçe/i.test(text)) return "Şikayet Dilekçesi";
+  if (/iş\s*başvur|başvuru\s*mektup|cover\s*letter|ön\s*yaz|kariyer.*başvur|pozisyon.*başvur|staj\s*başvur/i.test(text)) return "İş Başvuru Yazısı";
+  if (/borç\s*sened|adi\s*senet|senet\s*yaz|alacak\s*sened|borç\s*belgesi/i.test(text)) return "Borç Senedi";
+  if (/referans\s*mektup|tavsiye\s*mektup|referans\s*yaz|recommendation/i.test(text)) return "Referans Mektubu";
+  if (/tutanak|toplantı\s*tutanak|hasar\s*tespit|durum\s*rapor|tespit\s*tutanak/i.test(text)) return "Tutanak";
   if (/dilekçe|başvuru\s*dilekçe|resmi\s*başvur|kuruma\s*yaz/i.test(text)) return "Dilekçe";
   if (/kira/i.test(text)) return "Kira Sözleşmesi";
   if (/izin/i.test(text)) return "İzin Talebi";
@@ -272,6 +307,84 @@ function extractIsSozlesmesi(text: string): { fields: Fields; missing: string[] 
   if (!fields.sirketAdi) missing.push("2. Şirketin resmi adı");
   if (!fields.pozisyon) missing.push("3. Pozisyon / görev unvanı");
   if (!fields.maas) missing.push("4. Aylık brüt maaş (TL)");
+  return { fields, missing };
+}
+
+function extractIsBasvuru(text: string): { fields: Fields; missing: string[] } {
+  const fields: Fields = { adSoyad: null, pozisyon: null, sirket: null, deneyim: null, egitim: null };
+  const nameM = text.match(/(?:adım|ismim|ben)\s+([A-ZÇĞİÖŞÜa-zçğışöşü]+(?:\s+[A-ZÇĞİÖŞÜa-zçğışöşü]+)?)/i);
+  if (nameM) fields.adSoyad = nameM[1].trim();
+  else { const names = (text.match(/\b([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\s+([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\b/g) || []); if (names[0]) fields.adSoyad = names[0]; }
+  const pozM = text.match(/(?:pozisyon|görev|iş|rol|unvan|kadro)[:\s]+([^\n,.!?]{3,50})/i);
+  if (pozM) fields.pozisyon = pozM[1].trim();
+  const jobTitles = ["mühendis", "geliştirici", "yazılım", "müdür", "uzman", "asistan", "satış", "muhasebe", "analist", "danışman", "tasarımcı", "öğretmen", "hemşire", "doktor"];
+  for (const t of jobTitles) { if (text.includes(t) && !fields.pozisyon) { const re = new RegExp(`(?:kıdemli\\s+|baş\\s+)?${t}\\s*(?:\\w+)?`, "i"); const m = text.match(re); if (m) fields.pozisyon = m[0].trim(); } }
+  const sirketM = text.match(/([A-ZÇĞİÖŞÜa-zçğışöşü\s]+(?:Ltd\.|A\.Ş\.|Şirketi|Teknoloji|Holding|Group)[\s.]*)/i);
+  if (sirketM) fields.sirket = sirketM[1].trim();
+  const deneyimM = text.match(/(\d+)\s*(?:yıl|yıllık|yil)\s*(?:deneyim|tecrübe)/i);
+  if (deneyimM) fields.deneyim = `${deneyimM[1]} yıl`;
+  const egitimM = text.match(/(?:üniversite|lisans|yüksek\s*lisans|mezun)[^\n,.!?]{0,60}/i);
+  if (egitimM) fields.egitim = egitimM[0].trim();
+  const missing: string[] = [];
+  if (!fields.adSoyad) missing.push("1. Adınız ve soyadınız");
+  if (!fields.pozisyon) missing.push("2. Başvurduğunuz pozisyon");
+  if (!fields.sirket) missing.push("3. Şirketin adı");
+  return { fields, missing };
+}
+
+function extractBorcSenedi(text: string): { fields: Fields; missing: string[] } {
+  const fields: Fields = { alacakli: null, borçlu: null, miktar: null, vadeTarihi: null, aciklama: null };
+  const names = (text.match(/\b([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\s+([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\b/g) || []);
+  if (names[0]) fields.alacakli = names[0];
+  if (names[1]) fields.borçlu = names[1];
+  const alacakliM = text.match(/(?:alacaklı|veren|ben)\s*(?:adı|isim)?[:\s]+([A-ZÇĞİÖŞÜa-zçğışöşü]+\s+[A-ZÇĞİÖŞÜa-zçğışöşü]+)/i);
+  if (alacakliM) fields.alacakli = alacakliM[1].trim();
+  const borcluM = text.match(/(?:borçlu|alan|karşı\s*taraf)\s*(?:adı|isim)?[:\s]+([A-ZÇĞİÖŞÜa-zçğışöşü]+\s+[A-ZÇĞİÖŞÜa-zçğışöşü]+)/i);
+  if (borcluM) fields.borçlu = borcluM[1].trim();
+  fields.miktar = extractAmount(text);
+  fields.vadeTarihi = extractDate(text);
+  const missing: string[] = [];
+  if (!fields.alacakli) missing.push("1. Alacaklının (parayı veren) adı soyadı");
+  if (!fields.borçlu) missing.push("2. Borçlunun (parayı alan) adı soyadı");
+  if (!fields.miktar) missing.push("3. Borç miktarı (TL)");
+  if (!fields.vadeTarihi) missing.push("4. Geri ödeme tarihi");
+  return { fields, missing };
+}
+
+function extractReferans(text: string): { fields: Fields; missing: string[] } {
+  const fields: Fields = { yazanAdi: null, yazanUnvan: null, kisiAdi: null, iliskiSuresi: null, kurum: null };
+  const names = (text.match(/\b([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\s+([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\b/g) || []);
+  if (names[0]) fields.yazanAdi = names[0];
+  if (names[1]) fields.kisiAdi = names[1];
+  const pozM = text.match(/(?:pozisyon(?:um)?|görev(?:im)?|unvan(?:ım)?|müdür|direktör|profesor|doçent)[:\s]*([^\n,.!?]{0,40})/i);
+  if (pozM) fields.yazanUnvan = pozM[0].trim();
+  const sureM = text.match(/(\d+)\s*(?:yıl|ay)/i);
+  if (sureM) fields.iliskiSuresi = sureM[0];
+  const kurumM = text.match(/([A-ZÇĞİÖŞÜa-zçğışöşü\s]+(?:Ltd\.|A\.Ş\.|Şirketi|Üniversitesi|Okulu|Hastanesi)[\s.]*)/i);
+  if (kurumM) fields.kurum = kurumM[1].trim();
+  const missing: string[] = [];
+  if (!fields.yazanAdi) missing.push("1. Referansı yazan kişinin adı soyadı ve unvanı");
+  if (!fields.kisiAdi) missing.push("2. Referans verilen kişinin adı soyadı");
+  if (!fields.kurum) missing.push("3. Kurum / şirket adı");
+  return { fields, missing };
+}
+
+function extractTutanak(text: string): { fields: Fields; missing: string[] } {
+  const fields: Fields = { tur: "Toplantı Tutanağı", katilimcilar: null, konu: null, karar: null, yer: null };
+  if (/hasar|kaza|zarar|tespit/i.test(text)) fields.tur = "Hasar Tespit Tutanağı";
+  else if (/toplantı|meeting/i.test(text)) fields.tur = "Toplantı Tutanağı";
+  else if (/anlaşmazlık|uyuşmazlık|ihtilaf/i.test(text)) fields.tur = "Anlaşmazlık Tutanağı";
+  else if (/teslim/i.test(text)) fields.tur = "Teslim-Tesellüm Tutanağı";
+  const konuM = text.match(/(?:konu|hakkında|için|nedeniyle)[:\s]+([^\n,.!?]{5,100})/i);
+  if (konuM) fields.konu = konuM[1].trim();
+  else if (text.length > 30) fields.konu = text.slice(0, 120).trim();
+  const kararM = text.match(/(?:karar|sonuç|alınan|belirlenen)[:\s]+([^\n]{10,150})/i);
+  if (kararM) fields.karar = kararM[1].trim();
+  const yerM = text.match(/(?:yer|adres|mekân|lokasyon)[:\s]+([^\n,.!?]{5,80})/i);
+  if (yerM) fields.yer = yerM[1].trim();
+  const missing: string[] = [];
+  if (!fields.konu) missing.push("1. Tutanağın konusu (ne için tutanak tutulacak?)");
+  if (!fields.katilimcilar) missing.push("2. Katılımcıların / tarafların adı soyadı");
   return { fields, missing };
 }
 
@@ -707,6 +820,193 @@ saygılarımla talep ederim.
 2. Nüfus cüzdanı fotokopisi`;
 }
 
+function genIsBasvuruYazisi(f: Fields): string {
+  return `**${TODAY}**
+
+---
+
+**${f.sirket ? f.sirket.toUpperCase() : "[ŞİRKET ADI]"} İNSAN KAYNAKLARI MÜDÜRLÜĞÜ'NE**
+
+---
+
+**KONU:** ${f.pozisyon ?? "[POZİSYON]"} Pozisyonu Başvurusu
+
+---
+
+Sayın Yetkili,
+
+${f.sirket ?? "[Şirket Adı]"} bünyesinde açık olan **${f.pozisyon ?? "[Pozisyon]"}** pozisyonu için başvuruda bulunmak istiyorum.
+
+${f.deneyim ? `**${f.deneyim}** deneyimimle` : "Edindiğim deneyim ve birikimimle"} bu pozisyonda başarılı olacağıma inanmakta; teknik bilgimi ve çalışma disiplinimi ekibinize katma değer sağlamak için kullanmak istiyorum.
+
+${f.egitim ? `**Eğitim Durumu:** ${f.egitim}` : ""}
+
+Özgeçmişim ekte yer almakta olup mülakat talebiniz halinde her zaman hazır olduğumu belirtmek isterim.
+
+İlginiz ve değerlendirmeniz için şimdiden teşekkür ederim.
+
+---
+
+Saygılarımla,
+
+**Ad Soyad:** ${f.adSoyad ?? "[AD SOYAD]"}
+**GSM:** [……………………]
+**E-posta:** [……………………]
+**İmza:** ………………………………
+**Tarih:** ${TODAY}
+
+---
+
+**EKLER:**
+1. Özgeçmiş (CV)
+2. Diploma / Transkript fotokopisi`;
+}
+
+function genBorcSenedi(f: Fields): string {
+  return `# ADİ BORÇ SENEDİ
+
+> ⚠️ **UYARI:** Bu belge adi senet niteliğinde olup icra takibine dayanak olabilir. İmzalamadan önce koşulları dikkatlice okuyunuz. Çek veya bono gibi kıymetli evrak niteliği taşımaz.
+
+---
+
+**Tarih:** ${TODAY}
+
+---
+
+## TARAFLAR
+
+**ALACAKLI (Parayı Veren)**
+Ad Soyad: **${f.alacakli ?? "[ALACAKLI ADI SOYADI]"}**
+T.C. Kimlik No: [……………………………]
+Adres: [………………………………………………………]
+GSM: [……………………]
+
+**BORÇLU (Parayı Alan)**
+Ad Soyad: **${f.borçlu ?? "[BORÇLU ADI SOYADI]"}**
+T.C. Kimlik No: [……………………………]
+Adres: [………………………………………………………]
+GSM: [……………………]
+
+---
+
+## BORÇ BİLGİLERİ
+
+**Borç Miktarı:** **${f.miktar ?? "[……… TL]"}** (Yalnız: [Yazıyla tutar])
+**Borç Tarihi:** ${TODAY}
+**Geri Ödeme Tarihi:** **${f.vadeTarihi ?? "[GG.AA.YYYY]"}**
+**Ödeme Şekli:** Nakit / Banka Havalesi
+
+---
+
+## TAAHHÜT
+
+Ben, yukarıda bilgileri yazılı **borçlu** olarak, **${f.alacakli ?? "[ALACAKLI]"}**'dan ödünç olarak aldığım **${f.miktar ?? "[……… TL]"}**'yi en geç **${f.vadeTarihi ?? "[GG.AA.YYYY]"}** tarihine kadar eksiksiz ödemeyi taahhüt ederim.
+
+Belirtilen tarihte ödeme yapılmaması halinde yasal faiz işletilmesine ve icra takibi başlatılmasına itiraz hakkım olmadığını beyan ederim.
+
+---
+
+| | |
+|---|---|
+| **Alacaklı** | **Borçlu** |
+| ${f.alacakli ?? "[AD SOYAD]"} | ${f.borçlu ?? "[AD SOYAD]"} |
+| İmza: ………………… | İmza: ………………… |
+| Tarih: ${TODAY} | Tarih: ${TODAY} |
+
+---
+
+**Tanık (İsteğe Bağlı):**
+Ad Soyad: [……………………] — İmza: ………………`;
+}
+
+function genReferansMektubu(f: Fields): string {
+  return `**${TODAY}**
+
+---
+
+**İLGİLİ MAKAMLARA / İŞVERENE**
+
+---
+
+**KONU:** ${f.kisiAdi ?? "[KİŞİ ADI]"} Hakkında Referans Mektubu
+
+---
+
+Sayın Yetkili,
+
+Bu mektubu, **${f.kisiAdi ?? "[Kişi Adı Soyadı]"}** hakkında referans vermek amacıyla kaleme alıyorum.
+
+${f.kisiAdi ?? "[Kişi]"}, ${f.kurum ?? "[Kurum / Şirket]"} bünyesinde ${f.iliskiSuresi ? `**${f.iliskiSuresi}** boyunca` : "birlikte çalıştığımız süre zarfında"} görevini başarıyla yerine getirmiş; profesyonel tutumu, analitik düşünme yeteneği ve ekip çalışmasına yatkınlığıyla öne çıkmıştır.
+
+Adı geçen kişinin;
+- İşine karşı sorumluluk sahibi ve güvenilir olduğunu,
+- Zorlu süreçlerde çözüm odaklı yaklaştığını,
+- Mesleki gelişimine önem verdiğini
+
+bizzat gözlemledim ve memnuniyetle teyit ederim.
+
+${f.kisiAdi ?? "[Kişi]"}'yi herhangi bir pozisyon veya görev için içtenlikle tavsiye ederim.
+
+---
+
+**Referansı Veren:**
+
+**Ad Soyad:** ${f.yazanAdi ?? "[AD SOYAD]"}
+**Unvan:** ${f.yazanUnvan ?? "[UNVAN / POZİSYON]"}
+**Kurum:** ${f.kurum ?? "[KURUM / ŞİRKET ADI]"}
+**GSM:** [……………………]
+**E-posta:** [……………………]
+**İmza:** ………………………………
+**Tarih:** ${TODAY}`;
+}
+
+function genTutanak(f: Fields): string {
+  return `# ${(f.tur ?? "TUTANAK").toUpperCase()}
+
+**Tarih:** ${TODAY}
+**Yer:** ${f.yer ?? "[Tutanağın tutulduğu yer]"}
+**Saat:** [……:……]
+
+---
+
+## KONU
+
+${f.konu ?? "[Tutanağın konusu ve amacı]"}
+
+---
+
+## KATILIMCILAR / TARAFLAR
+
+${f.katilimcilar ?? `| No | Ad Soyad | Görev / Sıfat | İmza |\n|---|---|---|---|\n| 1 | [……………………] | [……………………] | ………… |\n| 2 | [……………………] | [……………………] | ………… |\n| 3 | [……………………] | [……………………] | ………… |`}
+
+---
+
+## TESPİTLER VE AÇIKLAMALAR
+
+${f.konu ?? "[Yapılan tespitler, gözlemler ve varsa anlaşmazlık konuları burada detaylı olarak açıklanır]"}
+
+---
+
+## ALINAN KARARLAR / SONUÇ
+
+${f.karar ?? "[Alınan kararlar, varılan sonuçlar veya yapılması kararlaştırılan işlemler]"}
+
+---
+
+## EKLER
+
+1. [İlgili belgeler / fotoğraflar / deliller]
+
+---
+
+**İş bu tutanak, yukarıda adı geçen taraflarca okunmuş ve imzalanmıştır.**
+
+| Düzenleyen | Onaylayan |
+|---|---|
+| [Ad Soyad / İmza] | [Ad Soyad / İmza] |
+| Tarih: ${TODAY} | Tarih: ${TODAY} |`;
+}
+
 function genGenelDilekcesi(info: { konu: string | null; kurum: string | null; calisanAdi: string | null }): string {
   return `# DİLEKÇE
 
@@ -806,6 +1106,30 @@ function generateMockResponse(messages: ChatMsg[]): AiResponse {
     const { fields, missing } = extractSikayet(uHistory);
     if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Şikayet dilekçenizi hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
     return { docType, status: "ready", assistantMessage: "Şikayet dilekçeniz resmi formatta hazırlandı. İlgili kuruma teslim edebilir veya noter kanalıyla gönderebilirsiniz.", document: genSikayetDilekcesi(fields) };
+  }
+
+  if (docType === "İş Başvuru Yazısı") {
+    const { fields, missing } = extractIsBasvuru(uHistory);
+    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `İş başvuru yazınızı hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
+    return { docType, status: "ready", assistantMessage: "İş başvuru yazınız (ön yazı) hazır. CV'nizle birlikte ilgili kişiye iletebilirsiniz.", document: genIsBasvuruYazisi(fields) };
+  }
+
+  if (docType === "Borç Senedi") {
+    const { fields, missing } = extractBorcSenedi(uHistory);
+    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `⚠️ Borç senedi icra takibine dayanak olabilir. Hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
+    return { docType, status: "ready", assistantMessage: "Adi borç senedi hazırlandı. ⚠️ Bu belge icra takibine dayanak olabilir — imzalamadan önce her iki taraf da koşulları dikkatlice okusun.", document: genBorcSenedi(fields) };
+  }
+
+  if (docType === "Referans Mektubu") {
+    const { fields, missing } = extractReferans(uHistory);
+    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Referans mektubunu hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
+    return { docType, status: "ready", assistantMessage: "Referans mektubunuz hazır. İmzaladıktan sonra ilgili kişiye veya kuruma iletebilirsiniz.", document: genReferansMektubu(fields) };
+  }
+
+  if (docType === "Tutanak") {
+    const { fields, missing } = extractTutanak(uHistory);
+    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Tutanak hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
+    return { docType, status: "ready", assistantMessage: "Tutanağınız hazır. Tüm taraflarca imzalandıktan sonra geçerli olacaktır.", document: genTutanak(fields) };
   }
 
   if (docType === "Taahhütname") {

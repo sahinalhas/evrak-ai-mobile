@@ -40,13 +40,18 @@ import { exportToPDF, copyToClipboard, shareViaWhatsApp, shareViaEmail } from ".
 const QUICK_CHIPS = [
   { label: "Dilekçe", emoji: "📄" },
   { label: "Kira Sözleşmesi", emoji: "🏠" },
-  { label: "İhtarname", emoji: "⚖️" },
   { label: "İstifa Dilekçesi", emoji: "💼" },
+  { label: "İş Başvuru Yazısı", emoji: "📝" },
   { label: "İzin Talebi", emoji: "🗓️" },
-  { label: "Kayıt Dondurma", emoji: "🎓" },
+  { label: "Borç Senedi", emoji: "💰" },
+  { label: "Referans Mektubu", emoji: "⭐" },
+  { label: "Tutanak", emoji: "📋" },
+  { label: "İhtarname", emoji: "⚖️" },
   { label: "Vekaletname", emoji: "✍️" },
-  { label: "İş Sözleşmesi", emoji: "🤝" },
+  { label: "Kayıt Dondurma", emoji: "🎓" },
   { label: "Şikayet Dilekçesi", emoji: "📢" },
+  { label: "İş Sözleşmesi", emoji: "🤝" },
+  { label: "Taahhütname", emoji: "🖊️" },
 ];
 
 const GREETING = "Merhaba! Bugün hangi belgeyi oluşturmak istersiniz?\n\nTüm bilgileri tek seferde anlatabilirsiniz, eksik varsa ben sorarım.";

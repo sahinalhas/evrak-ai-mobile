@@ -1,0 +1,67 @@
+Mükemmel, o zaman işiniz çok net. Evet, vatandaşın hazırlayıp kuruma verdiği evraklar dediğiniz şeyin teknik adı "Özel Evrak" ve bu kategorideki belgeler için hiçbir yasal engel yok. Uygulamanızı rahatça geliştirebilirsiniz.
+
+📌 Bu Kapsamda En Çok Kullanılan 10+ Belge Türü
+
+Uygulamanızın şablon veritabanında mutlaka olması gereken, günlük hayatta en çok ihtiyaç duyulan belgeler:
+
+Belge Türü Kullanım Amacı
+Genel Dilekçe Herhangi bir kuruma yazılı başvuru (talep, şikayet, bilgi isteme)
+İzin Dilekçesi Okul, iş yeri veya askeri izin talepleri
+İstifa Dilekçesi İşten ayrılma bildirimi
+İş Başvuru Yazısı (Ön Yazı) CV ile birlikte gönderilen niyet mektubu
+Kira Sözleşmesi Ev veya iş yeri kiralamaları için
+Borç Senedi (Adi Senet) Kişiler arası borçlanmalar (çek/bono değil, basit senet)
+Referans Mektubu Eski çalışan veya öğrenci için tavsiye yazısı
+Vekaletname (Adi) Basit işler için verilen özel vekalet
+Tutanak Toplantı, hasar tespiti veya anlaşmazlık durumlarında
+Taahhütname Bir şeyi yapacağına dair verilen söz yazısı
+
+🎯 Uygulamanızın Çalışma Mantığı
+
+Kullanıcı uygulamaya doğal dil ile yazıyor:
+
+"Okul müdürlüğüne 3 günlük sağlık izni dilekçesi hazırla"
+
+AI (ChatGPT/Gemini) şu adımları izliyor:
+
+1. Belge türünü tanı: "İzin Dilekçesi"
+2. Muhatabı belirle: "Okul Müdürlüğü"
+3. Talebi çıkar: "3 gün, sağlık izni"
+4. Standart dilekçe formatında çıktı üret
+
+⚠️ Tek Kritik Uyarı: Borç Senedi ve Vekaletname
+
+Bu iki belge türünde dikkatli olun:
+
+· Adi senet yasal olarak sorunsuz ama kullanıcıya "Bu belge icra takibine dayanak olur, doldurmadan önce emin olun" gibi bir uyarı koyun
+· Vekaletname için "Noter onayı gerekiyorsa resmi vekaletname alın" uyarısı ekleyin
+
+🚀 Hemen Başlamak İçin Örnek Sistem Promptu
+
+```text
+Sen, Türkiye'de vatandaşların resmi kurumlara vereceği dilekçe ve belgeleri hazırlayan bir asistansın.
+
+YAPABİLECEKLERİN:
+- Genel dilekçe, izin dilekçesi, istifa dilekçesi
+- İş başvuru yazısı, referans mektubu
+- Basit borç senedi, kira sözleşmesi, taahhütname, adi vekaletname
+- Toplantı tutanağı, hasar tespit tutanağı
+
+YAPAMAYACAKLARIN (kullanıcıyı yönlendir):
+- Boşanma, miras, icra gibi mahkeme işleri → "Avukata danışın"
+- Pasaport, ehliyet, diploma gibi devletin verdiği belgeler → "Bu belge devlet tarafından verilir"
+
+FORMAT KURALLARI:
+- Hitap ve tarih sağ üstte
+- Metin "İlgi: ..." veya doğrudan taleple başlar
+- Son paragrafta "Gereğini arz ederim." veya "Arz ederim."
+- İmza için boşluk bırak
+
+Her belgenin altına şu uyarıyı ekle:
+⚠️ UYARI: Bu belge AI tarafından oluşturulmuş bir taslaktır. Resmi kuruma vermeden önce bilgileri kontrol ediniz.
+```
+
+Bu yaklaşımla, yasal hiçbir risk almadan kullanıcıların işine yarayan bir uygulama çıkarabilirsiniz.
+
+Şimdi en çok hangi belge türüyle başlamak istersiniz? Size o spesifik belge için örnek bir şablon ve AI promptu hazırlayabilirim.
+Bu karı yapalım mı
