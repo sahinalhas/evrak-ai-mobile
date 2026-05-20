@@ -13,14 +13,24 @@ export type AiResponse = {
 const SYSTEM_PROMPT = `Sen "EvrakAI" adında, Türkiye'de vatandaşların resmi kurumlara vereceği özel evrak ve belgeleri hazırlayan deneyimli bir belge asistanısın.
 
 YAPABİLECEKLERİN (Desteklenen Belge Türleri — Özel Evrak):
+Kişisel Talepler:
 - Genel Dilekçe (talep, bilgi isteme, başvuru)
 - İzin Talebi (okul, iş, mazeret izni)
 - İstifa Dilekçesi
 - İş Başvuru Yazısı (ön yazı / cover letter)
-- Kayıt Dondurma Dilekçesi
 - Şikayet Dilekçesi
-- Taahhütname (YALNIZCA davranışsal/eylemsel taahhütler: "şu tarihe kadar teslim edeceğim", "kurallara uyacağım" vb.)
+- Taahhütname (YALNIZCA davranışsal/eylemsel taahhütler — para/borç taahhütleri kapsam dışı)
 - Referans Mektubu
+Eğitim Belgeleri:
+- Kayıt Dondurma Dilekçesi
+- Nakil Talebi (okul / üniversite bölüm nakli)
+- Not / Sınav İtirazı
+- Öğrenci Belgesi / Transkript Talebi
+- Devamsızlık Affı / Mazeret Bildirimi
+Vatandaşlık & Çalışma Hayatı:
+- Bilgi Edinme Başvurusu (4982 sayılı Kanun kapsamında)
+- Ücret / Yan Hak Talebi
+- SGK Belge / Hizmet Döküm Talebi
 
 YAPAMAYACAKLARIN (Kullanıcıyı doğru yönlendir):
 - Kira sözleşmesi, iş sözleşmesi, borç senedi gibi taraflar arası sözleşmeler → "Bu belgeler iki taraf arasında düzenlenir, ilerleyen sürümde eklenecek."
@@ -118,6 +128,13 @@ type DocKind =
   | "Şikayet Dilekçesi"
   | "İş Başvuru Yazısı"
   | "Referans Mektubu"
+  | "Nakil Talebi"
+  | "Not İtirazı"
+  | "Öğrenci Belgesi Talebi"
+  | "Devamsızlık Affı"
+  | "Bilgi Edinme Başvurusu"
+  | "Ücret/Yan Hak Talebi"
+  | "SGK Belge Talebi"
   | "Dilekçe"
   | null;
 
@@ -129,6 +146,13 @@ function detectDocType(text: string): DocKind {
   if (/şikayet\s*dilekçe|şikayetçi|şikayetim\s*var|şikayet\s*etmek|ihbar\s*dilekçe/i.test(text)) return "Şikayet Dilekçesi";
   if (/iş\s*başvur|başvuru\s*mektup|cover\s*letter|ön\s*yaz|kariyer.*başvur|pozisyon.*başvur|staj\s*başvur/i.test(text)) return "İş Başvuru Yazısı";
   if (/referans\s*mektup|tavsiye\s*mektup|referans\s*yaz|recommendation/i.test(text)) return "Referans Mektubu";
+  if (/nakil\s*tal|okul\s*nakil|okul\s*değiştir|bölüm\s*nakil|transfer.*okul/i.test(text)) return "Nakil Talebi";
+  if (/not\s*itiraz|sınav\s*itiraz|harf\s*not.*itiraz|sonuç\s*itiraz|not.*şikay|sınav.*sonuç.*itiraz/i.test(text)) return "Not İtirazı";
+  if (/öğrenci\s*belgesi|transkript|not\s*döküm|mezuniyet\s*belgesi.*tal|belge\s*tal.*öğrenci/i.test(text)) return "Öğrenci Belgesi Talebi";
+  if (/devamsızlık\s*af|mazeret\s*bildirim|devamsızlık\s*mazeret|devam\s*af/i.test(text)) return "Devamsızlık Affı";
+  if (/bilgi\s*edinme|4982|kamu\s*bilgi.*tal|enformasyon\s*tal/i.test(text)) return "Bilgi Edinme Başvurusu";
+  if (/ücret\s*tal|maaş\s*tal|yan\s*hak\s*tal|prim\s*tal|maaş\s*zam.*tal|ücret.*artış.*tal/i.test(text)) return "Ücret/Yan Hak Talebi";
+  if (/\bsgk\b|hizmet\s*birleştir|sgk\s*döküm|sigortalılık\s*belgesi|emeklilik.*belge.*tal/i.test(text)) return "SGK Belge Talebi";
   if (/dilekçe|başvuru\s*dilekçe|resmi\s*başvur|kuruma\s*yaz/i.test(text)) return "Dilekçe";
   if (/izin/i.test(text)) return "İzin Talebi";
   return null;
@@ -1025,6 +1049,505 @@ Talebimin değerlendirilerek en kısa sürede tarafıma bilgi verilmesini saygı
 **Tarih:** ${TODAY}`;
 }
 
+// ─── New Document Types: Extract & Generate ──────────────────────────────────
+
+function extractNakil(text: string): { fields: Fields; missing: string[] } {
+  const fields: Fields = { adSoyad: null, mevcutOkul: null, hedefOkul: null, sinif: null, gerekce: null, tur: "Okul Nakli" };
+  if (/bölüm\s*nakil|üniversite.*nakil/i.test(text)) fields.tur = "Üniversite Bölüm Nakli";
+  const nameM = text.match(/(?:adım|ismim|ben)\s+([A-ZÇĞİÖŞÜa-zçğışöşü]+(?:\s+[A-ZÇĞİÖŞÜa-zçğışöşü]+)?)/i);
+  if (nameM) fields.adSoyad = nameM[1].trim();
+  else { const names = (text.match(/\b([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\s+([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\b/g) || []); if (names[0]) fields.adSoyad = names[0]; }
+  const okulM = text.match(/([A-ZÇĞİÖŞÜa-zçğışöşü]+(?:\s+[A-ZÇĞİÖŞÜa-zçğışöşü]+)*\s+(?:ilkokulu|ortaokulu|lisesi|üniversitesi|fakültesi))/i);
+  if (okulM) fields.mevcutOkul = okulM[1].trim();
+  const sinifM = text.match(/(\d+)[./]?\s*(?:sınıf|class|grade)/i);
+  if (sinifM) fields.sinif = sinifM[1] + ". Sınıf";
+  if (/taşındım|taşınma|adres\s*değişiklik/i.test(text)) fields.gerekce = "Aile taşınması nedeniyle";
+  else if (/sağlık|hastane|doktor/i.test(text)) fields.gerekce = "Sağlık sebebiyle";
+  else if (/ekonomik|maddi/i.test(text)) fields.gerekce = "Ekonomik nedenlerle";
+  const missing: string[] = [];
+  if (!fields.adSoyad) missing.push("1. Adınız ve soyadınız");
+  if (!fields.mevcutOkul) missing.push("2. Mevcut okulunuzun / kurumunuzun adı");
+  if (!fields.hedefOkul) missing.push("3. Nakil olmak istediğiniz okulun adı");
+  if (!fields.sinif) missing.push("4. Sınıfınız / düzeyiniz");
+  if (!fields.gerekce) missing.push("5. Nakil gerekçeniz");
+  return { fields, missing };
+}
+
+function genNakilTalebi(f: Fields): string {
+  return `# NAKİL TALEBİ DİLEKÇESİ
+
+**Tarih:** ${TODAY}
+
+---
+
+**${f.hedefOkul ? f.hedefOkul.toUpperCase() : "[HEDEF OKUL / KURUM ADI]"} MÜDÜRLÜĞÜ'NE**
+
+---
+
+**KONU:** ${f.tur ?? "Okul Nakli"} Talebi
+
+---
+
+Sayın Yetkililer,
+
+**${f.mevcutOkul ?? "[mevcut okul adı]"}** bünyesinde **${f.sinif ?? "[sınıf]"}** olarak öğrenimime devam etmekteyim. Aşağıda belirttiğim gerekçeyle okulunuza nakil olmak istiyorum.
+
+**Nakil Gerekçesi:** ${f.gerekce ?? "[Nakil gerekçenizi açıklayınız]"}
+
+Nakil talebimin olumlu karşılanmasını saygılarımla arz ederim.
+
+---
+
+## ÖĞRENCİ BİLGİLERİ
+
+| Alan | Bilgi |
+|---|---|
+| Ad Soyad | **${f.adSoyad ?? "[AD SOYAD]"}** |
+| T.C. Kimlik No | [……………………………] |
+| Mevcut Okul | ${f.mevcutOkul ?? "[……………………………]"} |
+| Sınıf / Düzey | ${f.sinif ?? "[……………………………]"} |
+| Nakil İstenen Okul | ${f.hedefOkul ?? "[……………………………]"} |
+
+---
+
+## EKLER
+1. Nüfus cüzdanı fotokopisi
+2. Öğrenci belgesi / kayıt belgesi
+3. ${f.gerekce?.includes("taşınma") || f.gerekce?.includes("adres") ? "İkametgah belgesi" : "İlgili gerekçe belgesi"}
+
+---
+
+**Ad Soyad:** ${f.adSoyad ?? "[AD SOYAD]"}
+**İmza:** ………………………………
+**Tarih:** ${TODAY}
+
+---
+
+⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.*`;
+}
+
+function extractNotItiraz(text: string): { fields: Fields; missing: string[] } {
+  const fields: Fields = { adSoyad: null, okul: null, ders: null, alinanNot: null, gerekce: null, ogrenciNo: null };
+  const nameM = text.match(/(?:adım|ismim|ben)\s+([A-ZÇĞİÖŞÜa-zçğışöşü]+(?:\s+[A-ZÇĞİÖŞÜa-zçğışöşü]+)?)/i);
+  if (nameM) fields.adSoyad = nameM[1].trim();
+  else { const names = (text.match(/\b([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\s+([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\b/g) || []); if (names[0]) fields.adSoyad = names[0]; }
+  const okulM = text.match(/([A-ZÇĞİÖŞÜa-zçğışöşü]+\s+)?(?:üniversitesi|üniversite|fakültesi|lisesi|okulu)/i);
+  if (okulM) fields.okul = okulM[0].trim();
+  const dersM = text.match(/(?:ders(?:in)?|sınav(?:ın)?|not(?:um)?)\s+(?:adı[:\s]+)?([A-ZÇĞİÖŞÜa-zçğışöşü\s]{3,40}?)(?:\s*dersinden|\s*sınavında|\s*notuma|\s*notunu|\s*$)/i);
+  if (dersM) fields.ders = dersM[1].trim();
+  const notM = text.match(/(\d{1,3})\s*(?:puan|\/100|not)/i);
+  if (notM) fields.alinanNot = notM[1] + " puan";
+  const noM = text.match(/(?:öğrenci\s*no|numara(?:m)?)[:\s]*(\d{6,12})/i);
+  if (noM) fields.ogrenciNo = noM[1];
+  const missing: string[] = [];
+  if (!fields.adSoyad) missing.push("1. Adınız ve soyadınız");
+  if (!fields.okul) missing.push("2. Okul / üniversite adı");
+  if (!fields.ders) missing.push("3. İtiraz ettiğiniz ders / sınavın adı");
+  if (!fields.alinanNot) missing.push("4. Aldığınız not / puan");
+  if (!fields.gerekce) missing.push("5. İtiraz gerekçeniz (örn: eksik puanlama, değerlendirme hatası)");
+  return { fields, missing };
+}
+
+function genNotItiraz(f: Fields): string {
+  return `# NOT / SINAV SONUCU İTİRAZ DİLEKÇESİ
+
+**Tarih:** ${TODAY}
+
+---
+
+**${f.okul ? f.okul.toUpperCase() : "[OKUL / ÜNİVERSİTE ADI]"} SINAV KOMİSYONU / MÜDÜRLÜĞÜ'NE**
+
+---
+
+**KONU:** ${f.ders ?? "[Ders Adı]"} Sınav Sonucuna İtiraz
+
+---
+
+Sayın Yetkililer,
+
+Kurumunuzda öğrenim gören öğrenciniz olarak, **${f.ders ?? "[ders adı]"}** dersine ait sınav sonucuma itiraz etmek istiyorum.
+
+**Aldığım Sonuç:** ${f.alinanNot ?? "[alınan not / puan]"}
+**İtiraz Gerekçesi:** ${f.gerekce ?? "[İtiraz gerekçenizi açıklayınız]"}
+
+İlgili sınav kağıdımın yeniden incelenerek, hata tespit edilmesi halinde düzeltilmesini ve tarafıma yazılı bilgi verilmesini saygılarımla arz ederim.
+
+---
+
+## ÖĞRENCİ BİLGİLERİ
+
+| Alan | Bilgi |
+|---|---|
+| Ad Soyad | **${f.adSoyad ?? "[AD SOYAD]"}** |
+| Öğrenci No | ${f.ogrenciNo ?? "[……………………]"} |
+| T.C. Kimlik No | [……………………………] |
+| İtiraz Konusu Ders | **${f.ders ?? "[……………………]"}** |
+| Alınan Not / Puan | ${f.alinanNot ?? "[……]"} |
+
+---
+
+**Ad Soyad:** ${f.adSoyad ?? "[AD SOYAD]"}
+**İmza:** ………………………………
+**Tarih:** ${TODAY}
+
+---
+
+⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.*`;
+}
+
+function extractOgrenciBelgesi(text: string): { fields: Fields; missing: string[] } {
+  const fields: Fields = { adSoyad: null, okul: null, belgeTuru: "Öğrenci Belgesi", amac: null, ogrenciNo: null };
+  if (/transkript|not\s*döküm|not\s*çizelge/i.test(text)) fields.belgeTuru = "Transkript (Not Dökümü)";
+  else if (/mezun/i.test(text)) fields.belgeTuru = "Mezuniyet Belgesi";
+  const nameM = text.match(/(?:adım|ismim|ben)\s+([A-ZÇĞİÖŞÜa-zçğışöşü]+(?:\s+[A-ZÇĞİÖŞÜa-zçğışöşü]+)?)/i);
+  if (nameM) fields.adSoyad = nameM[1].trim();
+  else { const names = (text.match(/\b([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\s+([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\b/g) || []); if (names[0]) fields.adSoyad = names[0]; }
+  const okulM = text.match(/([A-ZÇĞİÖŞÜa-zçğışöşü]+\s+)?(?:üniversitesi|üniversite|fakültesi|lisesi)/i);
+  if (okulM) fields.okul = okulM[0].trim();
+  const noM = text.match(/(?:öğrenci\s*no|numara(?:m)?)[:\s]*(\d{6,12})/i);
+  if (noM) fields.ogrenciNo = noM[1];
+  if (/burs|kredi/i.test(text)) fields.amac = "Burs / kredi başvurusu için";
+  else if (/iş\s*başvur|staj/i.test(text)) fields.amac = "İş başvurusu / staj için";
+  else if (/askerlik|erteleme/i.test(text)) fields.amac = "Askerlik erteleme için";
+  else if (/vize|pasaport/i.test(text)) fields.amac = "Vize / pasaport işlemleri için";
+  const missing: string[] = [];
+  if (!fields.adSoyad) missing.push("1. Adınız ve soyadınız");
+  if (!fields.okul) missing.push("2. Okulunuz / üniversiteniz");
+  if (!fields.amac) missing.push("3. Belgeyi neden istiyorsunuz? (burs, staj, iş başvurusu vb.)");
+  return { fields, missing };
+}
+
+function genOgrenciBelgesi(f: Fields): string {
+  return `# ${(f.belgeTuru ?? "ÖĞRENCİ BELGESİ").toUpperCase()} TALEBİ
+
+**Tarih:** ${TODAY}
+
+---
+
+**${f.okul ? f.okul.toUpperCase() : "[ÜNİVERSİTE / OKUL ADI]"} ÖĞRENCİ İŞLERİ MÜDÜRLÜĞÜ'NE**
+
+---
+
+**KONU:** ${f.belgeTuru ?? "Öğrenci Belgesi"} Talebi
+
+---
+
+Sayın Yetkililer,
+
+Kurumunuzda kayıtlı öğrenciniz olarak, **${f.belgeTuru ?? "Öğrenci Belgesi"}** talep ediyorum.
+
+**Kullanım Amacı:** ${f.amac ?? "[Belgeyi kullanacağınız amacı yazınız]"}
+
+Belgenin tarafıma verilmesini saygılarımla arz ederim.
+
+---
+
+## ÖĞRENCİ BİLGİLERİ
+
+| Alan | Bilgi |
+|---|---|
+| Ad Soyad | **${f.adSoyad ?? "[AD SOYAD]"}** |
+| Öğrenci Numarası | ${f.ogrenciNo ?? "[……………………]"} |
+| T.C. Kimlik No | [……………………………] |
+| Bölüm / Program | [……………………………] |
+| Sınıf | [………] |
+| Talep Edilen Belge | **${f.belgeTuru ?? "Öğrenci Belgesi"}** |
+| Adet | 1 adet |
+
+---
+
+**Ad Soyad:** ${f.adSoyad ?? "[AD SOYAD]"}
+**İmza:** ………………………………
+**Tarih:** ${TODAY}
+
+---
+
+⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.*`;
+}
+
+function extractDevamsizlik(text: string): { fields: Fields; missing: string[] } {
+  const fields: Fields = { adSoyad: null, okul: null, ders: null, sure: null, gerekce: null, ogrenciNo: null };
+  const nameM = text.match(/(?:adım|ismim|ben)\s+([A-ZÇĞİÖŞÜa-zçğışöşü]+(?:\s+[A-ZÇĞİÖŞÜa-zçğışöşü]+)?)/i);
+  if (nameM) fields.adSoyad = nameM[1].trim();
+  else { const names = (text.match(/\b([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\s+([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\b/g) || []); if (names[0]) fields.adSoyad = names[0]; }
+  const okulM = text.match(/([A-ZÇĞİÖŞÜa-zçğışöşü]+\s+)?(?:üniversitesi|üniversite|fakültesi|lisesi|okulu)/i);
+  if (okulM) fields.okul = okulM[0].trim();
+  const sureM = text.match(/(\d+)\s*(gün|ders\s*saati|saat|hafta)/i);
+  if (sureM) fields.sure = `${sureM[1]} ${sureM[2]}`;
+  if (/sağlık|hastalık|ameliyat|doktor|rapor/i.test(text)) fields.gerekce = "Sağlık sebebiyle (rapor eklidir)";
+  else if (/aile|acil|ölüm|vefat|cenaze/i.test(text)) fields.gerekce = "Ailevi zorunluluk nedeniyle";
+  else if (/kaza|trafik/i.test(text)) fields.gerekce = "Kaza nedeniyle";
+  const missing: string[] = [];
+  if (!fields.adSoyad) missing.push("1. Adınız ve soyadınız");
+  if (!fields.okul) missing.push("2. Okulunuz / üniversiteniz");
+  if (!fields.sure) missing.push("3. Kaç gün / saat devamsızlık yapıldı?");
+  if (!fields.gerekce) missing.push("4. Devamsızlık gerekçeniz (sağlık, ailevi durum vb.)");
+  return { fields, missing };
+}
+
+function genDevamsizlik(f: Fields): string {
+  return `# DEVAMSIZLIK AFFİ / MAZERET BİLDİRİM DİLEKÇESİ
+
+**Tarih:** ${TODAY}
+
+---
+
+**${f.okul ? f.okul.toUpperCase() : "[OKUL / ÜNİVERSİTE ADI]"} MÜDÜRLÜĞÜ'NE**
+${f.ders ? `*(${f.ders} Dersi Sorumlusuna)*` : ""}
+
+---
+
+**KONU:** Devamsızlık Mazeret Bildirimi ve Af Talebi
+
+---
+
+Sayın Yetkililer,
+
+${f.sure ? `**${f.sure}** süren` : "Yaşadığım"} devamsızlığımın, aşağıda belirttiğim zorunlu gerekçeye dayandığını saygılarımla bildiririm.
+
+**Devamsızlık Sebebi:** ${f.gerekce ?? "[Devamsızlık gerekçenizi yazınız]"}
+
+Mazeretimi belgeleyen evrak (doktor raporu / resmi belge) ekte sunulmuştur. Devamsızlığımın affedilmesini ve durumun değerlendirilerek tarafıma bilgi verilmesini saygılarımla arz ederim.
+
+---
+
+## ÖĞRENCİ BİLGİLERİ
+
+| Alan | Bilgi |
+|---|---|
+| Ad Soyad | **${f.adSoyad ?? "[AD SOYAD]"}** |
+| Öğrenci Numarası | ${f.ogrenciNo ?? "[……………………]"} |
+| T.C. Kimlik No | [……………………………] |
+| Bölüm / Sınıf | [……………………………] |
+| Devamsızlık Süresi | ${f.sure ?? "[…… gün / saat]"} |
+| İlgili Ders | ${f.ders ?? "Tüm dersler"} |
+
+---
+
+## EKLER
+1. ${f.gerekce?.includes("Sağlık") ? "Doktor raporu / sağlık belgesi" : "Mazerete ilişkin resmi belge"}
+2. Nüfus cüzdanı fotokopisi
+
+---
+
+**Ad Soyad:** ${f.adSoyad ?? "[AD SOYAD]"}
+**İmza:** ………………………………
+**Tarih:** ${TODAY}
+
+---
+
+⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.*`;
+}
+
+function extractBilgiEdinme(text: string): { fields: Fields; missing: string[] } {
+  const fields: Fields = { adSoyad: null, kurum: null, konu: null, aciklama: null };
+  const nameM = text.match(/(?:adım|ismim|ben)\s+([A-ZÇĞİÖŞÜa-zçğışöşü]+(?:\s+[A-ZÇĞİÖŞÜa-zçğışöşü]+)?)/i);
+  if (nameM) fields.adSoyad = nameM[1].trim();
+  else { const names = (text.match(/\b([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\s+([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\b/g) || []); if (names[0]) fields.adSoyad = names[0]; }
+  const kurumM = text.match(/([A-ZÇĞİÖŞÜa-zçğışöşü]+(?:\s+[A-ZÇĞİÖŞÜa-zçğışöşü]+)*\s+(?:bakanlığı|müdürlüğü|belediyesi|üniversitesi|kurumu|idaresi))/i);
+  if (kurumM) fields.kurum = kurumM[1].trim();
+  const missing: string[] = [];
+  if (!fields.adSoyad) missing.push("1. Adınız ve soyadınız");
+  if (!fields.kurum) missing.push("2. Başvurduğunuz kurumun adı");
+  if (!fields.konu) missing.push("3. Talep ettiğiniz bilgi veya belgenin konusu");
+  if (!fields.aciklama) missing.push("4. Talebinizin ayrıntılı açıklaması");
+  return { fields, missing };
+}
+
+function genBilgiEdinme(f: Fields): string {
+  return `# BİLGİ EDİNME BAŞVURUSU
+*(4982 Sayılı Bilgi Edinme Hakkı Kanunu Kapsamında)*
+
+**Tarih:** ${TODAY}
+
+---
+
+**${f.kurum ? f.kurum.toUpperCase() : "[KURUM ADI]"}**'NA
+
+---
+
+**KONU:** Bilgi Edinme Talebi — ${f.konu ?? "[Talep Konusu]"}
+
+---
+
+Sayın Yetkililer,
+
+4982 sayılı Bilgi Edinme Hakkı Kanunu çerçevesinde, kurumunuzdan aşağıdaki bilgi ve belgeleri talep ediyorum:
+
+**Talep Konusu:** ${f.konu ?? "[Talep ettiğiniz bilginin konusu]"}
+
+**Ayrıntılı Açıklama:**
+${f.aciklama ?? "[Talep ettiğiniz bilgiyi ayrıntılı olarak açıklayınız]"}
+
+4982 sayılı Kanun'un 11. maddesi gereğince talebimin en geç **15 iş günü** içinde yanıtlanmasını; bilgiye erişimin mümkün olmaması halinde yasal gerekçesiyle bildirilmesini talep ederim.
+
+---
+
+## BAŞVURU SAHİBİ
+
+| Alan | Bilgi |
+|---|---|
+| Ad Soyad | **${f.adSoyad ?? "[AD SOYAD]"}** |
+| T.C. Kimlik No | [……………………………] |
+| Adres | [………………………………………………] |
+| E-posta | [……………………] |
+| Telefon | [……………………] |
+
+---
+
+**Ad Soyad:** ${f.adSoyad ?? "[AD SOYAD]"}
+**İmza:** ………………………………
+**Tarih:** ${TODAY}
+
+---
+
+⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.*
+*Not: Bilgi edinme başvuruları CİMER (cimer.iletisim.gov.tr) üzerinden de yapılabilir.*`;
+}
+
+function extractUcretTalebi(text: string): { fields: Fields; missing: string[] } {
+  const fields: Fields = { adSoyad: null, sirket: null, talep: null, gerekce: null };
+  const nameM = text.match(/(?:adım|ismim|ben)\s+([A-ZÇĞİÖŞÜa-zçğışöşü]+(?:\s+[A-ZÇĞİÖŞÜa-zçğışöşü]+)?)/i);
+  if (nameM) fields.adSoyad = nameM[1].trim();
+  else { const names = (text.match(/\b([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\s+([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\b/g) || []); if (names[0]) fields.adSoyad = names[0]; }
+  const sirketM = text.match(/(?:şirket|firma|kurum|işveren)[:\s]+([A-ZÇĞİÖŞÜa-zçğışöşü\s]{3,40})/i);
+  if (sirketM) fields.sirket = sirketM[1].trim();
+  if (/maaş\s*zam|ücret\s*artış|zam\s*tal/i.test(text)) fields.talep = "Ücret zammı talebi";
+  else if (/prim|ikramiye/i.test(text)) fields.talep = "Prim / ikramiye talebi";
+  else if (/yemek|yol\s*parası|servis/i.test(text)) fields.talep = "Yol / yemek yardımı talebi";
+  else if (/sağlık\s*sigorta/i.test(text)) fields.talep = "Sağlık sigortası talebi";
+  const missing: string[] = [];
+  if (!fields.adSoyad) missing.push("1. Adınız ve soyadınız");
+  if (!fields.sirket) missing.push("2. Şirket / kurum adı");
+  if (!fields.talep) missing.push("3. Talebinizin konusu (ücret zammı, prim, yemek yardımı vb.)");
+  if (!fields.gerekce) missing.push("4. Talep gerekçeniz (çalışma süreniz, performans vb.)");
+  return { fields, missing };
+}
+
+function genUcretTalebi(f: Fields): string {
+  return `# ÜCRET / YAN HAK TALEBİ
+
+**Tarih:** ${TODAY}
+
+---
+
+**${f.sirket ? f.sirket.toUpperCase() : "[ŞİRKET / KURUM ADI]"}**
+**İnsan Kaynakları / İK Müdürlüğü'ne**
+
+---
+
+**KONU:** ${f.talep ?? "Ücret / Yan Hak Talebi"}
+
+---
+
+Sayın Yetkililer,
+
+Kurumunuzda [pozisyon] olarak görev yapmaktayım. Aşağıda belirttiğim talebimin değerlendirilerek olumlu karşılanmasını saygılarımla arz ederim.
+
+**Talep:** ${f.talep ?? "[Talebinizi açıklayınız]"}
+
+**Gerekçe:** ${f.gerekce ?? "[Talep gerekçenizi açıklayınız — örn: piyasa koşulları, kıdem, performans]"}
+
+Talebimin olumlu karşılanacağını umarak en kısa sürede bilgilendirilmeyi talep ederim.
+
+---
+
+## ÇALIŞAN BİLGİLERİ
+
+| Alan | Bilgi |
+|---|---|
+| Ad Soyad | **${f.adSoyad ?? "[AD SOYAD]"}** |
+| T.C. Kimlik No | [……………………………] |
+| Departman / Birim | [……………………………] |
+| Pozisyon / Unvan | [……………………………] |
+| İşe Başlama Tarihi | [……………………………] |
+| Mevcut Brüt Ücret | [……………………… TL] |
+
+---
+
+**Ad Soyad:** ${f.adSoyad ?? "[AD SOYAD]"}
+**İmza:** ………………………………
+**Tarih:** ${TODAY}
+
+---
+
+⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.*`;
+}
+
+function extractSgkTalebi(text: string): { fields: Fields; missing: string[] } {
+  const fields: Fields = { adSoyad: null, tcNo: null, belgeTuru: "Hizmet Dökümü", amac: null };
+  if (/hizmet\s*birleştir/i.test(text)) fields.belgeTuru = "Hizmet Birleştirme";
+  else if (/emeklilik|emekli/i.test(text)) fields.belgeTuru = "Emeklilik Belgesi";
+  else if (/sigortalılık\s*belgesi/i.test(text)) fields.belgeTuru = "Sigortalılık Durumu Belgesi";
+  const nameM = text.match(/(?:adım|ismim|ben)\s+([A-ZÇĞİÖŞÜa-zçğışöşü]+(?:\s+[A-ZÇĞİÖŞÜa-zçğışöşü]+)?)/i);
+  if (nameM) fields.adSoyad = nameM[1].trim();
+  else { const names = (text.match(/\b([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\s+([A-ZÇĞİÖŞÜ][a-zçğışöşü]{2,})\b/g) || []); if (names[0]) fields.adSoyad = names[0]; }
+  const tcM = text.match(/\b(\d{11})\b/);
+  if (tcM) fields.tcNo = tcM[1];
+  if (/emeklilik/i.test(text)) fields.amac = "Emeklilik başvurusu için";
+  else if (/iş\s*başvur/i.test(text)) fields.amac = "İş başvurusu için";
+  else if (/kredi|banka/i.test(text)) fields.amac = "Kredi / banka işlemleri için";
+  else if (/vize|yurt\s*dışı/i.test(text)) fields.amac = "Vize / yurt dışı işlemleri için";
+  const missing: string[] = [];
+  if (!fields.adSoyad) missing.push("1. Adınız ve soyadınız");
+  if (!fields.tcNo) missing.push("2. T.C. Kimlik Numaranız");
+  if (!fields.belgeTuru) missing.push("3. Talep ettiğiniz belge türü (hizmet dökümü, sigortalılık belgesi vb.)");
+  if (!fields.amac) missing.push("4. Belgeyi kullanma amacınız");
+  return { fields, missing };
+}
+
+function genSgkTalebi(f: Fields): string {
+  return `# SGK BELGE TALEBİ
+
+**Tarih:** ${TODAY}
+
+---
+
+**SOSYAL GÜVENLİK KURUMU**
+**[İlgili SGK İl / İlçe Müdürlüğü] MÜDÜRLÜĞÜ'NE**
+
+---
+
+**KONU:** ${f.belgeTuru ?? "Hizmet Dökümü"} Talebi
+
+---
+
+Sayın Yetkililer,
+
+Sosyal Güvenlik Kurumu'ndan aşağıdaki belgeyi talep ediyorum.
+
+**Talep Edilen Belge:** ${f.belgeTuru ?? "Hizmet Dökümü (SGK Sicil Kaydı)"}
+**Kullanım Amacı:** ${f.amac ?? "[Belgeyi kullanma amacınızı yazınız]"}
+
+Belgenin tarafıma verilmesini saygılarımla arz ederim.
+
+---
+
+## BAŞVURU SAHİBİ
+
+| Alan | Bilgi |
+|---|---|
+| Ad Soyad | **${f.adSoyad ?? "[AD SOYAD]"}** |
+| T.C. Kimlik No | **${f.tcNo ?? "[……………………………]"}** |
+| Doğum Tarihi | [……………………] |
+| Adres | [………………………………………………] |
+| Telefon | [……………………] |
+
+---
+
+*Not: SGK hizmet dökümü ve pek çok belge e-Devlet (turkiye.gov.tr) üzerinden de alınabilmektedir.*
+
+---
+
+**Ad Soyad:** ${f.adSoyad ?? "[AD SOYAD]"}
+**İmza:** ………………………………
+**Tarih:** ${TODAY}
+
+---
+
+⚠️ *Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.*`;
+}
+
 // ─── Smart Mock Engine ────────────────────────────────────────────────────────
 
 function generateMockResponse(messages: ChatMsg[]): AiResponse {
@@ -1096,6 +1619,48 @@ function generateMockResponse(messages: ChatMsg[]): AiResponse {
       assistantMessage: `Taahhütname hazırlamak için şu bilgilere ihtiyacım var:\n\n1. Adınız ve soyadınız\n2. Taahhüdün kime / hangi kuruma verildiği\n3. Taahhüdün konusu (örn: "proje teslimini tamamlayacağım", "kurallara uyacağım")\n4. Taahhüt süresi veya tarihi (varsa)\n\nNot: Para/borç ödeme taahhütleri bu belge kapsamında değildir.`,
       document: null,
     };
+  }
+
+  if (docType === "Nakil Talebi") {
+    const { fields, missing } = extractNakil(uHistory);
+    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Nakil talebi dilekçenizi hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
+    return { docType, status: "ready", assistantMessage: "Nakil talebi dilekçeniz hazırlandı. Gerekli eklerle birlikte ilgili okul müdürlüğüne teslim edebilirsiniz.", document: genNakilTalebi(fields) };
+  }
+
+  if (docType === "Not İtirazı") {
+    const { fields, missing } = extractNotItiraz(uHistory);
+    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Not / sınav itiraz dilekçenizi hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
+    return { docType, status: "ready", assistantMessage: "Not itiraz dilekçeniz hazırlandı. İlgili sınav komisyonuna veya öğrenci işlerine teslim edebilirsiniz.", document: genNotItiraz(fields) };
+  }
+
+  if (docType === "Öğrenci Belgesi Talebi") {
+    const { fields, missing } = extractOgrenciBelgesi(uHistory);
+    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Öğrenci belgesi talebinizi hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
+    return { docType, status: "ready", assistantMessage: "Öğrenci belgesi talebiniz hazırlandı. Öğrenci işleri birimine teslim edebilirsiniz.", document: genOgrenciBelgesi(fields) };
+  }
+
+  if (docType === "Devamsızlık Affı") {
+    const { fields, missing } = extractDevamsizlik(uHistory);
+    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Devamsızlık affı dilekçenizi hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
+    return { docType, status: "ready", assistantMessage: "Devamsızlık affı dilekçeniz hazırlandı. Mazeret belgenizle birlikte ilgili birime teslim edebilirsiniz.", document: genDevamsizlik(fields) };
+  }
+
+  if (docType === "Bilgi Edinme Başvurusu") {
+    const { fields, missing } = extractBilgiEdinme(uHistory);
+    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `4982 sayılı Kanun kapsamında bilgi edinme başvurunuzu hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
+    return { docType, status: "ready", assistantMessage: "Bilgi edinme başvurunuz hazırlandı. Kuruma elden teslim edebilir veya CİMER üzerinden de başvurabilirsiniz.", document: genBilgiEdinme(fields) };
+  }
+
+  if (docType === "Ücret/Yan Hak Talebi") {
+    const { fields, missing } = extractUcretTalebi(uHistory);
+    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `Ücret / yan hak talebinizi hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?`, document: null };
+    return { docType, status: "ready", assistantMessage: "Ücret / yan hak talebiniz hazırlandı. İnsan Kaynakları birimine iletebilirsiniz.", document: genUcretTalebi(fields) };
+  }
+
+  if (docType === "SGK Belge Talebi") {
+    const { fields, missing } = extractSgkTalebi(uHistory);
+    if (missing.length > 0) return { docType, status: "need_info", assistantMessage: `SGK belge talebinizi hazırlamak için şu bilgilere ihtiyacım var:\n\n${missing.join("\n")}\n\nBu bilgileri paylaşır mısınız?\n\nNot: Pek çok SGK belgesi e-Devlet (turkiye.gov.tr) üzerinden de alınabilmektedir.`, document: null };
+    return { docType, status: "ready", assistantMessage: "SGK belge talebiniz hazırlandı. İlgili SGK müdürlüğüne teslim edebilirsiniz. Ayrıca e-Devlet üzerinden de aynı belgeye erişebilirsiniz.", document: genSgkTalebi(fields) };
   }
 
   if (docType === "Dilekçe") {

@@ -46,6 +46,10 @@ const QUICK_CHIPS = [
   { label: "Şikayet Dilekçesi", emoji: "📢" },
   { label: "Taahhütname", emoji: "🖊️" },
   { label: "Referans Mektubu", emoji: "⭐" },
+  { label: "Nakil Talebi", emoji: "🏫" },
+  { label: "Not İtirazı", emoji: "📊" },
+  { label: "Bilgi Edinme", emoji: "🔍" },
+  { label: "SGK Belgesi", emoji: "🏛️" },
 ];
 
 const GREETING = "Merhaba! Bugün hangi belgeyi oluşturmak istersiniz?\n\nTüm bilgileri tek seferde anlatabilirsiniz, eksik varsa ben sorarım.";

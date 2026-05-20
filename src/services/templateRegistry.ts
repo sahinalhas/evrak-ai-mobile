@@ -7,7 +7,7 @@ export type TemplateField = {
 export type DocumentTemplate = {
   type: string;
   title: string;
-  category: "Hukuki" | "İş Hayatı" | "Eğitim" | "Kişisel";
+  category: "Hukuki" | "İş Hayatı" | "Eğitim" | "Kişisel" | "Vatandaşlık";
   description: string;
   fields: TemplateField[];
   warning: string;
@@ -120,6 +120,99 @@ export const CORE_TEMPLATES: DocumentTemplate[] = [
       { key: "konu", label: "Şikayet Konusu", required: true },
     ],
     warning: "Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.",
+  },
+  {
+    type: "Nakil Talebi",
+    title: "Nakil Talebi",
+    category: "Eğitim",
+    description: "Okul veya üniversite bölüm nakli için dilekçe.",
+    fields: [
+      { key: "adSoyad", label: "Ad Soyad", required: true },
+      { key: "mevcutOkul", label: "Mevcut Okul / Kurum", required: true },
+      { key: "hedefOkul", label: "Nakil İstenen Okul / Kurum", required: true },
+      { key: "sinif", label: "Sınıf / Düzey", required: true },
+      { key: "gerekce", label: "Nakil Gerekçesi", required: true },
+    ],
+    warning: "Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.",
+  },
+  {
+    type: "Not İtirazı",
+    title: "Not / Sınav İtirazı",
+    category: "Eğitim",
+    description: "Sınav notu veya sonucuna itiraz dilekçesi.",
+    fields: [
+      { key: "adSoyad", label: "Ad Soyad", required: true },
+      { key: "okul", label: "Okul / Üniversite", required: true },
+      { key: "ders", label: "İtiraz Edilen Ders / Sınav", required: true },
+      { key: "alinanNot", label: "Alınan Not / Puan", required: true },
+      { key: "gerekce", label: "İtiraz Gerekçesi", required: true },
+    ],
+    warning: "Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.",
+  },
+  {
+    type: "Öğrenci Belgesi Talebi",
+    title: "Öğrenci Belgesi / Transkript Talebi",
+    category: "Eğitim",
+    description: "Öğrenci belgesi, transkript veya mezuniyet belgesi talebi.",
+    fields: [
+      { key: "adSoyad", label: "Ad Soyad", required: true },
+      { key: "okul", label: "Okul / Üniversite", required: true },
+      { key: "belgeTuru", label: "Belge Türü (Öğrenci Belgesi / Transkript vb.)", required: true },
+      { key: "amac", label: "Kullanım Amacı", required: true },
+    ],
+    warning: "Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.",
+  },
+  {
+    type: "Devamsızlık Affı",
+    title: "Devamsızlık Affı / Mazeret Bildirimi",
+    category: "Eğitim",
+    description: "Okul veya üniversiteye devamsızlık affı ve mazeret bildirimi.",
+    fields: [
+      { key: "adSoyad", label: "Ad Soyad", required: true },
+      { key: "okul", label: "Okul / Üniversite", required: true },
+      { key: "sure", label: "Devamsızlık Süresi (gün / saat)", required: true },
+      { key: "gerekce", label: "Devamsızlık Gerekçesi", required: true },
+    ],
+    warning: "Bu belge AI tarafından oluşturulmuş taslaktır. Mazeret belgesiyle birlikte teslim ediniz.",
+  },
+  {
+    type: "Bilgi Edinme Başvurusu",
+    title: "Bilgi Edinme Başvurusu",
+    category: "Vatandaşlık",
+    description: "4982 sayılı Bilgi Edinme Hakkı Kanunu kapsamında kamu kurumundan bilgi talebi.",
+    fields: [
+      { key: "adSoyad", label: "Ad Soyad", required: true },
+      { key: "kurum", label: "Başvurulan Kurum", required: true },
+      { key: "konu", label: "Talep Konusu", required: true },
+      { key: "aciklama", label: "Ayrıntılı Açıklama", required: true },
+    ],
+    warning: "Bu belge AI tarafından oluşturulmuş taslaktır. Kurum 15 iş günü içinde yanıt vermekle yükümlüdür.",
+  },
+  {
+    type: "Ücret/Yan Hak Talebi",
+    title: "Ücret / Yan Hak Talebi",
+    category: "İş Hayatı",
+    description: "İşverene maaş zammı, prim veya yan hak talebi.",
+    fields: [
+      { key: "adSoyad", label: "Ad Soyad", required: true },
+      { key: "sirket", label: "Şirket / Kurum Adı", required: true },
+      { key: "talep", label: "Talep Konusu (zam, prim, yemek vb.)", required: true },
+      { key: "gerekce", label: "Talep Gerekçesi", required: true },
+    ],
+    warning: "Bu belge AI tarafından oluşturulmuş taslaktır. Kuruma vermeden önce kontrol ediniz.",
+  },
+  {
+    type: "SGK Belge Talebi",
+    title: "SGK Belge / Hizmet Döküm Talebi",
+    category: "İş Hayatı",
+    description: "SGK'dan hizmet dökümü, sigortalılık belgesi veya hizmet birleştirme talebi.",
+    fields: [
+      { key: "adSoyad", label: "Ad Soyad", required: true },
+      { key: "tcNo", label: "T.C. Kimlik No", required: true },
+      { key: "belgeTuru", label: "Talep Edilen Belge Türü", required: true },
+      { key: "amac", label: "Kullanım Amacı", required: true },
+    ],
+    warning: "Bu belge AI tarafından oluşturulmuş taslaktır. Pek çok SGK belgesi e-Devlet üzerinden de alınabilir.",
   },
 ];
 

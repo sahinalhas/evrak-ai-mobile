@@ -1,0 +1,44 @@
+Mevcut listeniz (Genel Dilekçe, İzin Talebi, İstifa Dilekçesi, İş Başvuru Yazısı, Kayıt Dondurma, Şikayet Dilekçesi, Taahhütname, Referans Mektubu) gayet sağlam bir başlangıç noktası. Araştırmalara ve resmi kaynaklara dayanarak, bu listeyi güvenle genişletebileceğiniz birkaç alan daha var.
+
+Özellikle eğitim hayatı ve vatandaş-devlet iletişimi (bilgi edinme gibi) konuları, kullanıcıların en çok ihtiyaç duyduğu ancak piyasada tam oturmuş çözümü olmayan alanlar olarak öne çıkıyor.
+
+İşte eklemenizi önerdiğim yeni belge türleri:
+
+🎓 1. Eğitim Hayatına Dair Belgeler (Yüksek Talep)
+
+MEB ve üniversitelerin resmi sitelerinde en çok aranan konular arasında şunlar var . Bunların hepsi "öğrenci/veli -> kurum" yönünde, yani risk sınırınızın içinde:
+
+· Okula Kabul / Kayıt Talebi: Özellikle adrese dayalı kayıt dışı durumlar için.
+· Nakil Talebi: Taşınma veya zorunlu nedenlerle okul değiştirme.
+· Açık Liseye Geçiş / Kayıt Dondurma: Mevcut listenizdeki "Kayıt Dondurma"nın daha spesifik hali.
+· Sınav / Not İtirazı: Sınav sonuçlarına itiraz için kuruma verilen resmi yazı.
+· Öğrenci Belgesi / Transkript Talebi: Öğrencinin kendi özlük bilgilerini talep etmesi.
+· Devamsızlık Affı / Mazeret Bildirimi: Sağlık raporuna dayalı devamsızlık affı dilekçeleri.
+
+📜 2. Vatandaşlık Hak ve Talepleri (Yüksek Değer)
+
+Anayasal bir hak olan "dilekçe ve bilgi edinme" hakkı kapsamında güvenle sunabileceğiniz belgeler :
+
+· Bilgi Edinme Başvurusu (4982 sayılı Kanun): Bir kamu kurumundan somut bir belge veya bilgi talep etmek için resmi yazı. CİMER'den önceki en temel yöntemlerden biri .
+· Kurum/Personel Şikayeti: MEB veya diğer bakanlıklar için şikayet dilekçeleri. CİMER üzerinden de yapılsa da resmi yazılı formatını sunabilirsiniz .
+
+👔 3. İş Hayatının Resmi Talepleri (Riskli Değil)
+
+Kişinin kendi çalışma hayatıyla ilgili olup sadece onu bağlayan talepler:
+
+· Yıllık İzin Talebi: Çalışanın işverene yazılı izin başvurusu.
+· Ücret / Yan Hak Talebi: Maaş veya sosyal haklarla ilgili yazılı talep.
+· SGK Döküm / Hizmet Birleştirme Talebi: Çalışanın kendi SGK kayıtları için kuruma yazdığı yazı.
+
+---
+
+💡 Nereden Toplayacaksınız & Nasıl Uygulayacaksınız?
+
+1. Kaynakları Belirleyin: Bu belgelerin resmi formatlarını genellikle İl Milli Eğitim Müdürlükleri , Üniversiteler ve Kaymakamlıklar  yayınlar.
+   · Stratejiniz: Önce en çok başvuru alan büyükşehirlerin (İstanbul, Ankara, İzmir) İl MEM sitelerini tarayın.
+2. Güvenli Kategorize Edin: Tüm bu belgeleri "Eğitim", "Bilgi Edinme" ve "Çalışma Hayatı" gibi ana başlıklar altında toplayın.
+3. Kullanıcıya Net Uyarı Verin: Her ne kadar bu belgeler güvenli olsa da, özellikle "Şikayet" ve "Bilgi Edinme" belgelerinin altına mutlaka "Bu belge yasal uyarı niteliği taşımaz, hukuki süreç gerektiren durumlarda bir avukata danışın" ibaresini ekleyin.
+
+Bu eklemelerle listeniz 15-16'ya çıkacak ve Türkiye'deki en yaygın resmi taleplerin neredeyse tamamını kapsamış olacaksınız. Bu set, MVP için son derece yeterli ve iddialı bir ürün ortaya koymanızı sağlar.
+
+Başka bir kategori veya spesifik bir belge üzerine düşünmek isterseniz, yardımcı olmaktan mutluluk duyarım.
