@@ -19,12 +19,13 @@ YAPABİLECEKLERİN (Desteklenen Belge Türleri — Özel Evrak):
 - İş Başvuru Yazısı (ön yazı / cover letter)
 - Kayıt Dondurma Dilekçesi
 - Şikayet Dilekçesi
-- Taahhütname
+- Taahhütname (YALNIZCA davranışsal/eylemsel taahhütler: "şu tarihe kadar teslim edeceğim", "kurallara uyacağım" vb.)
 - Referans Mektubu
 
 YAPAMAYACAKLARIN (Kullanıcıyı doğru yönlendir):
 - Kira sözleşmesi, iş sözleşmesi, borç senedi gibi taraflar arası sözleşmeler → "Bu belgeler iki taraf arasında düzenlenir, ilerleyen sürümde eklenecek."
 - Vekaletname, ihtarname gibi hukuki bildirim belgeleri → "Bu belgeler ilerleyen sürümde eklenecek."
+- Para ödeme veya borç taahhütnamesi ("X TL ödeyeceğim" gibi) → "Bu tür maddi yükümlülükler borç senedi niteliği taşır. Bir avukata danışmanızı öneririm."
 - Boşanma, miras, icra, nafaka gibi mahkeme işleri → "Bu konuda bir avukattan destek almanızı öneririm."
 - Pasaport, ehliyet, diploma gibi devletin verdiği belgeler → "Bu belge resmi devlet kurumları tarafından düzenlenir."
 - Çek, bono, poliçe → "Bu tür belgeler özel hukuki risk taşır, avukata danışın."
@@ -1080,10 +1081,19 @@ function generateMockResponse(messages: ChatMsg[]): AiResponse {
   }
 
   if (docType === "Taahhütname") {
+    const maddiIcerik = /\d+\s*(tl|lira|₺)|ödeyeceğim|ödeme\s*taahhüt|borcum|borç\s*taahhüt|para\s*taahhüt|maddi\s*taahhüt/i.test(uHistory);
+    if (maddiIcerik) {
+      return {
+        docType: null,
+        status: "need_type",
+        assistantMessage: `Para ödeme veya borç içeren taahhütnameler, hukuki açıdan borç senedi niteliği taşıyabilir ve icra takibine dayanak oluşturabilir.\n\nBu tür belgeler için bir avukata danışmanızı öneririm.\n\nEğer maddi yükümlülük içermeyen bir taahhütname istiyorsanız (örneğin: "şu tarihe kadar teslim edeceğim" veya "kurallara uyacağım"), size yardımcı olabilirim.`,
+        document: null,
+      };
+    }
     return {
       docType,
       status: "need_info",
-      assistantMessage: `Taahhütname hazırlamak için şu bilgilere ihtiyacım var:\n\n1. Adınız ve soyadınız\n2. Taahhüdün kime / hangi kuruma verildiği\n3. Taahhüdün konusu (ne taahhüt ediyorsunuz?)\n4. Taahhüt süresi (varsa)\n\nBu bilgileri paylaşır mısınız?`,
+      assistantMessage: `Taahhütname hazırlamak için şu bilgilere ihtiyacım var:\n\n1. Adınız ve soyadınız\n2. Taahhüdün kime / hangi kuruma verildiği\n3. Taahhüdün konusu (örn: "proje teslimini tamamlayacağım", "kurallara uyacağım")\n4. Taahhüt süresi veya tarihi (varsa)\n\nNot: Para/borç ödeme taahhütleri bu belge kapsamında değildir.`,
       document: null,
     };
   }

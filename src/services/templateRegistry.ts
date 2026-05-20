@@ -85,7 +85,7 @@ export const CORE_TEMPLATES: DocumentTemplate[] = [
     type: "Taahhütname",
     title: "Taahhütname",
     category: "Hukuki",
-    description: "Bir şeyi yapacağına dair verilen yazılı söz belgesi.",
+    description: "Bir şeyi yapacağına dair yazılı söz belgesi. Yalnızca davranışsal taahhütler için (para/borç taahhütleri kapsam dışıdır).",
     fields: [
       { key: "adSoyad", label: "Ad Soyad", required: true },
       { key: "muhatap", label: "Taahhüt Verilen Kişi / Kurum", required: true },
