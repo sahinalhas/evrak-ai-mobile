@@ -28,7 +28,8 @@ import {
   Copy,
   MessageCircle,
   ShoppingCart,
-  Check,
+  Zap,
+  ChevronRight,
 } from "lucide-react-native";
 import { Colors, Shadows } from "../components/Theme";
 import { StorageService } from "../services/storage";
@@ -38,18 +39,18 @@ import { MarkdownView } from "../components/MarkdownView";
 import { exportToPDF, copyToClipboard, shareViaWhatsApp, shareViaEmail } from "../services/pdfExport";
 
 const QUICK_CHIPS = [
-  { label: "Dilekçe", emoji: "📄" },
-  { label: "İzin Talebi", emoji: "🗓️" },
-  { label: "İstifa Dilekçesi", emoji: "💼" },
-  { label: "İş Başvuru Yazısı", emoji: "📝" },
-  { label: "Kayıt Dondurma", emoji: "🎓" },
-  { label: "Şikayet Dilekçesi", emoji: "📢" },
-  { label: "Taahhütname", emoji: "🖊️" },
-  { label: "Referans Mektubu", emoji: "⭐" },
-  { label: "Nakil Talebi", emoji: "🏫" },
-  { label: "Not İtirazı", emoji: "📊" },
-  { label: "Bilgi Edinme", emoji: "🔍" },
-  { label: "SGK Belgesi", emoji: "🏛️" },
+  { label: "Dilekçe", emoji: "📄", color: "#3B3FD8" },
+  { label: "İzin Talebi", emoji: "🗓️", color: "#059669" },
+  { label: "İstifa Dilekçesi", emoji: "💼", color: "#DC2626" },
+  { label: "İş Başvurusu", emoji: "📝", color: "#D97706" },
+  { label: "Kayıt Dondurma", emoji: "🎓", color: "#7C3AED" },
+  { label: "Şikayet Dilekçesi", emoji: "📢", color: "#DB2777" },
+  { label: "Taahhütname", emoji: "🖊️", color: "#0891B2" },
+  { label: "Referans Mektubu", emoji: "⭐", color: "#D97706" },
+  { label: "Nakil Talebi", emoji: "🏫", color: "#059669" },
+  { label: "Not İtirazı", emoji: "📊", color: "#3B3FD8" },
+  { label: "Bilgi Edinme", emoji: "🔍", color: "#7C3AED" },
+  { label: "SGK Belgesi", emoji: "🏛️", color: "#0891B2" },
 ];
 
 const GREETING = "Merhaba! Bugün hangi belgeyi oluşturmak istersiniz?\n\nTüm bilgileri tek seferde anlatabilirsiniz, eksik varsa ben sorarım.";
@@ -76,6 +77,7 @@ export const ChatScreen: React.FC = () => {
   const [selectedPkg, setSelectedPkg] = useState<string>("p3");
   const listRef = useRef<FlatList>(null);
   const docCardAnim = useRef(new Animated.Value(0)).current;
+  const inputFocusAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => { StorageService.getCredits().then(setCredits); }, []);
 
@@ -83,11 +85,19 @@ export const ChatScreen: React.FC = () => {
 
   const showDocCard = () => {
     docCardAnim.setValue(0);
-    Animated.spring(docCardAnim, { toValue: 1, tension: 70, friction: 10, useNativeDriver: true }).start();
+    Animated.spring(docCardAnim, { toValue: 1, tension: 60, friction: 11, useNativeDriver: true }).start();
+  };
+
+  const handleInputFocus = (focused: boolean) => {
+    Animated.timing(inputFocusAnim, {
+      toValue: focused ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
   };
 
   const handleNewChat = () => {
-    Alert.alert("Yeni Sohbet", "Mevcut sohbet silinecek, yeni bir belge oluşturabilirsiniz.", [
+    Alert.alert("Yeni Sohbet", "Mevcut sohbet silinecek. Yeni belge oluşturabilirsiniz.", [
       { text: "Vazgeç", style: "cancel" },
       {
         text: "Yeni Başlat", onPress: () => {
@@ -105,12 +115,8 @@ export const ChatScreen: React.FC = () => {
 
   const handleSend = async (rawText: string) => {
     const text = rawText.trim();
-    if (!text || typing) return;
+    if (!text || typing || sessionLimitReached) return;
 
-    // Session message limit check
-    if (sessionLimitReached) return;
-
-    // Credit check — only block if no credits AND no doc generated yet in this session
     if (credits <= 0) {
       setBuyOpen(true);
       return;
@@ -134,14 +140,11 @@ export const ChatScreen: React.FC = () => {
       if (data.status === "ready" && data.document) {
         setGeneratedDoc(data.document);
         showDocCard();
-
-        // Consume 1 credit when document is actually generated
         const ok = await StorageService.useCredit();
         if (ok) {
           const remaining = await StorageService.getCredits();
           setCredits(remaining);
         }
-
         await StorageService.addDocument({
           title: `${data.docType ?? "Belge"} — ${new Date().toLocaleDateString("tr-TR")}`,
           type: data.docType ?? "Genel Belge",
@@ -159,14 +162,10 @@ export const ChatScreen: React.FC = () => {
 
   const handleBuyCredits = async () => {
     const pkg = CREDIT_PACKAGES.find((p) => p.id === selectedPkg)!;
-    // Simulate purchase — in production, integrate real payment here
     const next = await StorageService.addCredits(pkg.credits);
     setCredits(next);
     setBuyOpen(false);
-    Alert.alert(
-      "Çok Yakında",
-      `Uygulama içi satın alma özelliği çok yakında aktif olacak. ${pkg.credits} deneme kredisi hesabınıza eklendi.`,
-    );
+    Alert.alert("Çok Yakında", `Uygulama içi satın alma özelliği çok yakında aktif olacak. ${pkg.credits} deneme kredisi hesabınıza eklendi.`);
   };
 
   const getCat = (type: string | null): "Hukuki" | "İş Hayatı" | "Eğitim" | "Kişisel" => {
@@ -174,7 +173,7 @@ export const ChatScreen: React.FC = () => {
     const t = type.toLowerCase();
     if (t.includes("kira") || t.includes("ihtar") || t.includes("vekalet") || t.includes("şikayet")) return "Hukuki";
     if (t.includes("istifa") || t.includes("izin") || t.includes("iş sözleşmesi") || t.includes("taahhüt")) return "İş Hayatı";
-    if (t.includes("dondurma") || t.includes("öğrenci")) return "Eğitim";
+    if (t.includes("dondurma") || t.includes("öğrenci") || t.includes("nakil") || t.includes("not")) return "Eğitim";
     return "Kişisel";
   };
 
@@ -184,12 +183,9 @@ export const ChatScreen: React.FC = () => {
 
   const handleCopy = async () => {
     const ok = await copyToClipboard(generatedDoc);
-    if (ok) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2200);
-    } else {
-      Alert.alert("Kopyalandı", "Belge panoya kopyalandı (manuel yol).");
-    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+    if (!ok) Alert.alert("Kopyalandı", "Belge panoya kopyalandı.");
   };
 
   const handlePdfExport = () => {
@@ -197,27 +193,27 @@ export const ChatScreen: React.FC = () => {
     setTimeout(() => exportToPDF(generatedDoc, docType ?? "Belge"), 300);
   };
 
-  const handleWhatsApp = () => {
-    setShareOpen(false);
-    shareViaWhatsApp(generatedDoc);
-  };
+  const handleWhatsApp = () => { setShareOpen(false); shareViaWhatsApp(generatedDoc); };
+  const handleEmail = () => { setShareOpen(false); shareViaEmail(generatedDoc, `${docType ?? "Belge"} — EvrakAI`); };
 
-  const handleEmail = () => {
-    setShareOpen(false);
-    shareViaEmail(generatedDoc, `${docType ?? "Belge"} — EvrakAI`);
-  };
-
-  const creditColor = credits === 0 ? Colors.red : credits <= 2 ? Colors.orange : Colors.accent;
+  const creditLow = credits <= 2;
+  const creditOut = credits === 0;
+  const creditColor = creditOut ? Colors.red : creditLow ? Colors.orange : Colors.green;
   const sessionMsgsLeft = MAX_SESSION_MSGS - sessionMsgCount;
   const showSessionWarn = sessionMsgCount >= 10 && !sessionLimitReached;
 
-  const renderMessage = ({ item }: { item: ChatMsg }) => {
+  const borderColor = inputFocusAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [Colors.separator, Colors.primary],
+  });
+
+  const renderMessage = ({ item, index }: { item: ChatMsg; index: number }) => {
     const isUser = item.role === "user";
     return (
       <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAI]}>
         {!isUser && (
           <View style={styles.aiAvatar}>
-            <Sparkles size={10} color={Colors.accent} />
+            <Sparkles size={11} color="#fff" strokeWidth={2} />
           </View>
         )}
         <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
@@ -239,25 +235,29 @@ export const ChatScreen: React.FC = () => {
           <View style={styles.logoMark}>
             <Text style={styles.logoGlyph}>⚖</Text>
           </View>
-          <Text style={styles.headerTitle}>EvrakAI</Text>
+          <View>
+            <Text style={styles.headerTitle}>EvrakAI</Text>
+            <Text style={styles.headerSub}>Belge Asistanı</Text>
+          </View>
         </View>
         <View style={styles.headerRight}>
-          {/* Credit badge */}
           <TouchableOpacity
             onPress={() => setBuyOpen(true)}
             activeOpacity={0.75}
-            style={[styles.creditBadge, { borderColor: creditColor + "50" }]}
+            style={[styles.creditPill, { backgroundColor: creditColor + "15", borderColor: creditColor + "40" }]}
           >
             <View style={[styles.creditDot, { backgroundColor: creditColor }]} />
             <Text style={[styles.creditText, { color: creditColor }]}>
               {credits} kredi
             </Text>
-            {credits === 0 && (
-              <ShoppingCart size={11} color={creditColor} strokeWidth={2} style={{ marginLeft: 2 }} />
-            )}
+            {creditOut && <ShoppingCart size={11} color={creditColor} strokeWidth={2} />}
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleNewChat} style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Plus size={17} color={Colors.accent} strokeWidth={2} />
+          <TouchableOpacity
+            onPress={handleNewChat}
+            style={styles.newChatBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Plus size={18} color={Colors.primary} strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
       </View>
@@ -273,15 +273,22 @@ export const ChatScreen: React.FC = () => {
           onContentSizeChange={scrollToBottom}
           ListHeaderComponent={
             messages.length <= 2 ? (
-              <View style={styles.chipsSection}>
-                <Text style={styles.chipsLabel}>Sık kullanılan şablonlar</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+              <View style={styles.templateSection}>
+                <View style={styles.templateHeader}>
+                  <Zap size={14} color={Colors.primary} strokeWidth={2} />
+                  <Text style={styles.templateLabel}>Sık kullanılan belgeler</Text>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chipsRow}
+                >
                   {QUICK_CHIPS.map((c) => (
                     <TouchableOpacity
                       key={c.label}
                       onPress={() => handleSend(`${c.label} hazırlamak istiyorum.`)}
                       disabled={typing}
-                      activeOpacity={0.65}
+                      activeOpacity={0.7}
                       style={styles.chip}
                     >
                       <Text style={styles.chipEmoji}>{c.emoji}</Text>
@@ -297,43 +304,52 @@ export const ChatScreen: React.FC = () => {
               {typing && (
                 <View style={[styles.msgRow, styles.msgRowAI]}>
                   <View style={styles.aiAvatar}>
-                    <Sparkles size={10} color={Colors.accent} />
+                    <Sparkles size={11} color="#fff" strokeWidth={2} />
                   </View>
-                  <View style={[styles.bubble, styles.bubbleAI, styles.typingBubble]}>
+                  <View style={[styles.bubble, styles.bubbleAI]}>
                     <PulsingDots />
                   </View>
                 </View>
               )}
               {generatedDoc !== "" && (
-                <Animated.View style={{
-                  opacity: docCardAnim,
-                  transform: [{ scale: docCardAnim.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }],
-                  marginTop: 10,
-                }}>
+                <Animated.View
+                  style={{
+                    opacity: docCardAnim,
+                    transform: [
+                      { scale: docCardAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) },
+                      { translateY: docCardAnim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
+                    ],
+                    marginTop: 12,
+                  }}
+                >
                   <View style={styles.docCard}>
-                    <TouchableOpacity onPress={() => setPreviewOpen(true)} activeOpacity={0.75} style={styles.docCardMain}>
-                      <View style={styles.docCardIcon}>
-                        <FileText size={18} color={Colors.accent} strokeWidth={1.5} />
+                    <TouchableOpacity
+                      onPress={() => setPreviewOpen(true)}
+                      activeOpacity={0.8}
+                      style={styles.docCardMain}
+                    >
+                      <View style={styles.docCardIconWrap}>
+                        <FileText size={20} color={Colors.primary} strokeWidth={1.5} />
                       </View>
-                      <View style={styles.docCardText}>
-                        <Text style={styles.docCardTitle}>{docType ?? "Belge"} hazırlandı</Text>
+                      <View style={styles.docCardBody}>
+                        <Text style={styles.docCardTitle}>{docType ?? "Belge"} hazırlandı ✓</Text>
                         <Text style={styles.docCardSub}>Önizlemek için dokunun</Text>
                       </View>
-                      <Eye size={16} color={Colors.mutedForeground} strokeWidth={1.5} />
+                      <Eye size={16} color={Colors.primary} strokeWidth={1.8} />
                     </TouchableOpacity>
                     <View style={styles.docCardActions}>
                       <TouchableOpacity onPress={handlePdfExport} style={styles.docAction} activeOpacity={0.7}>
-                        <Download size={14} color={Colors.accent} strokeWidth={1.8} />
+                        <Download size={15} color={Colors.primary} strokeWidth={2} />
                         <Text style={styles.docActionText}>PDF</Text>
                       </TouchableOpacity>
                       <View style={styles.docActionDivider} />
                       <TouchableOpacity onPress={() => setShareOpen(true)} style={styles.docAction} activeOpacity={0.7}>
-                        <Share2 size={14} color={Colors.accent} strokeWidth={1.8} />
+                        <Share2 size={15} color={Colors.primary} strokeWidth={2} />
                         <Text style={styles.docActionText}>Paylaş</Text>
                       </TouchableOpacity>
                       <View style={styles.docActionDivider} />
                       <TouchableOpacity onPress={handleCopy} style={styles.docAction} activeOpacity={0.7}>
-                        <Copy size={14} color={copied ? Colors.green : Colors.accent} strokeWidth={1.8} />
+                        <Copy size={15} color={copied ? Colors.green : Colors.primary} strokeWidth={2} />
                         <Text style={[styles.docActionText, copied && { color: Colors.green }]}>
                           {copied ? "Kopyalandı!" : "Kopyala"}
                         </Text>
@@ -342,58 +358,61 @@ export const ChatScreen: React.FC = () => {
                   </View>
                 </Animated.View>
               )}
-              <View style={{ height: 16 }} />
+              <View style={{ height: 20 }} />
             </>
           }
         />
 
-        {/* Session limit reached wall */}
+        {/* Session limit wall */}
         {sessionLimitReached ? (
           <View style={styles.limitWall}>
             <View style={styles.limitWallInner}>
-              <Text style={styles.limitWallEmoji}>⏱️</Text>
-              <Text style={styles.limitWallTitle}>Mesaj Hakkınız Doldu</Text>
+              <Text style={styles.limitWallEmoji}>⏱</Text>
+              <Text style={styles.limitWallTitle}>Sohbet Limiti Doldu</Text>
               <Text style={styles.limitWallDesc}>
-                Bu belgede {MAX_SESSION_MSGS} mesaj hakkınızı kullandınız.{"\n"}
-                Yeni belge oluşturmak için yeni sohbet başlatın.
+                Bu belgede {MAX_SESSION_MSGS} mesaj kullandınız.{"\n"}
+                Yeni belge için yeni bir sohbet başlatın.
               </Text>
-              <TouchableOpacity onPress={handleNewChat} style={styles.limitWallBtn} activeOpacity={0.8}>
-                <Plus size={14} color="#fff" strokeWidth={2} />
-                <Text style={styles.limitWallBtnText}>Yeni Sohbet Başlat</Text>
+              <TouchableOpacity onPress={handleNewChat} style={styles.limitBtn} activeOpacity={0.8}>
+                <Plus size={15} color="#fff" strokeWidth={2.5} />
+                <Text style={styles.limitBtnText}>Yeni Sohbet Başlat</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
           <View style={styles.inputArea}>
-            {/* Session warn */}
             {showSessionWarn && (
               <View style={styles.sessionWarnBar}>
                 <MessageCircle size={12} color={Colors.orange} strokeWidth={2} />
-                <Text style={styles.sessionWarnText}>
-                  {sessionMsgsLeft} mesaj hakkınız kaldı
-                </Text>
+                <Text style={styles.sessionWarnText}>{sessionMsgsLeft} mesaj hakkınız kaldı</Text>
               </View>
             )}
-            <View style={styles.inputRow}>
+            <Animated.View style={[styles.inputRow, { borderColor }]}>
               <TextInput
                 value={input}
                 onChangeText={setInput}
                 placeholder="Belgenizi anlatın…"
-                placeholderTextColor={Colors.mutedForeground}
+                placeholderTextColor={Colors.labelTertiary}
                 multiline
+                maxLength={600}
                 style={styles.textInput}
+                onFocus={() => handleInputFocus(true)}
+                onBlur={() => handleInputFocus(false)}
               />
               <TouchableOpacity
                 onPress={() => handleSend(input)}
                 disabled={!input.trim() || typing}
                 style={[styles.sendBtn, (!input.trim() || typing) && styles.sendBtnDisabled]}
+                activeOpacity={0.8}
               >
                 {typing
-                  ? <RotateCcw size={14} color="#fff" strokeWidth={2} />
-                  : <Send size={14} color="#fff" strokeWidth={2} />}
+                  ? <RotateCcw size={16} color="#fff" strokeWidth={2.5} />
+                  : <Send size={16} color="#fff" strokeWidth={2.5} />}
               </TouchableOpacity>
-            </View>
-            <Text style={styles.disclaimer}>EvrakAI hukuki tavsiye niteliği taşımaz. Önemli işlemler için avukata danışın.</Text>
+            </Animated.View>
+            <Text style={styles.disclaimer}>
+              EvrakAI hukuki tavsiye niteliği taşımaz. Önemli işlemler için avukata danışın.
+            </Text>
           </View>
         )}
       </KeyboardAvoidingView>
@@ -403,11 +422,11 @@ export const ChatScreen: React.FC = () => {
         visible={previewOpen}
         onClose={() => setPreviewOpen(false)}
         title={docType ?? "Belge Önizleme"}
-        subtitle="Belgenizi inceleyip paylaşabilirsiniz"
+        subtitle="İnceleyip paylaşabilirsiniz"
         footer={
-          <View style={styles.previewFooter}>
+          <View style={styles.sheetFooterRow}>
             <TouchableOpacity onPress={handlePdfExport} style={styles.pdfBtn} activeOpacity={0.75}>
-              <Download size={16} color={Colors.accent} strokeWidth={1.8} />
+              <Download size={16} color={Colors.primary} strokeWidth={2} />
               <Text style={styles.pdfBtnText}>PDF İndir</Text>
             </TouchableOpacity>
             <GradientButton
@@ -419,10 +438,10 @@ export const ChatScreen: React.FC = () => {
           </View>
         }
       >
-        <MarkdownView content={generatedDoc} maxHeight={380} />
+        <MarkdownView content={generatedDoc} maxHeight={400} />
       </DialogSheet>
 
-      {/* Share Options Sheet */}
+      {/* Share Sheet */}
       <DialogSheet
         visible={shareOpen}
         onClose={() => setShareOpen(false)}
@@ -430,42 +449,23 @@ export const ChatScreen: React.FC = () => {
         subtitle="Paylaşım yöntemini seçin"
       >
         <View style={styles.shareOptions}>
-          <TouchableOpacity onPress={handleWhatsApp} style={styles.shareOption} activeOpacity={0.75}>
-            <View style={[styles.shareIcon, { backgroundColor: "#25D36620" }]}>
-              <Text style={{ fontSize: 22 }}>💬</Text>
-            </View>
-            <View style={styles.shareOptionText}>
-              <Text style={styles.shareOptionTitle}>WhatsApp</Text>
-              <Text style={styles.shareOptionDesc}>WhatsApp üzerinden gönder</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleEmail} style={styles.shareOption} activeOpacity={0.75}>
-            <View style={[styles.shareIcon, { backgroundColor: Colors.blue + "20" }]}>
-              <Mail size={22} color={Colors.blue} strokeWidth={1.5} />
-            </View>
-            <View style={styles.shareOptionText}>
-              <Text style={styles.shareOptionTitle}>E-posta</Text>
-              <Text style={styles.shareOptionDesc}>E-posta uygulamasını aç</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleCopy} style={styles.shareOption} activeOpacity={0.75}>
-            <View style={[styles.shareIcon, { backgroundColor: Colors.accentLight }]}>
-              <Copy size={22} color={Colors.accent} strokeWidth={1.5} />
-            </View>
-            <View style={styles.shareOptionText}>
-              <Text style={styles.shareOptionTitle}>{copied ? "Kopyalandı! ✓" : "Panoya Kopyala"}</Text>
-              <Text style={styles.shareOptionDesc}>Metni kopyala, istediğin yere yapıştır</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => { setShareOpen(false); handleNativeShare(); }} style={styles.shareOption} activeOpacity={0.75}>
-            <View style={[styles.shareIcon, { backgroundColor: Colors.muted }]}>
-              <Share2 size={22} color={Colors.label} strokeWidth={1.5} />
-            </View>
-            <View style={styles.shareOptionText}>
-              <Text style={styles.shareOptionTitle}>Diğer Uygulamalar</Text>
-              <Text style={styles.shareOptionDesc}>Sistem paylaşım menüsünü aç</Text>
-            </View>
-          </TouchableOpacity>
+          {[
+            { label: "WhatsApp", desc: "WhatsApp ile gönder", icon: "💬", bg: "#25D36615", onPress: handleWhatsApp },
+            { label: "E-posta", desc: "E-posta uygulamasını aç", iconEl: <Mail size={22} color={Colors.blue} strokeWidth={1.5} />, bg: Colors.blue + "12", onPress: handleEmail },
+            { label: copied ? "Kopyalandı! ✓" : "Panoya Kopyala", desc: "Metni kopyala, istediğin yere yapıştır", iconEl: <Copy size={22} color={Colors.primary} strokeWidth={1.5} />, bg: Colors.accentLight, onPress: handleCopy },
+            { label: "Diğer Uygulamalar", desc: "Sistem paylaşım menüsünü aç", iconEl: <Share2 size={22} color={Colors.labelSecondary} strokeWidth={1.5} />, bg: Colors.surface, onPress: () => { setShareOpen(false); handleNativeShare(); } },
+          ].map((opt, i) => (
+            <TouchableOpacity key={i} onPress={opt.onPress} style={styles.shareOption} activeOpacity={0.75}>
+              <View style={[styles.shareIconBox, { backgroundColor: opt.bg }]}>
+                {opt.icon ? <Text style={{ fontSize: 22 }}>{opt.icon}</Text> : opt.iconEl}
+              </View>
+              <View style={styles.shareOptionText}>
+                <Text style={styles.shareOptionTitle}>{opt.label}</Text>
+                <Text style={styles.shareOptionDesc}>{opt.desc}</Text>
+              </View>
+              <ChevronRight size={14} color={Colors.labelTertiary} strokeWidth={2} />
+            </TouchableOpacity>
+          ))}
         </View>
       </DialogSheet>
 
@@ -478,7 +478,7 @@ export const ChatScreen: React.FC = () => {
         footer={
           <GradientButton
             onPress={handleBuyCredits}
-            title={`Devam Et — ${CREDIT_PACKAGES.find(p => p.id === selectedPkg)?.price}`}
+            title={`Satın Al — ${CREDIT_PACKAGES.find(p => p.id === selectedPkg)?.price}`}
             size="lg"
             icon={<ShoppingCart size={15} color="#fff" />}
             style={{ flex: 1 }}
@@ -487,26 +487,26 @@ export const ChatScreen: React.FC = () => {
       >
         <View style={styles.pkgList}>
           {CREDIT_PACKAGES.map((pkg) => {
-            const isSelected = selectedPkg === pkg.id;
+            const sel = selectedPkg === pkg.id;
             return (
               <TouchableOpacity
                 key={pkg.id}
                 onPress={() => setSelectedPkg(pkg.id)}
                 activeOpacity={0.75}
-                style={[styles.pkgCard, isSelected && styles.pkgCardSelected]}
+                style={[styles.pkgCard, sel && styles.pkgCardSelected]}
               >
                 <View style={styles.pkgLeft}>
-                  <View style={styles.pkgRadio}>
-                    {isSelected && <View style={styles.pkgRadioFill} />}
+                  <View style={[styles.pkgRadio, sel && styles.pkgRadioActive]}>
+                    {sel && <View style={styles.pkgRadioFill} />}
                   </View>
                   <View>
                     <View style={styles.pkgTitleRow}>
-                      <Text style={[styles.pkgLabel, isSelected && styles.pkgLabelSelected]}>
-                        {pkg.label}
-                      </Text>
+                      <Text style={[styles.pkgLabel, sel && styles.pkgLabelActive]}>{pkg.label}</Text>
                       {pkg.badge && (
                         <View style={[styles.pkgBadge, pkg.id === "p10" && styles.pkgBadgeGreen]}>
-                          <Text style={styles.pkgBadgeText}>{pkg.badge}</Text>
+                          <Text style={[styles.pkgBadgeText, pkg.id === "p10" && { color: Colors.green }]}>
+                            {pkg.badge}
+                          </Text>
                         </View>
                       )}
                     </View>
@@ -515,15 +515,13 @@ export const ChatScreen: React.FC = () => {
                     </Text>
                   </View>
                 </View>
-                <Text style={[styles.pkgPrice, isSelected && styles.pkgPriceSelected]}>
-                  {pkg.price}
-                </Text>
+                <Text style={[styles.pkgPrice, sel && styles.pkgPriceActive]}>{pkg.price}</Text>
               </TouchableOpacity>
             );
           })}
           <View style={styles.pkgNote}>
             <Text style={styles.pkgNoteText}>
-              💡 Krediler süresiz geçerlidir, belirli bir kullanım süresi yoktur.
+              💡 Krediler süresiz geçerlidir — belirli bir kullanım süresi yoktur.
             </Text>
           </View>
         </View>
@@ -535,218 +533,342 @@ export const ChatScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
+  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 13,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
     backgroundColor: Colors.card,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.separator,
+    ...Shadows.xs,
   },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   logoMark: {
-    width: 32, height: 32, borderRadius: 9,
-    backgroundColor: Colors.accentLight,
-    alignItems: "center", justifyContent: "center",
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Shadows.glow,
   },
-  logoGlyph: { fontSize: 15 },
-  headerTitle: { fontSize: 17, fontWeight: "600", color: Colors.label, letterSpacing: -0.4 },
+  logoGlyph: { fontSize: 17, color: "#fff" },
+  headerTitle: { fontSize: 16, fontWeight: "800", color: Colors.label, letterSpacing: -0.5 },
+  headerSub: { fontSize: 11, color: Colors.labelTertiary, letterSpacing: -0.1, marginTop: 0 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
-  creditBadge: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5,
-    borderRadius: 20, borderWidth: 1, backgroundColor: Colors.background,
+  creditPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
   },
   creditDot: { width: 6, height: 6, borderRadius: 3 },
-  creditText: { fontSize: 12, fontWeight: "600" },
-  iconBtn: {
-    width: 32, height: 32, borderRadius: 8,
+  creditText: { fontSize: 12, fontWeight: "700", letterSpacing: -0.1 },
+  newChatBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
     backgroundColor: Colors.accentLight,
-    alignItems: "center", justifyContent: "center",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  chatContent: { padding: 16, gap: 10, flexGrow: 1 },
-
-  chipsSection: { marginBottom: 4 },
-  chipsLabel: { fontSize: 12, fontWeight: "500", color: Colors.mutedForeground, marginBottom: 10, letterSpacing: 0.1 },
-  chipsRow: { gap: 7, paddingRight: 4 },
-  chip: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 12, paddingVertical: 7,
-    backgroundColor: Colors.card,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separatorOpaque,
-    borderRadius: 20, ...Shadows.xs,
-  },
-  chipEmoji: { fontSize: 13 },
-  chipText: { fontSize: 13, color: Colors.label, letterSpacing: -0.1 },
-
-  msgRow: { flexDirection: "row", alignItems: "flex-end", gap: 7 },
+  // Chat
+  chatContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
+  msgRow: { flexDirection: "row", alignItems: "flex-end", marginBottom: 10, gap: 8 },
   msgRowUser: { justifyContent: "flex-end" },
   msgRowAI: { justifyContent: "flex-start" },
   aiAvatar: {
-    width: 24, height: 24, borderRadius: 7,
-    backgroundColor: Colors.accentLight,
-    alignItems: "center", justifyContent: "center", marginBottom: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
   },
-  bubble: { maxWidth: "80%", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
-  bubbleUser: { backgroundColor: Colors.accent, borderBottomRightRadius: 5 },
+  bubble: {
+    maxWidth: "80%",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
+  },
+  bubbleUser: {
+    backgroundColor: Colors.primary,
+    borderBottomRightRadius: 5,
+    ...Shadows.sm,
+  },
   bubbleAI: {
-    backgroundColor: Colors.card, borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.separator, borderBottomLeftRadius: 5, ...Shadows.xs,
+    backgroundColor: Colors.card,
+    borderBottomLeftRadius: 5,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separator,
+    ...Shadows.xs,
   },
-  bubbleText: { fontSize: 15, lineHeight: 21, letterSpacing: -0.2 },
-  bubbleTextUser: { color: "#fff" },
-  bubbleTextAI: { color: Colors.label },
-  typingBubble: { paddingVertical: 14 },
+  bubbleText: { fontSize: 15, lineHeight: 21 },
+  bubbleTextUser: { color: "#fff", letterSpacing: -0.2 },
+  bubbleTextAI: { color: Colors.label, letterSpacing: -0.2 },
 
+  // Template chips
+  templateSection: { marginBottom: 20 },
+  templateHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  templateLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Colors.labelSecondary,
+    letterSpacing: -0.1,
+  },
+  chipsRow: { gap: 8, paddingHorizontal: 2, paddingBottom: 4 },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.card,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.separator,
+    ...Shadows.xs,
+  },
+  chipEmoji: { fontSize: 14 },
+  chipText: { fontSize: 13, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
+
+  // Document card
   docCard: {
     backgroundColor: Colors.card,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separatorOpaque,
-    borderRadius: 14, ...Shadows.sm, overflow: "hidden",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.primaryMid,
+    overflow: "hidden",
+    ...Shadows.md,
   },
   docCardMain: {
-    flexDirection: "row", alignItems: "center",
-    padding: 14, gap: 12,
-  },
-  docCardIcon: {
-    width: 40, height: 40, borderRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 16,
     backgroundColor: Colors.accentLight,
-    alignItems: "center", justifyContent: "center",
   },
-  docCardText: { flex: 1 },
-  docCardTitle: { fontSize: 14, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
-  docCardSub: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
+  docCardIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    backgroundColor: Colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Shadows.xs,
+  },
+  docCardBody: { flex: 1 },
+  docCardTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Colors.primary,
+    letterSpacing: -0.3,
+  },
+  docCardSub: { fontSize: 12, color: Colors.primary, opacity: 0.7, marginTop: 2 },
   docCardActions: {
     flexDirection: "row",
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.separator,
+    borderTopColor: Colors.primaryMid,
+    backgroundColor: Colors.card,
   },
   docAction: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 5, paddingVertical: 10,
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
   },
-  docActionText: { fontSize: 12, color: Colors.accent, fontWeight: "500" },
-  docActionDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.separator },
+  docActionDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.separator, marginVertical: 8 },
+  docActionText: { fontSize: 13, fontWeight: "600", color: Colors.primary, letterSpacing: -0.2 },
 
-  // Session limit wall
+  // Limit wall
   limitWall: {
-    paddingHorizontal: 20, paddingVertical: 14,
+    padding: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.separator,
     backgroundColor: Colors.card,
-    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.separator,
   },
   limitWallInner: {
-    backgroundColor: Colors.background,
-    borderRadius: 16,
-    borderWidth: 1, borderColor: Colors.orange + "40",
-    padding: 18, alignItems: "center", gap: 6,
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    borderRadius: 18,
+    padding: 24,
+    gap: 8,
   },
-  limitWallEmoji: { fontSize: 28, marginBottom: 4 },
-  limitWallTitle: { fontSize: 16, fontWeight: "700", color: Colors.label, letterSpacing: -0.3 },
-  limitWallDesc: { fontSize: 13, color: Colors.mutedForeground, textAlign: "center", lineHeight: 19 },
-  limitWallBtn: {
-    flexDirection: "row", alignItems: "center", gap: 7,
-    backgroundColor: Colors.accent, borderRadius: 12,
-    paddingHorizontal: 20, paddingVertical: 11, marginTop: 8,
+  limitWallEmoji: { fontSize: 32, marginBottom: 4 },
+  limitWallTitle: { fontSize: 17, fontWeight: "700", color: Colors.label, letterSpacing: -0.4 },
+  limitWallDesc: { fontSize: 14, color: Colors.labelSecondary, textAlign: "center", lineHeight: 20, letterSpacing: -0.1 },
+  limitBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 13,
+    marginTop: 8,
+    ...Shadows.glow,
   },
-  limitWallBtnText: { fontSize: 14, fontWeight: "600", color: "#fff" },
+  limitBtnText: { fontSize: 14, fontWeight: "700", color: "#fff", letterSpacing: -0.2 },
 
-  // Input
-  sessionWarnBar: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: Colors.orange + "15",
-    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
-    marginBottom: 8,
-  },
-  sessionWarnText: { fontSize: 12, color: Colors.orange, flex: 1 },
+  // Input area
   inputArea: {
-    paddingHorizontal: 12, paddingTop: 8,
-    paddingBottom: Platform.OS === "ios" ? 4 : 12,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === "ios" ? 12 : 10,
     backgroundColor: Colors.card,
-    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.separator,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.separator,
+    gap: 8,
   },
+  sessionWarnBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: Colors.orangeLight,
+    borderRadius: 8,
+  },
+  sessionWarnText: { fontSize: 12, color: Colors.orange, fontWeight: "600", letterSpacing: -0.1 },
   inputRow: {
-    flexDirection: "row", alignItems: "flex-end",
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 10,
     backgroundColor: Colors.background,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separatorOpaque,
-    borderRadius: 16, paddingLeft: 14, paddingRight: 6, paddingVertical: 6,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    minHeight: 50,
   },
   textInput: {
-    flex: 1, fontSize: 15, color: Colors.label,
-    minHeight: 36, maxHeight: 100,
-    paddingTop: Platform.OS === "ios" ? 7 : 5,
-    paddingBottom: Platform.OS === "ios" ? 7 : 5,
+    flex: 1,
+    fontSize: 15,
+    color: Colors.label,
+    maxHeight: 110,
     letterSpacing: -0.2,
+    paddingTop: 4,
+    paddingBottom: 4,
   },
   sendBtn: {
-    width: 34, height: 34, borderRadius: 10,
-    backgroundColor: Colors.accent,
-    alignItems: "center", justifyContent: "center", marginLeft: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    ...Shadows.glow,
   },
-  sendBtnDisabled: { backgroundColor: Colors.muted },
-  disclaimer: { fontSize: 10, color: Colors.mutedForeground, textAlign: "center", marginTop: 7, letterSpacing: 0.1 },
+  sendBtnDisabled: { backgroundColor: Colors.separatorOpaque, shadowOpacity: 0 },
+  disclaimer: {
+    fontSize: 11,
+    color: Colors.labelTertiary,
+    textAlign: "center",
+    letterSpacing: -0.1,
+  },
 
-  previewFooter: { flexDirection: "row", gap: 10, alignItems: "center" },
+  // Sheet footer
+  sheetFooterRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   pdfBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 16, height: 44,
-    borderRadius: 12, borderWidth: 1, borderColor: Colors.accentMid,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.primaryMid,
     backgroundColor: Colors.accentLight,
   },
-  pdfBtnText: { fontSize: 14, fontWeight: "600", color: Colors.accent },
+  pdfBtnText: { fontSize: 14, fontWeight: "700", color: Colors.primary },
 
+  // Share
   shareOptions: { gap: 8 },
   shareOption: {
-    flexDirection: "row", alignItems: "center", gap: 14,
-    padding: 14, borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 14,
+    borderRadius: 16,
     backgroundColor: Colors.background,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
+    borderWidth: 1,
+    borderColor: Colors.separator,
   },
-  shareIcon: {
-    width: 44, height: 44, borderRadius: 12,
-    alignItems: "center", justifyContent: "center",
+  shareIconBox: {
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
   },
   shareOptionText: { flex: 1 },
-  shareOptionTitle: { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
-  shareOptionDesc: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
+  shareOptionTitle: { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.3 },
+  shareOptionDesc: { fontSize: 12, color: Colors.labelTertiary, marginTop: 2 },
 
   // Credit packages
   pkgList: { gap: 10 },
   pkgCard: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    padding: 14, borderRadius: 14,
-    borderWidth: 1.5, borderColor: Colors.separator,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.separator,
     backgroundColor: Colors.background,
   },
   pkgCardSelected: {
-    borderColor: Colors.accent,
+    borderColor: Colors.primary,
     backgroundColor: Colors.accentLight,
   },
   pkgLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   pkgRadio: {
-    width: 20, height: 20, borderRadius: 10,
-    borderWidth: 2, borderColor: Colors.separator,
-    alignItems: "center", justifyContent: "center",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: Colors.separatorOpaque,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  pkgRadioFill: {
-    width: 10, height: 10, borderRadius: 5,
-    backgroundColor: Colors.accent,
-  },
-  pkgTitleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  pkgLabel: { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
-  pkgLabelSelected: { color: Colors.accent },
+  pkgRadioActive: { borderColor: Colors.primary },
+  pkgRadioFill: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.primary },
+  pkgTitleRow: { flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" },
+  pkgLabel: { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.3 },
+  pkgLabelActive: { color: Colors.primary },
+  pkgSub: { fontSize: 12, color: Colors.labelTertiary, marginTop: 2 },
+  pkgPrice: { fontSize: 17, fontWeight: "800", color: Colors.label, letterSpacing: -0.4 },
+  pkgPriceActive: { color: Colors.primary },
   pkgBadge: {
-    backgroundColor: Colors.accent + "20",
-    borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2,
+    backgroundColor: Colors.primary + "15",
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
-  pkgBadgeGreen: { backgroundColor: Colors.green + "20" },
-  pkgBadgeText: { fontSize: 10, fontWeight: "700", color: Colors.accent },
-  pkgSub: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
-  pkgPrice: { fontSize: 18, fontWeight: "700", color: Colors.label, letterSpacing: -0.5 },
-  pkgPriceSelected: { color: Colors.accent },
+  pkgBadgeGreen: { backgroundColor: Colors.green + "15" },
+  pkgBadgeText: { fontSize: 10, fontWeight: "700", color: Colors.primary },
   pkgNote: {
-    backgroundColor: Colors.muted, borderRadius: 10, padding: 12, marginTop: 4,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 4,
   },
-  pkgNoteText: { fontSize: 12, color: Colors.mutedForeground, lineHeight: 17 },
+  pkgNoteText: { fontSize: 13, color: Colors.labelSecondary, lineHeight: 18, letterSpacing: -0.1 },
 });

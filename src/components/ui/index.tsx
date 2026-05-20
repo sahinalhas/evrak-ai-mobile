@@ -10,16 +10,19 @@ import {
   Dimensions,
   Pressable,
   Platform,
+  ScrollView,
 } from "react-native";
 import { Colors, Shadows } from "../Theme";
 
-// ─── Button ───────────────────────────────────────────────────────────────────
+const SCREEN_HEIGHT = Dimensions.get("window").height;
+
+// ─── PrimaryButton ────────────────────────────────────────────────────────────
 type ButtonProps = {
   onPress: () => void;
   title: string;
   loading?: boolean;
   disabled?: boolean;
-  variant?: "filled" | "tinted" | "plain" | "destructive" | "gray";
+  variant?: "filled" | "tinted" | "plain" | "destructive" | "gray" | "outline";
   size?: "sm" | "md" | "lg";
   style?: object;
   textStyle?: object;
@@ -37,33 +40,37 @@ export const GradientButton: React.FC<ButtonProps> = ({
   textStyle,
   icon,
 }) => {
-  const heights = { sm: 36, md: 44, lg: 50 };
-  const radii = { sm: 10, md: 12, lg: 14 };
+  const heights = { sm: 38, md: 46, lg: 52 };
+  const radii = { sm: 10, md: 13, lg: 16 };
   const fontSizes = { sm: 13, md: 15, lg: 16 };
 
-  const variantStyles: Record<string, { bg: string; text: string; border?: string }> = {
-    filled: { bg: Colors.accent, text: "#FFF" },
-    tinted: { bg: Colors.accentLight, text: Colors.accent },
-    plain: { bg: "transparent", text: Colors.accent },
+  const variantStyles: Record<string, { bg: string; text: string }> = {
+    filled: { bg: Colors.primary, text: "#FFF" },
+    tinted: { bg: Colors.accentLight, text: Colors.primary },
+    plain: { bg: "transparent", text: Colors.primary },
     destructive: { bg: Colors.destructive, text: "#FFF" },
-    gray: { bg: Colors.muted, text: Colors.label },
+    gray: { bg: Colors.surface, text: Colors.label },
+    outline: { bg: "transparent", text: Colors.primary },
   };
 
   const vs = variantStyles[variant];
+  const isOutline = variant === "outline";
 
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
       style={[
         styles.btn,
         {
           height: heights[size],
           borderRadius: radii[size],
           backgroundColor: vs.bg,
-          borderWidth: variant === "plain" ? 0 : 0,
+          borderWidth: isOutline ? 1.5 : 0,
+          borderColor: isOutline ? Colors.primary : "transparent",
         },
+        variant === "filled" && Shadows.glow,
         style,
         (disabled || loading) && styles.disabled,
       ]}
@@ -73,7 +80,9 @@ export const GradientButton: React.FC<ButtonProps> = ({
       ) : (
         <View style={styles.btnContent}>
           {icon}
-          <Text style={[styles.btnText, { color: vs.text, fontSize: fontSizes[size] }, textStyle]}>{title}</Text>
+          <Text style={[styles.btnText, { color: vs.text, fontSize: fontSizes[size] }, textStyle]}>
+            {title}
+          </Text>
         </View>
       )}
     </TouchableOpacity>
@@ -82,30 +91,30 @@ export const GradientButton: React.FC<ButtonProps> = ({
 
 // ─── PulsingDots ──────────────────────────────────────────────────────────────
 export const PulsingDots: React.FC = () => {
-  const dot1 = useRef(new Animated.Value(0.3)).current;
-  const dot2 = useRef(new Animated.Value(0.3)).current;
-  const dot3 = useRef(new Animated.Value(0.3)).current;
+  const dots = [
+    useRef(new Animated.Value(0.25)).current,
+    useRef(new Animated.Value(0.25)).current,
+    useRef(new Animated.Value(0.25)).current,
+  ];
 
   useEffect(() => {
-    const anim = (val: Animated.Value, delay: number) =>
+    const anims = dots.map((val, i) =>
       Animated.loop(
         Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(val, { toValue: 1, duration: 420, useNativeDriver: true }),
-          Animated.timing(val, { toValue: 0.3, duration: 420, useNativeDriver: true }),
+          Animated.delay(i * 150),
+          Animated.spring(val, { toValue: 1, speed: 6, bounciness: 10, useNativeDriver: true }),
+          Animated.spring(val, { toValue: 0.25, speed: 6, bounciness: 0, useNativeDriver: true }),
         ])
-      );
-    const a1 = anim(dot1, 0);
-    const a2 = anim(dot2, 160);
-    const a3 = anim(dot3, 320);
-    a1.start(); a2.start(); a3.start();
-    return () => { a1.stop(); a2.stop(); a3.stop(); };
+      )
+    );
+    anims.forEach((a) => a.start());
+    return () => anims.forEach((a) => a.stop());
   }, []);
 
   return (
     <View style={styles.dotsContainer}>
-      {[dot1, dot2, dot3].map((d, i) => (
-        <Animated.View key={i} style={[styles.dot, { opacity: d }]} />
+      {dots.map((d, i) => (
+        <Animated.View key={i} style={[styles.dot, { opacity: d, transform: [{ scale: d }] }]} />
       ))}
     </View>
   );
@@ -118,15 +127,18 @@ type BadgeProps = {
   bg?: string;
   size?: "sm" | "md";
 };
-export const Badge: React.FC<BadgeProps> = ({ label, color = Colors.accent, bg = Colors.accentLight, size = "sm" }) => (
+export const Badge: React.FC<BadgeProps> = ({
+  label,
+  color = Colors.primary,
+  bg = Colors.accentLight,
+  size = "sm",
+}) => (
   <View style={[styles.badge, { backgroundColor: bg }]}>
     <Text style={[styles.badgeText, { color, fontSize: size === "sm" ? 10 : 12 }]}>{label}</Text>
   </View>
 );
 
 // ─── DialogSheet ──────────────────────────────────────────────────────────────
-const SCREEN_HEIGHT = Dimensions.get("window").height;
-
 type DialogSheetProps = {
   visible: boolean;
   onClose: () => void;
@@ -137,20 +149,28 @@ type DialogSheetProps = {
   maxHeight?: number | string;
 };
 
-export const DialogSheet: React.FC<DialogSheetProps> = ({ visible, onClose, title, subtitle, children, footer, maxHeight = "90%" }) => {
+export const DialogSheet: React.FC<DialogSheetProps> = ({
+  visible,
+  onClose,
+  title,
+  subtitle,
+  children,
+  footer,
+  maxHeight = "92%",
+}) => {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const bgAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(slideAnim, { toValue: 0, tension: 65, friction: 12, useNativeDriver: true }),
-        Animated.timing(bgAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.spring(slideAnim, { toValue: 0, tension: 70, friction: 14, useNativeDriver: true }),
+        Animated.timing(bgAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(slideAnim, { toValue: SCREEN_HEIGHT, duration: 260, useNativeDriver: true }),
-        Animated.timing(bgAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: SCREEN_HEIGHT, duration: 240, useNativeDriver: true }),
+        Animated.timing(bgAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
       ]).start();
     }
   }, [visible]);
@@ -161,22 +181,33 @@ export const DialogSheet: React.FC<DialogSheetProps> = ({ visible, onClose, titl
         <Animated.View style={[styles.backdrop, { opacity: bgAnim }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
-        <Animated.View style={[styles.sheet, { maxHeight, transform: [{ translateY: slideAnim }] }]}>
-          {/* Handle */}
+        <Animated.View
+          style={[styles.sheet, { maxHeight, transform: [{ translateY: slideAnim }] }]}
+        >
           <View style={styles.handleWrap}>
             <View style={styles.handle} />
           </View>
-          {/* Header */}
           <View style={styles.sheetHeader}>
             <View style={{ flex: 1 }}>
               <Text style={styles.sheetTitle}>{title}</Text>
               {subtitle ? <Text style={styles.sheetSubtitle}>{subtitle}</Text> : null}
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.closeBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Text style={styles.closeBtnText}>✕</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.sheetBody}>{children}</View>
+          <ScrollView
+            style={{ flexShrink: 1 }}
+            contentContainerStyle={styles.sheetBody}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {children}
+          </ScrollView>
           {footer && <View style={styles.sheetFooter}>{footer}</View>}
         </Animated.View>
       </View>
@@ -188,10 +219,12 @@ export const DialogSheet: React.FC<DialogSheetProps> = ({ visible, onClose, titl
 export const ProBanner: React.FC<{ onPress: () => void }> = ({ onPress }) => (
   <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.proBanner}>
     <View style={styles.proBannerLeft}>
-      <View style={styles.proBannerIcon}><Text style={{ fontSize: 14 }}>⚡</Text></View>
+      <View style={styles.proBannerIcon}>
+        <Text style={{ fontSize: 14 }}>⚡</Text>
+      </View>
       <View>
-        <Text style={styles.proBannerTitle}>Pro'ya Geç</Text>
-        <Text style={styles.proBannerSub}>Sınırsız belge & öncelikli AI</Text>
+        <Text style={styles.proBannerTitle}>Kredi Al</Text>
+        <Text style={styles.proBannerSub}>Sınırsız belge oluştur</Text>
       </View>
     </View>
     <Text style={styles.proBannerArrow}>→</Text>
@@ -203,23 +236,24 @@ const styles = StyleSheet.create({
   btn: {
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
-  btnContent: { flexDirection: "row", alignItems: "center", gap: 6 },
-  btnText: { fontWeight: "600", letterSpacing: -0.2 },
-  disabled: { opacity: 0.4 },
+  btnContent: { flexDirection: "row", alignItems: "center", gap: 7 },
+  btnText: { fontWeight: "700", letterSpacing: -0.2 },
+  disabled: { opacity: 0.38 },
 
   dotsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 6,
     paddingHorizontal: 2,
+    paddingVertical: 4,
   },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.accent,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: Colors.primary,
   },
 
   badge: {
@@ -228,7 +262,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignSelf: "flex-start",
   },
-  badgeText: { fontWeight: "600", letterSpacing: 0.1 },
+  badgeText: { fontWeight: "700", letterSpacing: 0.1 },
 
   overlay: { flex: 1, justifyContent: "flex-end" },
   backdrop: {
@@ -237,40 +271,58 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: Colors.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     ...Shadows.lg,
     overflow: "hidden",
   },
-  handleWrap: { alignItems: "center", paddingVertical: 10 },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.separatorOpaque },
+  handleWrap: { alignItems: "center", paddingTop: 12, paddingBottom: 4 },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.separatorOpaque,
+  },
 
   sheetHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.separator,
   },
-  sheetTitle: { fontSize: 17, fontWeight: "600", color: Colors.label, letterSpacing: -0.4 },
-  sheetSubtitle: { fontSize: 13, color: Colors.mutedForeground, marginTop: 2 },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Colors.label,
+    letterSpacing: -0.5,
+  },
+  sheetSubtitle: {
+    fontSize: 13,
+    color: Colors.labelTertiary,
+    marginTop: 3,
+    letterSpacing: -0.1,
+  },
   closeBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.muted,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.surface,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 10,
+    marginLeft: 12,
+    marginTop: 2,
   },
-  closeBtnText: { fontSize: 10, color: Colors.mutedForeground, fontWeight: "600" },
-  sheetBody: { padding: 20 },
+  closeBtnText: { fontSize: 10, color: Colors.labelSecondary, fontWeight: "700" },
+  sheetBody: { padding: 20, paddingBottom: 8 },
   sheetFooter: {
-    padding: 16,
-    paddingBottom: Platform.OS === "ios" ? 28 : 16,
+    padding: 18,
+    paddingBottom: Platform.OS === "ios" ? 32 : 18,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.separator,
+    backgroundColor: Colors.card,
   },
 
   proBanner: {
@@ -287,11 +339,14 @@ const styles = StyleSheet.create({
   },
   proBannerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   proBannerIcon: {
-    width: 32, height: 32, borderRadius: 8,
-    backgroundColor: Colors.accent,
-    alignItems: "center", justifyContent: "center",
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  proBannerTitle: { fontSize: 14, fontWeight: "600", color: Colors.accent },
-  proBannerSub: { fontSize: 12, color: Colors.accent, opacity: 0.7, marginTop: 1 },
-  proBannerArrow: { fontSize: 16, color: Colors.accent, fontWeight: "500" },
+  proBannerTitle: { fontSize: 14, fontWeight: "700", color: Colors.primary },
+  proBannerSub: { fontSize: 12, color: Colors.primary, opacity: 0.7, marginTop: 1 },
+  proBannerArrow: { fontSize: 16, color: Colors.primary, fontWeight: "600" },
 });

@@ -5,7 +5,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator, BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { MessageSquare, FolderOpen, User } from "lucide-react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Colors } from "./src/components/Theme";
+import { Colors, Shadows } from "./src/components/Theme";
 import { ChatScreen } from "./src/screens/ChatScreen";
 import { DocumentsScreen } from "./src/screens/DocumentsScreen";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
@@ -20,31 +20,49 @@ import {
 const Tab = createBottomTabNavigator();
 
 const TABS = [
-  { name: "Sohbet", label: "Sohbet", Icon: MessageSquare },
-  { name: "Belgelerim", label: "Belgelerim", Icon: FolderOpen },
-  { name: "Profilim", label: "Profilim", Icon: User },
+  { name: "Sohbet",    label: "Sohbet",    Icon: MessageSquare },
+  { name: "Belgeler",  label: "Belgelerim", Icon: FolderOpen },
+  { name: "Profilim",  label: "Profil",    Icon: User },
 ];
 
-function TabItem({ route, isFocused, onPress }: { route: any; isFocused: boolean; onPress: () => void }) {
+function TabItem({
+  route,
+  isFocused,
+  onPress,
+}: {
+  route: any;
+  isFocused: boolean;
+  onPress: () => void;
+}) {
   const scale = useRef(new Animated.Value(1)).current;
   const tab = TABS.find((t) => t.name === route.name) ?? TABS[0];
   const Icon = tab.Icon;
 
   const handlePress = () => {
     Animated.sequence([
-      Animated.timing(scale, { toValue: 0.9, duration: 70, useNativeDriver: true }),
-      Animated.spring(scale, { toValue: 1, tension: 250, friction: 8, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 0.88, duration: 60, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, tension: 260, friction: 8, useNativeDriver: true }),
     ]).start();
     onPress();
   };
 
   return (
-    <TouchableOpacity onPress={handlePress} activeOpacity={1} style={styles.tabItem}>
+    <TouchableOpacity
+      onPress={handlePress}
+      activeOpacity={1}
+      style={styles.tabItem}
+    >
       <Animated.View style={[styles.tabInner, { transform: [{ scale }] }]}>
         <View style={[styles.tabIconWrap, isFocused && styles.tabIconWrapActive]}>
-          <Icon size={19} color={isFocused ? Colors.accent : Colors.mutedForeground} strokeWidth={isFocused ? 2 : 1.6} />
+          <Icon
+            size={20}
+            color={isFocused ? Colors.primary : Colors.labelTertiary}
+            strokeWidth={isFocused ? 2.2 : 1.6}
+          />
         </View>
-        <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>{tab.label}</Text>
+        <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+          {tab.label}
+        </Text>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -53,13 +71,15 @@ function TabItem({ route, isFocused, onPress }: { route: any; isFocused: boolean
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+    <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       {state.routes.map((route, index) => (
         <TabItem
           key={route.name}
           route={route}
           isFocused={state.index === index}
-          onPress={() => { if (state.index !== index) navigation.navigate(route.name); }}
+          onPress={() => {
+            if (state.index !== index) navigation.navigate(route.name);
+          }}
         />
       ))}
     </View>
@@ -68,7 +88,10 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
   });
 
   if (!fontsLoaded && !fontError) return null;
@@ -82,7 +105,7 @@ export default function App() {
           screenOptions={{ headerShown: false }}
         >
           <Tab.Screen name="Sohbet" component={ChatScreen} />
-          <Tab.Screen name="Belgelerim" component={DocumentsScreen} />
+          <Tab.Screen name="Belgeler" component={DocumentsScreen} />
           <Tab.Screen name="Profilim" component={ProfileScreen} />
         </Tab.Navigator>
       </NavigationContainer>
@@ -96,19 +119,38 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.separator,
-    paddingTop: 6,
-    paddingHorizontal: 4,
+    paddingTop: 8,
+    paddingHorizontal: 8,
+    ...Shadows.md,
   },
-  tabItem: { flex: 1, alignItems: "center", justifyContent: "center" },
-  tabInner: { alignItems: "center", gap: 3, paddingVertical: 2 },
-  tabIconWrap: {
-    width: 44,
-    height: 32,
-    borderRadius: 10,
+  tabItem: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  tabIconWrapActive: { backgroundColor: Colors.accentLight },
-  tabLabel: { fontSize: 10, color: Colors.mutedForeground, letterSpacing: 0.1 },
-  tabLabelActive: { color: Colors.accent, fontWeight: "600" },
+  tabInner: {
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 12,
+  },
+  tabIconWrap: {
+    width: 48,
+    height: 34,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabIconWrapActive: {
+    backgroundColor: Colors.accentLight,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: Colors.labelTertiary,
+    letterSpacing: 0.1,
+  },
+  tabLabelActive: {
+    color: Colors.primary,
+  },
 });

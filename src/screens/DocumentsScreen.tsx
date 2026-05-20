@@ -17,10 +17,11 @@ import {
   FileText,
   Share2,
   Trash2,
-  ChevronRight,
   Download,
   Mail,
   Copy,
+  ChevronRight,
+  X,
 } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";
@@ -31,19 +32,12 @@ import { exportToPDF, copyToClipboard, shareViaWhatsApp, shareViaEmail } from ".
 
 const CATEGORIES = ["Tümü", "Hukuki", "İş Hayatı", "Eğitim", "Kişisel"] as const;
 
-const CAT_ACCENT: Record<string, string> = {
-  Hukuki: Colors.red,
-  "İş Hayatı": Colors.orange,
-  Eğitim: Colors.blue,
-  Kişisel: Colors.green,
-  default: Colors.accent,
-};
-
-const CAT_EMOJI: Record<string, string> = {
-  Hukuki: "⚖️",
-  "İş Hayatı": "💼",
-  Eğitim: "🎓",
-  Kişisel: "👤",
+const CAT_CONFIG: Record<string, { color: string; bg: string; emoji: string }> = {
+  Hukuki:       { color: Colors.red,    bg: Colors.redLight,    emoji: "⚖️" },
+  "İş Hayatı": { color: Colors.orange, bg: Colors.orangeLight, emoji: "💼" },
+  Eğitim:       { color: Colors.blue,   bg: "#2563EB12",        emoji: "🎓" },
+  Kişisel:      { color: Colors.green,  bg: Colors.greenLight,  emoji: "👤" },
+  default:      { color: Colors.primary, bg: Colors.accentLight, emoji: "📄" },
 };
 
 export const DocumentsScreen: React.FC = () => {
@@ -91,19 +85,12 @@ export const DocumentsScreen: React.FC = () => {
   const handleCopy = async (doc: Document) => {
     const ok = await copyToClipboard(doc.content);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2200);
+    setTimeout(() => setCopied(false), 2500);
     if (!ok) Alert.alert("Kopyalandı", "Belge panoya kopyalandı.");
   };
 
-  const handleWhatsApp = (doc: Document) => {
-    setShareOpen(false);
-    shareViaWhatsApp(doc.content);
-  };
-
-  const handleEmail = (doc: Document) => {
-    setShareOpen(false);
-    shareViaEmail(doc.content, doc.title);
-  };
+  const handleWhatsApp = (doc: Document) => { setShareOpen(false); shareViaWhatsApp(doc.content); };
+  const handleEmail = (doc: Document) => { setShareOpen(false); shareViaEmail(doc.content, doc.title); };
 
   const filtered = documents.filter((d) => {
     const matchesCat = activeCategory === "Tümü" || d.category === activeCategory;
@@ -116,42 +103,51 @@ export const DocumentsScreen: React.FC = () => {
   const favorites = filtered.filter((d) => d.favorite);
   const rest = filtered.filter((d) => !d.favorite);
 
+  type ListItem = Document | { _section: string };
+
+  const listData: ListItem[] = [
+    ...(favorites.length > 0 ? [{ _section: "⭐ Favoriler" } as ListItem, ...favorites] : []),
+    ...(rest.length > 0
+      ? [{ _section: favorites.length > 0 ? "Tüm Belgeler" : "Belgeler" } as ListItem, ...rest]
+      : []),
+  ];
+
   const renderDoc = ({ item }: { item: Document }) => {
-    const accent = CAT_ACCENT[item.category] ?? CAT_ACCENT.default;
-    const emoji = CAT_EMOJI[item.category] ?? "📄";
+    const cfg = CAT_CONFIG[item.category] ?? CAT_CONFIG.default;
     return (
-      <TouchableOpacity onPress={() => setSelectedDoc(item)} activeOpacity={0.7} style={styles.docRow}>
-        <View style={[styles.docEmoji, { backgroundColor: accent + "15" }]}>
-          <Text style={{ fontSize: 16 }}>{emoji}</Text>
+      <TouchableOpacity
+        onPress={() => setSelectedDoc(item)}
+        activeOpacity={0.72}
+        style={styles.docCard}
+      >
+        <View style={[styles.docIconWrap, { backgroundColor: cfg.bg }]}>
+          <Text style={{ fontSize: 18 }}>{cfg.emoji}</Text>
         </View>
         <View style={styles.docBody}>
           <Text style={styles.docTitle} numberOfLines={1}>{item.title}</Text>
-          <Text style={styles.docMeta}>{item.date} · {item.status}</Text>
+          <View style={styles.docMetaRow}>
+            <View style={[styles.catDot, { backgroundColor: cfg.color }]} />
+            <Text style={styles.docMeta}>{item.category} · {item.date}</Text>
+          </View>
         </View>
         <View style={styles.docRight}>
           <TouchableOpacity
             onPress={() => toggleFavorite(item.id)}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.starBtn}
           >
             <Star
-              size={15}
-              color={item.favorite ? Colors.yellow : Colors.mutedForeground}
+              size={16}
+              color={item.favorite ? Colors.yellow : Colors.labelTertiary}
               fill={item.favorite ? Colors.yellow : "transparent"}
-              strokeWidth={1.5}
+              strokeWidth={1.8}
             />
           </TouchableOpacity>
-          <ChevronRight size={14} color={Colors.mutedForeground} strokeWidth={1.5} />
+          <ChevronRight size={15} color={Colors.labelTertiary} strokeWidth={2} />
         </View>
       </TouchableOpacity>
     );
   };
-
-  type ListItem = Document | { _section: string };
-
-  const listData: ListItem[] = [
-    ...(favorites.length > 0 ? [{ _section: "Favoriler" } as ListItem, ...favorites] : []),
-    ...(rest.length > 0 ? [{ _section: favorites.length > 0 ? "Belgeler" : "Tüm Belgeler" } as ListItem, ...rest] : []),
-  ];
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -159,32 +155,36 @@ export const DocumentsScreen: React.FC = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Belgelerim</Text>
-        <Text style={styles.headerCount}>{documents.length} belge</Text>
+        <View>
+          <Text style={styles.headerTitle}>Belgelerim</Text>
+          <Text style={styles.headerSub}>{documents.length} belge kaydedildi</Text>
+        </View>
       </View>
 
       {/* Search */}
       <View style={styles.searchWrap}>
         <View style={styles.searchBar}>
-          <Search size={15} color={Colors.mutedForeground} strokeWidth={1.5} />
+          <Search size={16} color={Colors.labelTertiary} strokeWidth={2} />
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Arama"
-            placeholderTextColor={Colors.mutedForeground}
+            placeholder="Belge ara…"
+            placeholderTextColor={Colors.labelTertiary}
             style={styles.searchInput}
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery("")} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-              <View style={styles.clearBtn}>
-                <Text style={styles.clearBtnText}>✕</Text>
-              </View>
+            <TouchableOpacity
+              onPress={() => setQuery("")}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.clearBtn}
+            >
+              <X size={12} color="#fff" strokeWidth={3} />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* Category Tabs */}
+      {/* Category Filters */}
       <FlatList
         horizontal
         data={CATEGORIES}
@@ -194,12 +194,17 @@ export const DocumentsScreen: React.FC = () => {
         style={{ flexGrow: 0 }}
         renderItem={({ item: c }) => {
           const active = activeCategory === c;
+          const cfg = CAT_CONFIG[c];
           return (
             <TouchableOpacity
               onPress={() => setActiveCategory(c)}
               activeOpacity={0.7}
-              style={[styles.catPill, active && styles.catPillActive]}
+              style={[
+                styles.catPill,
+                active && { backgroundColor: cfg?.color ?? Colors.primary, borderColor: "transparent" },
+              ]}
             >
+              {cfg && <Text style={{ fontSize: 13 }}>{cfg.emoji} </Text>}
               <Text style={[styles.catText, active && styles.catTextActive]}>{c}</Text>
             </TouchableOpacity>
           );
@@ -214,10 +219,14 @@ export const DocumentsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>📂</Text>
+            <View style={styles.emptyIconWrap}>
+              <Text style={styles.emptyIcon}>📂</Text>
+            </View>
             <Text style={styles.emptyTitle}>Belge bulunamadı</Text>
             <Text style={styles.emptyDesc}>
-              {query ? "Arama kriterlerine uyan belge yok." : "Sohbet sekmesinden ilk belgenizi oluşturun."}
+              {query
+                ? "Arama kriterlerine uyan belge yok."
+                : "Sohbet sekmesinden ilk belgenizi oluşturun."}
             </Text>
           </View>
         }
@@ -227,7 +236,7 @@ export const DocumentsScreen: React.FC = () => {
           }
           return renderDoc({ item });
         }}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
       />
 
       {/* Detail Sheet */}
@@ -235,19 +244,22 @@ export const DocumentsScreen: React.FC = () => {
         <DialogSheet
           visible
           onClose={() => setSelectedDoc(null)}
-          title={selectedDoc.title}
-          subtitle={`${selectedDoc.type} · ${selectedDoc.date}`}
+          title={selectedDoc.type}
+          subtitle={`${selectedDoc.date} · ${selectedDoc.status}`}
           footer={
-            <View style={styles.sheetFooter}>
-              <TouchableOpacity onPress={() => deleteDocument(selectedDoc.id)} style={styles.deleteBtn}>
-                <Trash2 size={16} color={Colors.red} strokeWidth={1.5} />
+            <View style={styles.sheetFooterRow}>
+              <TouchableOpacity
+                onPress={() => deleteDocument(selectedDoc.id)}
+                style={styles.deleteBtn}
+              >
+                <Trash2 size={16} color={Colors.red} strokeWidth={2} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handlePdfExport(selectedDoc)}
                 style={styles.pdfBtn}
                 activeOpacity={0.75}
               >
-                <Download size={15} color={Colors.accent} strokeWidth={1.8} />
+                <Download size={15} color={Colors.primary} strokeWidth={2} />
                 <Text style={styles.pdfBtnText}>PDF</Text>
               </TouchableOpacity>
               <GradientButton
@@ -259,11 +271,11 @@ export const DocumentsScreen: React.FC = () => {
             </View>
           }
         >
-          <MarkdownView content={selectedDoc.content} maxHeight={380} />
+          <MarkdownView content={selectedDoc.content} maxHeight={400} />
         </DialogSheet>
       )}
 
-      {/* Share Options Sheet */}
+      {/* Share Sheet */}
       {selectedDoc && (
         <DialogSheet
           visible={shareOpen}
@@ -272,45 +284,23 @@ export const DocumentsScreen: React.FC = () => {
           subtitle="Paylaşım yöntemini seçin"
         >
           <View style={styles.shareOptions}>
-            <TouchableOpacity onPress={() => handleWhatsApp(selectedDoc)} style={styles.shareOption} activeOpacity={0.75}>
-              <View style={[styles.shareIcon, { backgroundColor: "#25D36620" }]}>
-                <Text style={{ fontSize: 22 }}>💬</Text>
-              </View>
-              <View style={styles.shareOptionText}>
-                <Text style={styles.shareOptionTitle}>WhatsApp</Text>
-                <Text style={styles.shareOptionDesc}>WhatsApp üzerinden gönder</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => handleEmail(selectedDoc)} style={styles.shareOption} activeOpacity={0.75}>
-              <View style={[styles.shareIcon, { backgroundColor: Colors.blue + "20" }]}>
-                <Mail size={22} color={Colors.blue} strokeWidth={1.5} />
-              </View>
-              <View style={styles.shareOptionText}>
-                <Text style={styles.shareOptionTitle}>E-posta</Text>
-                <Text style={styles.shareOptionDesc}>E-posta uygulamasını aç</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => handleCopy(selectedDoc)} style={styles.shareOption} activeOpacity={0.75}>
-              <View style={[styles.shareIcon, { backgroundColor: Colors.accentLight }]}>
-                <Copy size={22} color={Colors.accent} strokeWidth={1.5} />
-              </View>
-              <View style={styles.shareOptionText}>
-                <Text style={styles.shareOptionTitle}>{copied ? "Kopyalandı! ✓" : "Panoya Kopyala"}</Text>
-                <Text style={styles.shareOptionDesc}>Metni kopyala, istediğin yere yapıştır</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => { setShareOpen(false); handleNativeShare(selectedDoc); }} style={styles.shareOption} activeOpacity={0.75}>
-              <View style={[styles.shareIcon, { backgroundColor: Colors.muted }]}>
-                <Share2 size={22} color={Colors.label} strokeWidth={1.5} />
-              </View>
-              <View style={styles.shareOptionText}>
-                <Text style={styles.shareOptionTitle}>Diğer Uygulamalar</Text>
-                <Text style={styles.shareOptionDesc}>Sistem paylaşım menüsünü aç</Text>
-              </View>
-            </TouchableOpacity>
+            {[
+              { label: "WhatsApp", desc: "WhatsApp ile gönder", icon: "💬", bg: "#25D36615", onPress: () => handleWhatsApp(selectedDoc) },
+              { label: "E-posta", desc: "E-posta uygulamasını aç", iconEl: <Mail size={22} color={Colors.blue} strokeWidth={1.5} />, bg: Colors.blue + "12", onPress: () => handleEmail(selectedDoc) },
+              { label: copied ? "Kopyalandı! ✓" : "Panoya Kopyala", desc: "İstediğin yere yapıştır", iconEl: <Copy size={22} color={Colors.primary} strokeWidth={1.5} />, bg: Colors.accentLight, onPress: () => handleCopy(selectedDoc) },
+              { label: "Diğer Uygulamalar", desc: "Sistem paylaşım menüsünü aç", iconEl: <Share2 size={22} color={Colors.labelSecondary} strokeWidth={1.5} />, bg: Colors.surface, onPress: () => { setShareOpen(false); handleNativeShare(selectedDoc); } },
+            ].map((opt, i) => (
+              <TouchableOpacity key={i} onPress={opt.onPress} style={styles.shareOption} activeOpacity={0.75}>
+                <View style={[styles.shareIconBox, { backgroundColor: opt.bg }]}>
+                  {opt.icon ? <Text style={{ fontSize: 22 }}>{opt.icon}</Text> : opt.iconEl}
+                </View>
+                <View style={styles.shareOptionText}>
+                  <Text style={styles.shareOptionTitle}>{opt.label}</Text>
+                  <Text style={styles.shareOptionDesc}>{opt.desc}</Text>
+                </View>
+                <ChevronRight size={14} color={Colors.labelTertiary} strokeWidth={2} />
+              </TouchableOpacity>
+            ))}
           </View>
         </DialogSheet>
       )}
@@ -322,89 +312,177 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
   header: {
-    paddingHorizontal: 20, paddingTop: 18, paddingBottom: 12,
-    flexDirection: "row", alignItems: "baseline", gap: 8,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 14,
+    backgroundColor: Colors.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.separator,
   },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.5 },
-  headerCount: { fontSize: 14, color: Colors.mutedForeground },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: Colors.label,
+    letterSpacing: -0.8,
+  },
+  headerSub: {
+    fontSize: 13,
+    color: Colors.labelTertiary,
+    marginTop: 2,
+    letterSpacing: -0.1,
+  },
 
-  searchWrap: { paddingHorizontal: 16, marginBottom: 10 },
+  searchWrap: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
   searchBar: {
-    flexDirection: "row", alignItems: "center", gap: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
     backgroundColor: Colors.card,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separatorOpaque,
-    borderRadius: 12, paddingHorizontal: 12, height: 40, ...Shadows.xs,
+    borderWidth: 1,
+    borderColor: Colors.separator,
+    borderRadius: 14,
+    paddingHorizontal: 13,
+    height: 44,
+    ...Shadows.xs,
   },
-  searchInput: { flex: 1, fontSize: 15, color: Colors.label, letterSpacing: -0.2 },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.label,
+    letterSpacing: -0.2,
+  },
   clearBtn: {
-    width: 18, height: 18, borderRadius: 9,
-    backgroundColor: Colors.mutedForeground,
-    alignItems: "center", justifyContent: "center",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.labelTertiary,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  clearBtnText: { fontSize: 8, color: "#fff", fontWeight: "700" },
 
-  catRow: { paddingHorizontal: 16, gap: 7, paddingBottom: 12 },
+  catRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 14 },
   catPill: {
-    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
     backgroundColor: Colors.card,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separatorOpaque,
+    borderWidth: 1,
+    borderColor: Colors.separator,
   },
-  catPillActive: { backgroundColor: Colors.accent },
-  catText: { fontSize: 13, color: Colors.label },
-  catTextActive: { color: "#fff", fontWeight: "600" },
+  catText: { fontSize: 13, fontWeight: "600", color: Colors.labelSecondary },
+  catTextActive: { color: "#fff" },
 
-  listContent: { paddingHorizontal: 16, paddingBottom: 32 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 40, paddingTop: 4 },
   sectionHeader: {
-    fontSize: 13, fontWeight: "600", color: Colors.mutedForeground,
-    letterSpacing: -0.1, marginTop: 16, marginBottom: 6, marginLeft: 2,
+    fontSize: 13,
+    fontWeight: "700",
+    color: Colors.labelTertiary,
+    letterSpacing: 0.2,
+    textTransform: "uppercase",
+    marginTop: 18,
+    marginBottom: 10,
+    marginLeft: 2,
   },
 
-  docRow: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: Colors.card, paddingHorizontal: 14, paddingVertical: 12,
-    borderRadius: 13, gap: 12, ...Shadows.xs,
+  docCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.card,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderRadius: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.separator,
+    ...Shadows.sm,
   },
-  separator: { height: 6 },
-  docEmoji: {
-    width: 40, height: 40, borderRadius: 10,
-    alignItems: "center", justifyContent: "center",
+  docIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
   },
-  docBody: { flex: 1, gap: 3 },
-  docTitle: { fontSize: 14, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
-  docMeta: { fontSize: 12, color: Colors.mutedForeground },
-  docRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+  docBody: { flex: 1, gap: 4 },
+  docTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.label,
+    letterSpacing: -0.3,
+  },
+  docMetaRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  catDot: { width: 5, height: 5, borderRadius: 2.5 },
+  docMeta: { fontSize: 12, color: Colors.labelTertiary },
+  docRight: { flexDirection: "row", alignItems: "center", gap: 10 },
+  starBtn: { padding: 2 },
 
-  empty: { alignItems: "center", paddingTop: 72, gap: 10 },
-  emptyIcon: { fontSize: 40 },
-  emptyTitle: { fontSize: 17, fontWeight: "600", color: Colors.label },
-  emptyDesc: { fontSize: 14, color: Colors.mutedForeground, textAlign: "center", paddingHorizontal: 40, lineHeight: 20 },
+  empty: { alignItems: "center", paddingTop: 80, gap: 12 },
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  emptyIcon: { fontSize: 32 },
+  emptyTitle: { fontSize: 17, fontWeight: "700", color: Colors.label, letterSpacing: -0.4 },
+  emptyDesc: {
+    fontSize: 14,
+    color: Colors.labelTertiary,
+    textAlign: "center",
+    paddingHorizontal: 40,
+    lineHeight: 20,
+    letterSpacing: -0.1,
+  },
 
-  sheetFooter: { flexDirection: "row", gap: 10, alignItems: "center" },
+  sheetFooterRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   deleteBtn: {
-    width: 44, height: 44, borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.red + "50",
-    backgroundColor: Colors.red + "10",
-    alignItems: "center", justifyContent: "center",
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.red + "40",
+    backgroundColor: Colors.redLight,
+    alignItems: "center",
+    justifyContent: "center",
   },
   pdfBtn: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 12, height: 44,
-    borderRadius: 12, borderWidth: 1, borderColor: Colors.accentMid,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.primaryMid,
     backgroundColor: Colors.accentLight,
   },
-  pdfBtnText: { fontSize: 13, fontWeight: "600", color: Colors.accent },
+  pdfBtnText: { fontSize: 14, fontWeight: "700", color: Colors.primary },
 
-  shareOptions: { gap: 8 },
+  shareOptions: { gap: 9 },
   shareOption: {
-    flexDirection: "row", alignItems: "center", gap: 14, padding: 14,
-    borderRadius: 14, backgroundColor: Colors.background,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.separator,
   },
-  shareIcon: {
-    width: 44, height: 44, borderRadius: 12,
-    alignItems: "center", justifyContent: "center",
+  shareIconBox: {
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
   },
   shareOptionText: { flex: 1 },
-  shareOptionTitle: { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
-  shareOptionDesc: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
+  shareOptionTitle: { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.3 },
+  shareOptionDesc: { fontSize: 12, color: Colors.labelTertiary, marginTop: 2 },
 });
