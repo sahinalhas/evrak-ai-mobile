@@ -14,9 +14,6 @@ export type Document = {
 const KEYS = {
   DOCUMENTS: "evrak_ai_documents",
   QUOTA: "evrak_ai_quota",
-  API_KEY_LOVABLE: "evrak_ai_api_key_lovable",
-  API_KEY_GEMINI: "evrak_ai_api_key_gemini",
-  API_PROVIDER: "evrak_ai_api_provider",
   USER_LOGGED_IN: "evrak_ai_user_logged_in",
 };
 
@@ -87,33 +84,6 @@ export const StorageService = {
       await AsyncStorage.setItem(KEYS.QUOTA, String(quota));
     } catch (e) {
       console.error("Error saving quota:", e);
-    }
-  },
-
-  async getApiKeys(): Promise<{ lovableKey: string; geminiKey: string; provider: "lovable" | "gemini" | "mock" | "server" }> {
-    try {
-      const lovableKey = (await AsyncStorage.getItem(KEYS.API_KEY_LOVABLE)) || "";
-      const geminiKey = (await AsyncStorage.getItem(KEYS.API_KEY_GEMINI)) || "";
-      const provider = ((await AsyncStorage.getItem(KEYS.API_PROVIDER)) as "lovable" | "gemini" | "mock" | "server") || "mock";
-      return { lovableKey, geminiKey, provider };
-    } catch {
-      return { lovableKey: "", geminiKey: "", provider: "mock" };
-    }
-  },
-
-  async saveApiKeys(keys: { lovableKey?: string; geminiKey?: string; provider?: "lovable" | "gemini" | "mock" | "server" }): Promise<void> {
-    try {
-      if (keys.lovableKey !== undefined) {
-        await AsyncStorage.setItem(KEYS.API_KEY_LOVABLE, keys.lovableKey);
-      }
-      if (keys.geminiKey !== undefined) {
-        await AsyncStorage.setItem(KEYS.API_KEY_GEMINI, keys.geminiKey);
-      }
-      if (keys.provider !== undefined) {
-        await AsyncStorage.setItem(KEYS.API_PROVIDER, keys.provider);
-      }
-    } catch (e) {
-      console.error("Error saving API keys:", e);
     }
   },
 

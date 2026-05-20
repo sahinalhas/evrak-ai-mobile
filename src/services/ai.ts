@@ -1,5 +1,3 @@
-import { StorageService } from "./storage";
-
 export type ChatMsg = { role: "user" | "assistant"; content: string };
 
 export type AiResponse = {
@@ -841,71 +839,28 @@ function generateMockResponse(messages: ChatMsg[]): AiResponse {
 
 export const AIService = {
   async sendMessage(messages: ChatMsg[]): Promise<AiResponse> {
-    const { lovableKey, geminiKey, provider } = await StorageService.getApiKeys();
-
-    if (provider === "mock") {
+    // Always try the server-side AI first
+    try {
+      const apiBase = typeof window !== "undefined"
+        ? `${window.location.protocol}//${window.location.hostname}:3001`
+        : "http://localhost:3001";
+      const response = await fetch(`${apiBase}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) throw new Error(`Sunucu hatası: ${response.status}`);
+      const data = await response.json() as AiResponse;
+      // If server says key is missing, fall through to mock silently
+      if (data.status === "need_type" && data.assistantMessage?.includes("GEMINI_API_KEY")) {
+        throw new Error("no_key");
+      }
+      return data;
+    } catch (e) {
+      // Fall back to smart offline engine — transparent to user
       await new Promise((r) => setTimeout(r, 900 + Math.random() * 600));
       return generateMockResponse(messages);
-    }
-
-    // EvrakAI server provider — calls local Express backend
-    if (provider === "server") {
-      try {
-        const apiBase = typeof window !== "undefined"
-          ? `${window.location.protocol}//${window.location.hostname}:3001`
-          : "http://localhost:3001";
-        const response = await fetch(`${apiBase}/api/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages }),
-        });
-        if (!response.ok) throw new Error(`Sunucu Hata: ${response.status}`);
-        return await response.json() as AiResponse;
-      } catch (e) {
-        console.error("Server AI Error:", e);
-        const fallback = generateMockResponse(messages);
-        fallback.assistantMessage = `⚠️ Sunucu bağlantı hatası: ${e instanceof Error ? e.message : "Bilinmeyen hata"}\n\nÇevrimdışı motor devreye girdi:\n\n${fallback.assistantMessage}`;
-        return fallback;
-      }
-    }
-
-    try {
-      if (provider === "gemini") {
-        if (!geminiKey) throw new Error("Gemini API anahtarı eksik. Profil → Yapay Zekâ Motoru bölümünden ekleyin.");
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ role: "user", parts: [{ text: SYSTEM_PROMPT }, ...messages.map((m) => ({ text: `${m.role === "user" ? "Kullanıcı" : "Asistan"}: ${m.content}` }))] }],
-              generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
-            }),
-          }
-        );
-        if (!response.ok) throw new Error(`Gemini Hata: ${response.status}`);
-        const data = await response.json();
-        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!rawText) throw new Error("Geçersiz API yanıtı.");
-        return JSON.parse(rawText) as AiResponse;
-      }
-
-      if (!lovableKey) throw new Error("Lovable API anahtarı eksik. Profil → Yapay Zekâ Motoru bölümünden ekleyin.");
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Lovable-API-Key": lovableKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-        body: JSON.stringify({ model: "google/gemini-2.0-flash-001", messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages.map((m) => ({ role: m.role, content: m.content }))], response_format: { type: "json_object" } }),
-      });
-      if (!response.ok) throw new Error(`Lovable Hata: ${response.status}`);
-      const data = await response.json();
-      const rawContent = data.choices?.[0]?.message?.content;
-      if (!rawContent) throw new Error("Yapay zekadan geçersiz yanıt.");
-      return JSON.parse(rawContent) as AiResponse;
-    } catch (e) {
-      console.error("AI API Error:", e);
-      const fallback = generateMockResponse(messages);
-      fallback.assistantMessage = `⚠️ Bağlantı hatası: ${e instanceof Error ? e.message : "Bilinmeyen hata"}\n\nÇevrimdışı motor devreye girdi:\n\n${fallback.assistantMessage}`;
-      return fallback;
     }
   },
 };

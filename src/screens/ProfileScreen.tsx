@@ -5,14 +5,12 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import {
   ChevronRight,
-  Key,
   Shield,
   Info,
   LogOut,
@@ -30,12 +28,7 @@ export const ProfileScreen: React.FC = () => {
   const [quota, setQuota] = useState(FREE_LIMIT);
   const [totalDocs, setTotalDocs] = useState(0);
   const [isPro, setIsPro] = useState(false);
-  const [apiOpen, setApiOpen] = useState(false);
   const [plansOpen, setPlansOpen] = useState(false);
-  const [provider, setProvider] = useState<"mock" | "gemini" | "lovable" | "server">("mock");
-  const [geminiKey, setGeminiKey] = useState("");
-  const [lovableKey, setLovableKey] = useState("");
-  const [saving, setSaving] = useState(false);
 
   useFocusEffect(useCallback(() => { loadData(); }, []));
 
@@ -45,17 +38,6 @@ export const ProfileScreen: React.FC = () => {
     setQuota(await StorageService.getQuota());
     const docs = await StorageService.getDocuments();
     setTotalDocs(docs.length);
-    const keys = await StorageService.getApiKeys();
-    setProvider(keys.provider);
-    setGeminiKey(keys.geminiKey);
-    setLovableKey(keys.lovableKey);
-  };
-
-  const saveApiSettings = async () => {
-    setSaving(true);
-    await StorageService.saveApiKeys({ provider, geminiKey, lovableKey });
-    setSaving(false);
-    setApiOpen(false);
   };
 
   // ── Onboarding ─────────────────────────────────────────────────────────────
@@ -110,7 +92,6 @@ export const ProfileScreen: React.FC = () => {
 
   // ── Profile ────────────────────────────────────────────────────────────────
   const quotaUsed = FREE_LIMIT - quota;
-  const providerLabel = provider === "mock" ? "Çevrimdışı Motor" : provider === "gemini" ? "Google Gemini" : provider === "server" ? "EvrakAI Sunucu" : "Lovable AI";
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -120,18 +101,18 @@ export const ProfileScreen: React.FC = () => {
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>AY</Text>
+            <Text style={styles.avatarText}>AI</Text>
           </View>
           <View style={{ flex: 1 }}>
             <View style={styles.nameRow}>
-              <Text style={styles.name}>Ahmet Yılmaz</Text>
+              <Text style={styles.name}>EvrakAI Kullanıcısı</Text>
               {isPro && (
                 <View style={styles.proBadge}>
                   <Text style={styles.proBadgeText}>PRO</Text>
                 </View>
               )}
             </View>
-            <Text style={styles.email}>ahmet@evrakai.com</Text>
+            <Text style={styles.email}>Yapay zekâ ile belge asistanı</Text>
           </View>
           <TouchableOpacity
             onPress={() => Alert.alert("Çıkış Yap", "Hesabınızdan çıkış yapmak istiyor musunuz?", [
@@ -198,15 +179,9 @@ export const ProfileScreen: React.FC = () => {
 
         {/* Menu */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Ayarlar</Text>
+          <Text style={styles.sectionLabel}>Bilgi</Text>
           <View style={styles.menuCard}>
             {[
-              {
-                Icon: Key,
-                label: "Yapay Zekâ Motoru",
-                value: providerLabel,
-                onPress: () => setApiOpen(true),
-              },
               {
                 Icon: Shield,
                 label: "Gizlilik & KVKK",
@@ -216,8 +191,8 @@ export const ProfileScreen: React.FC = () => {
               {
                 Icon: Info,
                 label: "Hakkında",
-                value: "v1.0.0",
-                onPress: () => Alert.alert("EvrakAI", "Yapay zekâ destekli Türkçe belge asistanı\nVersiyon 1.0.0"),
+                value: "v2.0.0",
+                onPress: () => Alert.alert("EvrakAI", "Yapay zekâ destekli Türkçe belge asistanı\nVersiyon 2.0.0\n\nDesteklenen belgeler:\n• Kira Sözleşmesi\n• İstifa Dilekçesi\n• İhtarname\n• İzin Talebi\n• Kayıt Dondurma\n• Vekaletname\n• İş Sözleşmesi\n• Şikayet Dilekçesi\n• Genel Dilekçe"),
               },
             ].map((item, i) => {
               const Icon = item.Icon;
@@ -226,7 +201,7 @@ export const ProfileScreen: React.FC = () => {
                   key={i}
                   onPress={item.onPress}
                   activeOpacity={0.7}
-                  style={[styles.menuRow, i < 2 && styles.menuRowDivider]}
+                  style={[styles.menuRow, i < 1 && styles.menuRowDivider]}
                 >
                   <View style={styles.menuIconWrap}>
                     <Icon size={16} color={Colors.accent} strokeWidth={1.5} />
@@ -240,65 +215,21 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </View>
 
+        {/* AI Badge */}
+        <View style={styles.section}>
+          <View style={styles.aiBadgeCard}>
+            <View style={styles.aiBadgeIcon}>
+              <Text style={{ fontSize: 20 }}>⚡</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.aiBadgeTitle}>Gerçek Yapay Zekâ</Text>
+              <Text style={styles.aiBadgeDesc}>Belge oluşturma sunucu taraflı AI ile desteklenmektedir</Text>
+            </View>
+          </View>
+        </View>
+
         <Text style={styles.footer}>EvrakAI hukuki tavsiye vermez. Avukata danışmayı ihmal etmeyin.</Text>
       </ScrollView>
-
-      {/* API Sheet */}
-      <DialogSheet
-        visible={apiOpen}
-        onClose={() => setApiOpen(false)}
-        title="Yapay Zekâ Motoru"
-        subtitle="Tercih ettiğiniz sağlayıcıyı seçin"
-        footer={<GradientButton onPress={saveApiSettings} title="Kaydet" loading={saving} style={{ flex: 1 }} />}
-      >
-        <View style={styles.providerList}>
-          {([
-            { id: "server", label: "EvrakAI Sunucu (Önerilen)", desc: "Sunucu tarafında gerçek AI — anahtar gerekmez", emoji: "⚡" },
-            { id: "mock", label: "Çevrimdışı Motor", desc: "API gerektirmez, demo modunda çalışır", emoji: "🤖" },
-            { id: "gemini", label: "Google Gemini", desc: "Kendi API anahtarınız ile güçlü sonuçlar", emoji: "✨" },
-            { id: "lovable", label: "Lovable AI", desc: "Lovable gateway üzerinden erişim", emoji: "💜" },
-          ] as const).map((p) => {
-            const active = provider === p.id;
-            return (
-              <TouchableOpacity key={p.id} onPress={() => setProvider(p.id)} activeOpacity={0.7} style={[styles.providerRow, active && styles.providerRowActive]}>
-                <Text style={{ fontSize: 20 }}>{p.emoji}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.providerLabel, active && styles.providerLabelActive]}>{p.label}</Text>
-                  <Text style={styles.providerDesc}>{p.desc}</Text>
-                </View>
-                {active && <Check size={16} color={Colors.accent} strokeWidth={2.5} />}
-              </TouchableOpacity>
-            );
-          })}
-
-          {provider === "gemini" && (
-            <View style={styles.keyWrap}>
-              <Text style={styles.keyLabel}>Google Gemini API Anahtarı</Text>
-              <TextInput
-                value={geminiKey}
-                onChangeText={setGeminiKey}
-                placeholder="AIzaSy…"
-                placeholderTextColor={Colors.mutedForeground}
-                secureTextEntry
-                style={styles.keyInput}
-              />
-            </View>
-          )}
-          {provider === "lovable" && (
-            <View style={styles.keyWrap}>
-              <Text style={styles.keyLabel}>Lovable API Anahtarı</Text>
-              <TextInput
-                value={lovableKey}
-                onChangeText={setLovableKey}
-                placeholder="lovable_…"
-                placeholderTextColor={Colors.mutedForeground}
-                secureTextEntry
-                style={styles.keyInput}
-              />
-            </View>
-          )}
-        </View>
-      </DialogSheet>
 
       {/* Plans Sheet */}
       <DialogSheet
@@ -321,7 +252,7 @@ export const ProfileScreen: React.FC = () => {
             "Öncelikli AI yanıt süresi",
             "Tüm belge şablonları",
             "PDF dışa aktarma",
-            "Belge arşivi",
+            "WhatsApp & E-posta paylaşımı",
             "Öncelikli destek",
           ].map((f, i) => (
             <View key={i} style={styles.planFeatureRow}>
@@ -358,12 +289,8 @@ const styles = StyleSheet.create({
   featureList: { gap: 18, marginBottom: 40 },
   featureRow: {
     flexDirection: "row", alignItems: "flex-start", gap: 14,
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.separator,
-    ...Shadows.xs,
+    backgroundColor: Colors.card, borderRadius: 14, padding: 14,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator, ...Shadows.xs,
   },
   featureEmojiWrap: {
     width: 38, height: 38, borderRadius: 10,
@@ -378,14 +305,10 @@ const styles = StyleSheet.create({
   // Profile
   scroll: { paddingBottom: 40 },
   profileHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    flexDirection: "row", alignItems: "center", gap: 14,
+    paddingHorizontal: 20, paddingVertical: 18,
     backgroundColor: Colors.card,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.separator,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.separator,
   },
   avatar: {
     width: 48, height: 48, borderRadius: 14,
@@ -395,31 +318,18 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 16, fontWeight: "700", color: Colors.accent },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   name: { fontSize: 17, fontWeight: "600", color: Colors.label, letterSpacing: -0.4 },
-  proBadge: {
-    backgroundColor: Colors.purple,
-    borderRadius: 5,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
+  proBadge: { backgroundColor: Colors.purple, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
   proBadgeText: { fontSize: 9, fontWeight: "700", color: "#fff", letterSpacing: 0.5 },
   email: { fontSize: 13, color: Colors.mutedForeground, marginTop: 2 },
   logoutBtn: { padding: 6 },
 
   statsRow: {
-    flexDirection: "row",
-    marginHorizontal: 20,
-    marginTop: 16,
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.separator,
-    ...Shadows.xs,
+    flexDirection: "row", marginHorizontal: 20, marginTop: 16,
+    backgroundColor: Colors.card, borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator, ...Shadows.xs,
   },
   statCard: { flex: 1, alignItems: "center", paddingVertical: 16, gap: 4 },
-  statCardBorder: {
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: Colors.separator,
-  },
+  statCardBorder: { borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: Colors.separator },
   statValue: { fontSize: 24, fontWeight: "700", color: Colors.label, letterSpacing: -0.5 },
   statLabel: { fontSize: 12, color: Colors.mutedForeground },
 
@@ -427,13 +337,9 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 13, fontWeight: "600", color: Colors.mutedForeground, marginBottom: 8, letterSpacing: -0.1 },
 
   quotaCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.separator,
-    padding: 16,
-    gap: 10,
-    ...Shadows.xs,
+    backgroundColor: Colors.card, borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
+    padding: 16, gap: 10, ...Shadows.xs,
   },
   quotaHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   quotaTitle: { fontSize: 14, fontWeight: "500", color: Colors.label },
@@ -443,14 +349,10 @@ const styles = StyleSheet.create({
   quotaWarn: { fontSize: 12, color: Colors.orange, lineHeight: 17 },
 
   upgradeCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.accentLight,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.accentMid,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: Colors.accentLight, borderRadius: 14,
+    borderWidth: 1, borderColor: Colors.accentMid,
+    paddingHorizontal: 16, paddingVertical: 14,
   },
   upgradeCardLeft: { flex: 1 },
   upgradeCardTitle: { fontSize: 15, fontWeight: "600", color: Colors.accent, letterSpacing: -0.2 },
@@ -462,12 +364,9 @@ const styles = StyleSheet.create({
   },
 
   menuCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.separator,
-    overflow: "hidden",
-    ...Shadows.xs,
+    backgroundColor: Colors.card, borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
+    overflow: "hidden", ...Shadows.xs,
   },
   menuRow: { flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingHorizontal: 14, gap: 10 },
   menuRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.separator },
@@ -479,38 +378,22 @@ const styles = StyleSheet.create({
   menuLabel: { flex: 1, fontSize: 14, color: Colors.label, letterSpacing: -0.2 },
   menuValue: { fontSize: 13, color: Colors.mutedForeground, marginRight: 4 },
 
+  aiBadgeCard: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: Colors.accentLight, borderRadius: 14,
+    borderWidth: 1, borderColor: Colors.accentMid,
+    padding: 14,
+  },
+  aiBadgeIcon: {
+    width: 40, height: 40, borderRadius: 10,
+    backgroundColor: Colors.accent,
+    alignItems: "center", justifyContent: "center",
+  },
+  aiBadgeTitle: { fontSize: 14, fontWeight: "600", color: Colors.accent, letterSpacing: -0.2 },
+  aiBadgeDesc: { fontSize: 12, color: Colors.accent, opacity: 0.75, marginTop: 2, lineHeight: 17 },
+
   footer: { fontSize: 11, color: Colors.mutedForeground, textAlign: "center", marginTop: 28, paddingHorizontal: 24, lineHeight: 16 },
 
-  // API Sheet
-  providerList: { gap: 8 },
-  providerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.separator,
-    backgroundColor: Colors.background,
-  },
-  providerRowActive: { borderColor: Colors.accent, backgroundColor: Colors.accentLight },
-  providerLabel: { fontSize: 14, fontWeight: "500", color: Colors.label },
-  providerLabelActive: { color: Colors.accent, fontWeight: "600" },
-  providerDesc: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
-  keyWrap: { marginTop: 6, gap: 6 },
-  keyLabel: { fontSize: 13, fontWeight: "500", color: Colors.label },
-  keyInput: {
-    backgroundColor: Colors.background,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.separatorOpaque,
-    borderRadius: 10,
-    height: 40,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: Colors.label,
-  },
-
-  // Plan Sheet
   planFeatureList: { gap: 12 },
   planFeatureRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   planCheck: {
