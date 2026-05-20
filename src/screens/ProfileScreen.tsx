@@ -163,7 +163,7 @@ export const ProfileScreen: React.FC = () => {
         </View>
 
         {/* Stats */}
-        <View style={[s.section, { marginTop: 0 }]}>
+        <View style={[s.section, { marginTop: 14 }]}>
           <View style={s.statsRow}>
             {[
               { value: totalDocs.toString(), label: "Belge",  alert: false },
