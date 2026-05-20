@@ -50,7 +50,7 @@ export const ProfileScreen: React.FC = () => {
     const next = await StorageService.addCredits(pkg.credits);
     setCredits(next);
     setBuyOpen(false);
-    Alert.alert("Ödeme Entegrasyonu", `${pkg.label} (${pkg.price}) satın alma yakında aktif olacak!\n\nTest için ${pkg.credits} kredi eklendi.`);
+    Alert.alert("Çok Yakında", `Uygulama içi satın alma özelliği çok yakında aktif olacak. ${pkg.credits} deneme kredisi hesabınıza eklendi.`);
   };
 
   // ── Onboarding ─────────────────────────────────────────────────────────────
@@ -161,7 +161,7 @@ export const ProfileScreen: React.FC = () => {
             </View>
             <TouchableOpacity onPress={() => setBuyOpen(true)} activeOpacity={0.75} style={styles.creditBuyBtn}>
               <ShoppingCart size={14} color="#fff" strokeWidth={2} />
-              <Text style={styles.creditBuyBtnText}>Satın Al</Text>
+              <Text style={styles.creditBuyBtnText}>Kredi Al</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -249,12 +249,12 @@ export const ProfileScreen: React.FC = () => {
       <DialogSheet
         visible={buyOpen}
         onClose={() => setBuyOpen(false)}
-        title="Kredi Satın Al"
-        subtitle="Her kredi 1 belge oluşturmanıza yarar"
+        title="Belge Kredisi Al"
+        subtitle="1 kredi = 1 belge oluşturma hakkı"
         footer={
           <GradientButton
             onPress={handleBuyCredits}
-            title={`Satın Al — ${CREDIT_PACKAGES.find(p => p.id === selectedPkg)?.price}`}
+            title={`Devam Et — ${CREDIT_PACKAGES.find(p => p.id === selectedPkg)?.price}`}
             size="lg"
             icon={<ShoppingCart size={15} color="#fff" />}
             style={{ flex: 1 }}
@@ -299,7 +299,7 @@ export const ProfileScreen: React.FC = () => {
           })}
           <View style={styles.pkgNote}>
             <Text style={styles.pkgNoteText}>
-              💡 Krediler satın alındıktan sonra süresiz geçerlidir. İptal edilemez.
+              💡 Krediler süresiz geçerlidir, belirli bir kullanım süresi yoktur.
             </Text>
           </View>
         </View>

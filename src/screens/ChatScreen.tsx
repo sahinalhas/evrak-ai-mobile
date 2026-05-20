@@ -49,7 +49,7 @@ const QUICK_CHIPS = [
   { label: "Şikayet Dilekçesi", emoji: "📢" },
 ];
 
-const GREETING = "Merhaba! Hangi belgeyi oluşturmak istersiniz?\n\nTüm bilgileri tek seferde anlatabilirsiniz, eksik varsa ben sorarım.";
+const GREETING = "Merhaba! Bugün hangi belgeyi oluşturmak istersiniz?\n\nTüm bilgileri tek seferde anlatabilirsiniz, eksik varsa ben sorarım.";
 const MAX_SESSION_MSGS = 15;
 
 const CREDIT_PACKAGES = [
@@ -161,8 +161,8 @@ export const ChatScreen: React.FC = () => {
     setCredits(next);
     setBuyOpen(false);
     Alert.alert(
-      "Ödeme Entegrasyonu",
-      `${pkg.label} (${pkg.price}) satın alma yakında aktif olacak!\n\nTest için ${pkg.credits} kredi eklendi.`,
+      "Çok Yakında",
+      `Uygulama içi satın alma özelliği çok yakında aktif olacak. ${pkg.credits} deneme kredisi hesabınıza eklendi.`,
     );
   };
 
@@ -349,10 +349,10 @@ export const ChatScreen: React.FC = () => {
           <View style={styles.limitWall}>
             <View style={styles.limitWallInner}>
               <Text style={styles.limitWallEmoji}>⏱️</Text>
-              <Text style={styles.limitWallTitle}>Oturum Limiti Doldu</Text>
+              <Text style={styles.limitWallTitle}>Mesaj Hakkınız Doldu</Text>
               <Text style={styles.limitWallDesc}>
-                Bu sohbette {MAX_SESSION_MSGS} mesaj hakkını kullandınız.{"\n"}
-                Yeni bir belge oluşturmak için yeni sohbet başlatın.
+                Bu belgede {MAX_SESSION_MSGS} mesaj hakkınızı kullandınız.{"\n"}
+                Yeni belge oluşturmak için yeni sohbet başlatın.
               </Text>
               <TouchableOpacity onPress={handleNewChat} style={styles.limitWallBtn} activeOpacity={0.8}>
                 <Plus size={14} color="#fff" strokeWidth={2} />
@@ -367,7 +367,7 @@ export const ChatScreen: React.FC = () => {
               <View style={styles.sessionWarnBar}>
                 <MessageCircle size={12} color={Colors.orange} strokeWidth={2} />
                 <Text style={styles.sessionWarnText}>
-                  {sessionMsgsLeft} mesaj hakkınız kaldı — belgenizi tamamlamaya çalışın
+                  {sessionMsgsLeft} mesaj hakkınız kaldı
                 </Text>
               </View>
             )}
@@ -375,7 +375,7 @@ export const ChatScreen: React.FC = () => {
               <TextInput
                 value={input}
                 onChangeText={setInput}
-                placeholder="Bir belge talep edin…"
+                placeholder="Belgenizi anlatın…"
                 placeholderTextColor={Colors.mutedForeground}
                 multiline
                 style={styles.textInput}
@@ -390,7 +390,7 @@ export const ChatScreen: React.FC = () => {
                   : <Send size={14} color="#fff" strokeWidth={2} />}
               </TouchableOpacity>
             </View>
-            <Text style={styles.disclaimer}>EvrakAI hukuki tavsiye vermez. Önemli işlemler için avukata danışın.</Text>
+            <Text style={styles.disclaimer}>EvrakAI hukuki tavsiye niteliği taşımaz. Önemli işlemler için avukata danışın.</Text>
           </View>
         )}
       </KeyboardAvoidingView>
@@ -470,12 +470,12 @@ export const ChatScreen: React.FC = () => {
       <DialogSheet
         visible={buyOpen}
         onClose={() => setBuyOpen(false)}
-        title="Kredi Satın Al"
-        subtitle="Her kredi 1 belge oluşturmanıza yarar"
+        title="Belge Kredisi Al"
+        subtitle="1 kredi = 1 belge oluşturma hakkı"
         footer={
           <GradientButton
             onPress={handleBuyCredits}
-            title={`Satın Al — ${CREDIT_PACKAGES.find(p => p.id === selectedPkg)?.price}`}
+            title={`Devam Et — ${CREDIT_PACKAGES.find(p => p.id === selectedPkg)?.price}`}
             size="lg"
             icon={<ShoppingCart size={15} color="#fff" />}
             style={{ flex: 1 }}
@@ -520,7 +520,7 @@ export const ChatScreen: React.FC = () => {
           })}
           <View style={styles.pkgNote}>
             <Text style={styles.pkgNoteText}>
-              💡 Krediler satın alındıktan sonra süresiz geçerlidir. İptal edilemez.
+              💡 Krediler süresiz geçerlidir, belirli bir kullanım süresi yoktur.
             </Text>
           </View>
         </View>
