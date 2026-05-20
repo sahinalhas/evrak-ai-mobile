@@ -13,7 +13,7 @@ export type Document = {
 
 const KEYS = {
   DOCUMENTS: "evrak_ai_documents",
-  QUOTA: "evrak_ai_quota",
+  CREDITS: "evrak_ai_credits",
   USER_LOGGED_IN: "evrak_ai_user_logged_in",
 };
 
@@ -66,24 +66,40 @@ export const StorageService = {
     return newDoc;
   },
 
-  async getQuota(): Promise<number> {
+  async getCredits(): Promise<number> {
     try {
-      const quota = await AsyncStorage.getItem(KEYS.QUOTA);
-      if (quota === null) {
-        await AsyncStorage.setItem(KEYS.QUOTA, "8");
-        return 8;
+      const val = await AsyncStorage.getItem(KEYS.CREDITS);
+      if (val === null) {
+        // New users get 1 free trial credit
+        await AsyncStorage.setItem(KEYS.CREDITS, "1");
+        return 1;
       }
-      return parseInt(quota, 10);
+      return parseInt(val, 10);
     } catch {
-      return 8;
+      return 0;
     }
   },
 
-  async setQuota(quota: number): Promise<void> {
+  async addCredits(amount: number): Promise<number> {
     try {
-      await AsyncStorage.setItem(KEYS.QUOTA, String(quota));
+      const current = await this.getCredits();
+      const next = current + amount;
+      await AsyncStorage.setItem(KEYS.CREDITS, String(next));
+      return next;
     } catch (e) {
-      console.error("Error saving quota:", e);
+      console.error("Error adding credits:", e);
+      return 0;
+    }
+  },
+
+  async useCredit(): Promise<boolean> {
+    try {
+      const current = await this.getCredits();
+      if (current <= 0) return false;
+      await AsyncStorage.setItem(KEYS.CREDITS, String(current - 1));
+      return true;
+    } catch {
+      return false;
     }
   },
 

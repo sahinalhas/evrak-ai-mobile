@@ -15,6 +15,7 @@ import {
   Info,
   LogOut,
   Check,
+  ShoppingCart,
 } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";
@@ -25,19 +26,33 @@ const FREE_LIMIT = 8;
 
 export const ProfileScreen: React.FC = () => {
   const [signedIn, setSignedIn] = useState(false);
-  const [quota, setQuota] = useState(FREE_LIMIT);
+  const [credits, setCredits] = useState(0);
   const [totalDocs, setTotalDocs] = useState(0);
-  const [isPro, setIsPro] = useState(false);
-  const [plansOpen, setPlansOpen] = useState(false);
+  const [buyOpen, setBuyOpen] = useState(false);
+  const [selectedPkg, setSelectedPkg] = useState("p3");
+
+  const CREDIT_PACKAGES = [
+    { id: "p1", label: "1 Belge", credits: 1, price: "₺29", priceNum: 29, badge: null },
+    { id: "p3", label: "3 Belge Paketi", credits: 3, price: "₺59", priceNum: 59, badge: "Popüler" },
+    { id: "p10", label: "10 Belge Paketi", credits: 10, price: "₺129", priceNum: 129, badge: "En İyi Değer" },
+  ];
 
   useFocusEffect(useCallback(() => { loadData(); }, []));
 
   const loadData = async () => {
     const logged = await StorageService.getUserLoggedIn();
     setSignedIn(logged);
-    setQuota(await StorageService.getQuota());
+    setCredits(await StorageService.getCredits());
     const docs = await StorageService.getDocuments();
     setTotalDocs(docs.length);
+  };
+
+  const handleBuyCredits = async () => {
+    const pkg = CREDIT_PACKAGES.find((p) => p.id === selectedPkg)!;
+    const next = await StorageService.addCredits(pkg.credits);
+    setCredits(next);
+    setBuyOpen(false);
+    Alert.alert("Ödeme Entegrasyonu", `${pkg.label} (${pkg.price}) satın alma yakında aktif olacak!\n\nTest için ${pkg.credits} kredi eklendi.`);
   };
 
   // ── Onboarding ─────────────────────────────────────────────────────────────
@@ -130,52 +145,60 @@ export const ProfileScreen: React.FC = () => {
         <View style={styles.statsRow}>
           {[
             { value: totalDocs, label: "Belge" },
-            { value: isPro ? "∞" : quotaUsed, label: "Bu Ay" },
-            { value: isPro ? "∞" : quota, label: "Kalan" },
+            { value: credits, label: "Kredi" },
+            { value: credits === 0 ? "—" : "∞", label: "Süre" },
           ].map((s, i) => (
             <View key={i} style={[styles.statCard, i < 2 && styles.statCardBorder]}>
-              <Text style={styles.statValue}>{s.value}</Text>
+              <Text style={[styles.statValue, i === 1 && credits === 0 && { color: Colors.red }]}>{s.value}</Text>
               <Text style={styles.statLabel}>{s.label}</Text>
             </View>
           ))}
         </View>
 
-        {/* Quota */}
-        {!isPro && (
-          <View style={styles.section}>
-            <View style={styles.quotaCard}>
-              <View style={styles.quotaHeader}>
-                <Text style={styles.quotaTitle}>Aylık Kullanım</Text>
-                <Text style={styles.quotaNumbers}>{quotaUsed} / {FREE_LIMIT}</Text>
-              </View>
-              <View style={styles.quotaTrack}>
-                <View style={[styles.quotaFill, {
-                  width: `${(quotaUsed / FREE_LIMIT) * 100}%` as any,
-                  backgroundColor: quota <= 2 ? Colors.red : quota <= 4 ? Colors.orange : Colors.accent,
-                }]} />
-              </View>
-              {quota <= 3 && (
-                <Text style={styles.quotaWarn}>Krediniz azalıyor — Pro'ya geçerek sınırsız kullanın.</Text>
-              )}
+        {/* Credits section */}
+        <View style={styles.section}>
+          <View style={styles.creditCard}>
+            <View style={styles.creditCardLeft}>
+              <Text style={styles.creditCardTitle}>
+                {credits === 0 ? "Krediniz bitti" : `${credits} belge kredisi mevcut`}
+              </Text>
+              <Text style={styles.creditCardDesc}>
+                {credits === 0
+                  ? "Belge oluşturmak için kredi satın alın"
+                  : "Krediler süresiz geçerlidir · belge başına 1 kredi düşer"}
+              </Text>
             </View>
-          </View>
-        )}
-
-        {/* Plan */}
-        {!isPro && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Plan</Text>
-            <TouchableOpacity onPress={() => setPlansOpen(true)} activeOpacity={0.75} style={styles.upgradeCard}>
-              <View style={styles.upgradeCardLeft}>
-                <Text style={styles.upgradeCardTitle}>Pro'ya Geç</Text>
-                <Text style={styles.upgradeCardDesc}>Sınırsız belge · ₺149/ay</Text>
-              </View>
-              <View style={styles.upgradeChevron}>
-                <ChevronRight size={14} color={Colors.accent} strokeWidth={2} />
-              </View>
+            <TouchableOpacity onPress={() => setBuyOpen(true)} activeOpacity={0.75} style={styles.creditBuyBtn}>
+              <ShoppingCart size={14} color="#fff" strokeWidth={2} />
+              <Text style={styles.creditBuyBtnText}>Satın Al</Text>
             </TouchableOpacity>
           </View>
-        )}
+        </View>
+
+        {/* Pricing info */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Fiyatlandırma</Text>
+          <View style={styles.pricingCard}>
+            {[
+              { label: "1 Belge", price: "₺29", sub: "Tek seferlik" },
+              { label: "3 Belge Paketi", price: "₺59", sub: "Belge başı ₺20 — %32 ucuz", highlight: true },
+              { label: "10 Belge Paketi", price: "₺129", sub: "Belge başı ₺13 — %55 ucuz" },
+            ].map((item, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => setBuyOpen(true)}
+                activeOpacity={0.75}
+                style={[styles.pricingRow, i < 2 && styles.pricingRowDivider, item.highlight && styles.pricingRowHighlight]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.pricingLabel, item.highlight && styles.pricingLabelHighlight]}>{item.label}</Text>
+                  <Text style={styles.pricingSub}>{item.sub}</Text>
+                </View>
+                <Text style={[styles.pricingPrice, item.highlight && styles.pricingPriceHighlight]}>{item.price}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
 
         {/* Menu */}
         <View style={styles.section}>
@@ -231,40 +254,62 @@ export const ProfileScreen: React.FC = () => {
         <Text style={styles.footer}>EvrakAI hukuki tavsiye vermez. Avukata danışmayı ihmal etmeyin.</Text>
       </ScrollView>
 
-      {/* Plans Sheet */}
+      {/* Buy Credits Sheet */}
       <DialogSheet
-        visible={plansOpen}
-        onClose={() => setPlansOpen(false)}
-        title="Pro Plana Geç"
-        subtitle="İstediğinizde iptal edebilirsiniz"
+        visible={buyOpen}
+        onClose={() => setBuyOpen(false)}
+        title="Kredi Satın Al"
+        subtitle="Her kredi 1 belge oluşturmanıza yarar"
         footer={
           <GradientButton
-            onPress={() => { Alert.alert("Pro", "Ödeme entegrasyonu yakında!"); setPlansOpen(false); setIsPro(true); }}
-            title="Pro'ya Geç — ₺149/ay"
+            onPress={handleBuyCredits}
+            title={`Satın Al — ${CREDIT_PACKAGES.find(p => p.id === selectedPkg)?.price}`}
             size="lg"
+            icon={<ShoppingCart size={15} color="#fff" />}
             style={{ flex: 1 }}
           />
         }
       >
-        <View style={styles.planFeatureList}>
-          {[
-            "Sınırsız belge oluşturma",
-            "Öncelikli AI yanıt süresi",
-            "Tüm belge şablonları",
-            "PDF dışa aktarma",
-            "WhatsApp & E-posta paylaşımı",
-            "Öncelikli destek",
-          ].map((f, i) => (
-            <View key={i} style={styles.planFeatureRow}>
-              <View style={styles.planCheck}>
-                <Check size={11} color={Colors.accent} strokeWidth={3} />
-              </View>
-              <Text style={styles.planFeatureText}>{f}</Text>
-            </View>
-          ))}
-          <View style={styles.priceBlock}>
-            <Text style={styles.priceAmount}>₺149</Text>
-            <Text style={styles.pricePeriod}>/ay</Text>
+        <View style={styles.pkgList}>
+          {CREDIT_PACKAGES.map((pkg) => {
+            const isSelected = selectedPkg === pkg.id;
+            return (
+              <TouchableOpacity
+                key={pkg.id}
+                onPress={() => setSelectedPkg(pkg.id)}
+                activeOpacity={0.75}
+                style={[styles.pkgCard, isSelected && styles.pkgCardSelected]}
+              >
+                <View style={styles.pkgLeft}>
+                  <View style={[styles.pkgRadio, isSelected && styles.pkgRadioSelected]}>
+                    {isSelected && <View style={styles.pkgRadioFill} />}
+                  </View>
+                  <View>
+                    <View style={styles.pkgTitleRow}>
+                      <Text style={[styles.pkgLabel, isSelected && styles.pkgLabelSelected]}>
+                        {pkg.label}
+                      </Text>
+                      {pkg.badge && (
+                        <View style={[styles.pkgBadge, pkg.id === "p10" && styles.pkgBadgeGreen]}>
+                          <Text style={[styles.pkgBadgeText, pkg.id === "p10" && { color: Colors.green }]}>{pkg.badge}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.pkgSub}>
+                      {pkg.credits} belge · {Math.round(pkg.priceNum / pkg.credits)}₺/belge
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.pkgPrice, isSelected && styles.pkgPriceSelected]}>
+                  {pkg.price}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+          <View style={styles.pkgNote}>
+            <Text style={styles.pkgNoteText}>
+              💡 Krediler satın alındıktan sonra süresiz geçerlidir. İptal edilemez.
+            </Text>
           </View>
         </View>
       </DialogSheet>
@@ -281,8 +326,7 @@ const styles = StyleSheet.create({
   heroIcon: {
     width: 80, height: 80, borderRadius: 22,
     backgroundColor: Colors.accentLight,
-    alignItems: "center", justifyContent: "center",
-    marginBottom: 20,
+    alignItems: "center", justifyContent: "center", marginBottom: 20,
   },
   heroTitle: { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.5, marginBottom: 10 },
   heroSub: { fontSize: 16, color: Colors.mutedForeground, textAlign: "center", lineHeight: 22, letterSpacing: -0.2 },
@@ -294,15 +338,14 @@ const styles = StyleSheet.create({
   },
   featureEmojiWrap: {
     width: 38, height: 38, borderRadius: 10,
-    backgroundColor: Colors.background,
-    alignItems: "center", justifyContent: "center",
+    backgroundColor: Colors.background, alignItems: "center", justifyContent: "center",
   },
   featureTitle: { fontSize: 14, fontWeight: "600", color: Colors.label, marginBottom: 3, letterSpacing: -0.2 },
   featureDesc: { fontSize: 13, color: Colors.mutedForeground, lineHeight: 18 },
   onboardingBtns: { gap: 14 },
   terms: { fontSize: 11, color: Colors.mutedForeground, textAlign: "center", lineHeight: 16 },
 
-  // Profile
+  // Profile header
   scroll: { paddingBottom: 40 },
   profileHeader: {
     flexDirection: "row", alignItems: "center", gap: 14,
@@ -312,8 +355,7 @@ const styles = StyleSheet.create({
   },
   avatar: {
     width: 48, height: 48, borderRadius: 14,
-    backgroundColor: Colors.accentLight,
-    alignItems: "center", justifyContent: "center",
+    backgroundColor: Colors.accentLight, alignItems: "center", justifyContent: "center",
   },
   avatarText: { fontSize: 16, fontWeight: "700", color: Colors.accent },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -323,6 +365,7 @@ const styles = StyleSheet.create({
   email: { fontSize: 13, color: Colors.mutedForeground, marginTop: 2 },
   logoutBtn: { padding: 6 },
 
+  // Stats row
   statsRow: {
     flexDirection: "row", marginHorizontal: 20, marginTop: 16,
     backgroundColor: Colors.card, borderRadius: 16,
@@ -336,33 +379,42 @@ const styles = StyleSheet.create({
   section: { marginTop: 20, paddingHorizontal: 20 },
   sectionLabel: { fontSize: 13, fontWeight: "600", color: Colors.mutedForeground, marginBottom: 8, letterSpacing: -0.1 },
 
-  quotaCard: {
+  // Credit card
+  creditCard: {
+    flexDirection: "row", alignItems: "center", gap: 12,
     backgroundColor: Colors.card, borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
-    padding: 16, gap: 10, ...Shadows.xs,
+    padding: 14, ...Shadows.xs,
   },
-  quotaHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  quotaTitle: { fontSize: 14, fontWeight: "500", color: Colors.label },
-  quotaNumbers: { fontSize: 13, color: Colors.mutedForeground },
-  quotaTrack: { height: 4, backgroundColor: Colors.background, borderRadius: 2, overflow: "hidden" },
-  quotaFill: { height: 4, borderRadius: 2 },
-  quotaWarn: { fontSize: 12, color: Colors.orange, lineHeight: 17 },
+  creditCardLeft: { flex: 1 },
+  creditCardTitle: { fontSize: 14, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
+  creditCardDesc: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2, lineHeight: 17 },
+  creditBuyBtn: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: Colors.accent, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 9,
+  },
+  creditBuyBtnText: { fontSize: 13, fontWeight: "600", color: "#fff" },
 
-  upgradeCard: {
+  // Pricing card
+  pricingCard: {
+    backgroundColor: Colors.card, borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
+    overflow: "hidden", ...Shadows.xs,
+  },
+  pricingRow: {
     flexDirection: "row", alignItems: "center",
-    backgroundColor: Colors.accentLight, borderRadius: 14,
-    borderWidth: 1, borderColor: Colors.accentMid,
-    paddingHorizontal: 16, paddingVertical: 14,
+    paddingVertical: 13, paddingHorizontal: 14,
   },
-  upgradeCardLeft: { flex: 1 },
-  upgradeCardTitle: { fontSize: 15, fontWeight: "600", color: Colors.accent, letterSpacing: -0.2 },
-  upgradeCardDesc: { fontSize: 13, color: Colors.accent, opacity: 0.7, marginTop: 2 },
-  upgradeChevron: {
-    width: 28, height: 28, borderRadius: 8,
-    backgroundColor: Colors.accentMid,
-    alignItems: "center", justifyContent: "center",
-  },
+  pricingRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.separator },
+  pricingRowHighlight: { backgroundColor: Colors.accentLight },
+  pricingLabel: { fontSize: 14, fontWeight: "500", color: Colors.label, letterSpacing: -0.2 },
+  pricingLabelHighlight: { color: Colors.accent, fontWeight: "600" },
+  pricingSub: { fontSize: 11, color: Colors.mutedForeground, marginTop: 2 },
+  pricingPrice: { fontSize: 16, fontWeight: "700", color: Colors.label, letterSpacing: -0.3 },
+  pricingPriceHighlight: { color: Colors.accent },
 
+  // Menu
   menuCard: {
     backgroundColor: Colors.card, borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
@@ -372,37 +424,52 @@ const styles = StyleSheet.create({
   menuRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.separator },
   menuIconWrap: {
     width: 30, height: 30, borderRadius: 8,
-    backgroundColor: Colors.accentLight,
-    alignItems: "center", justifyContent: "center",
+    backgroundColor: Colors.accentLight, alignItems: "center", justifyContent: "center",
   },
   menuLabel: { flex: 1, fontSize: 14, color: Colors.label, letterSpacing: -0.2 },
   menuValue: { fontSize: 13, color: Colors.mutedForeground, marginRight: 4 },
 
+  // AI badge
   aiBadgeCard: {
     flexDirection: "row", alignItems: "center", gap: 12,
     backgroundColor: Colors.accentLight, borderRadius: 14,
-    borderWidth: 1, borderColor: Colors.accentMid,
-    padding: 14,
+    borderWidth: 1, borderColor: Colors.accentMid, padding: 14,
   },
   aiBadgeIcon: {
     width: 40, height: 40, borderRadius: 10,
-    backgroundColor: Colors.accent,
-    alignItems: "center", justifyContent: "center",
+    backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center",
   },
   aiBadgeTitle: { fontSize: 14, fontWeight: "600", color: Colors.accent, letterSpacing: -0.2 },
   aiBadgeDesc: { fontSize: 12, color: Colors.accent, opacity: 0.75, marginTop: 2, lineHeight: 17 },
 
   footer: { fontSize: 11, color: Colors.mutedForeground, textAlign: "center", marginTop: 28, paddingHorizontal: 24, lineHeight: 16 },
 
-  planFeatureList: { gap: 12 },
-  planFeatureRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  planCheck: {
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: Colors.accentLight,
+  // Package selector (buy credits sheet)
+  pkgList: { gap: 10 },
+  pkgCard: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    padding: 14, borderRadius: 14,
+    borderWidth: 1.5, borderColor: Colors.separator,
+    backgroundColor: Colors.background,
+  },
+  pkgCardSelected: { borderColor: Colors.accent, backgroundColor: Colors.accentLight },
+  pkgLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  pkgRadio: {
+    width: 20, height: 20, borderRadius: 10,
+    borderWidth: 2, borderColor: Colors.separator,
     alignItems: "center", justifyContent: "center",
   },
-  planFeatureText: { fontSize: 15, color: Colors.label, letterSpacing: -0.2 },
-  priceBlock: { flexDirection: "row", alignItems: "flex-end", justifyContent: "center", marginTop: 12 },
-  priceAmount: { fontSize: 44, fontWeight: "700", color: Colors.accent, letterSpacing: -1.5 },
-  pricePeriod: { fontSize: 16, color: Colors.mutedForeground, marginBottom: 10, marginLeft: 4 },
+  pkgRadioSelected: { borderColor: Colors.accent },
+  pkgRadioFill: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.accent },
+  pkgTitleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
+  pkgLabel: { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
+  pkgLabelSelected: { color: Colors.accent },
+  pkgBadge: { backgroundColor: Colors.accent + "20", borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
+  pkgBadgeGreen: { backgroundColor: Colors.green + "20" },
+  pkgBadgeText: { fontSize: 10, fontWeight: "700", color: Colors.accent },
+  pkgSub: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
+  pkgPrice: { fontSize: 18, fontWeight: "700", color: Colors.label, letterSpacing: -0.5 },
+  pkgPriceSelected: { color: Colors.accent },
+  pkgNote: { backgroundColor: Colors.muted, borderRadius: 10, padding: 12, marginTop: 4 },
+  pkgNoteText: { fontSize: 12, color: Colors.mutedForeground, lineHeight: 17 },
 });

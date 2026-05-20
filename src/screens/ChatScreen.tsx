@@ -12,11 +12,24 @@ import {
   Share,
   Animated,
   ScrollView,
-  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Send, FileText, Eye, Share2, Plus, RotateCcw, Sparkles, Download, Mail, Copy, MessageCircle } from "lucide-react-native";
+import {
+  Send,
+  FileText,
+  Eye,
+  Share2,
+  Plus,
+  RotateCcw,
+  Sparkles,
+  Download,
+  Mail,
+  Copy,
+  MessageCircle,
+  ShoppingCart,
+  Check,
+} from "lucide-react-native";
 import { Colors, Shadows } from "../components/Theme";
 import { StorageService } from "../services/storage";
 import { AIService, ChatMsg } from "../services/ai";
@@ -37,7 +50,13 @@ const QUICK_CHIPS = [
 ];
 
 const GREETING = "Merhaba! Hangi belgeyi oluşturmak istersiniz?\n\nTüm bilgileri tek seferde anlatabilirsiniz, eksik varsa ben sorarım.";
-const MAX_FREE = 8;
+const MAX_SESSION_MSGS = 15;
+
+const CREDIT_PACKAGES = [
+  { id: "p1", label: "1 Belge", credits: 1, price: "₺29", priceNum: 29, badge: null },
+  { id: "p3", label: "3 Belge Paketi", credits: 3, price: "₺59", priceNum: 59, badge: "Popüler" },
+  { id: "p10", label: "10 Belge Paketi", credits: 10, price: "₺129", priceNum: 129, badge: "En İyi Değer" },
+];
 
 export const ChatScreen: React.FC = () => {
   const [messages, setMessages] = useState<ChatMsg[]>([{ role: "assistant", content: GREETING }]);
@@ -47,13 +66,15 @@ export const ChatScreen: React.FC = () => {
   const [generatedDoc, setGeneratedDoc] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [quota, setQuota] = useState(MAX_FREE);
+  const [buyOpen, setBuyOpen] = useState(false);
+  const [credits, setCredits] = useState(0);
+  const [sessionMsgCount, setSessionMsgCount] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [selectedPkg, setSelectedPkg] = useState<string>("p3");
   const listRef = useRef<FlatList>(null);
   const docCardAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => { StorageService.getQuota().then(setQuota); }, []);
+  useEffect(() => { StorageService.getCredits().then(setCredits); }, []);
 
   const scrollToBottom = () => setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
 
@@ -63,23 +84,37 @@ export const ChatScreen: React.FC = () => {
   };
 
   const handleNewChat = () => {
-    Alert.alert("Yeni Sohbet", "Mevcut sohbet silinecek.", [
+    Alert.alert("Yeni Sohbet", "Mevcut sohbet silinecek, yeni bir belge oluşturabilirsiniz.", [
       { text: "Vazgeç", style: "cancel" },
-      { text: "Yeni Başlat", onPress: () => {
-        setMessages([{ role: "assistant", content: GREETING }]);
-        setInput(""); setDocType(null); setGeneratedDoc("");
-      }},
+      {
+        text: "Yeni Başlat", onPress: () => {
+          setMessages([{ role: "assistant", content: GREETING }]);
+          setInput("");
+          setDocType(null);
+          setGeneratedDoc("");
+          setSessionMsgCount(0);
+        }
+      },
     ]);
   };
+
+  const sessionLimitReached = sessionMsgCount >= MAX_SESSION_MSGS;
 
   const handleSend = async (rawText: string) => {
     const text = rawText.trim();
     if (!text || typing) return;
-    if (quota <= 0) { setUpgradeOpen(true); return; }
 
-    const nextQuota = quota - 1;
-    setQuota(nextQuota);
-    await StorageService.setQuota(nextQuota);
+    // Session message limit check
+    if (sessionLimitReached) return;
+
+    // Credit check — only block if no credits AND no doc generated yet in this session
+    if (credits <= 0) {
+      setBuyOpen(true);
+      return;
+    }
+
+    const nextCount = sessionMsgCount + 1;
+    setSessionMsgCount(nextCount);
 
     const next: ChatMsg[] = [...messages, { role: "user", content: text }];
     setMessages(next);
@@ -92,9 +127,18 @@ export const ChatScreen: React.FC = () => {
       if (data.docType) setDocType(data.docType);
       const updated = [...next, { role: "assistant" as const, content: data.assistantMessage }];
       setMessages(updated);
+
       if (data.status === "ready" && data.document) {
         setGeneratedDoc(data.document);
         showDocCard();
+
+        // Consume 1 credit when document is actually generated
+        const ok = await StorageService.useCredit();
+        if (ok) {
+          const remaining = await StorageService.getCredits();
+          setCredits(remaining);
+        }
+
         await StorageService.addDocument({
           title: `${data.docType ?? "Belge"} — ${new Date().toLocaleDateString("tr-TR")}`,
           type: data.docType ?? "Genel Belge",
@@ -110,6 +154,18 @@ export const ChatScreen: React.FC = () => {
     }
   };
 
+  const handleBuyCredits = async () => {
+    const pkg = CREDIT_PACKAGES.find((p) => p.id === selectedPkg)!;
+    // Simulate purchase — in production, integrate real payment here
+    const next = await StorageService.addCredits(pkg.credits);
+    setCredits(next);
+    setBuyOpen(false);
+    Alert.alert(
+      "Ödeme Entegrasyonu",
+      `${pkg.label} (${pkg.price}) satın alma yakında aktif olacak!\n\nTest için ${pkg.credits} kredi eklendi.`,
+    );
+  };
+
   const getCat = (type: string | null): "Hukuki" | "İş Hayatı" | "Eğitim" | "Kişisel" => {
     if (!type) return "Hukuki";
     const t = type.toLowerCase();
@@ -120,7 +176,7 @@ export const ChatScreen: React.FC = () => {
   };
 
   const handleNativeShare = async () => {
-    try { await Share.share({ message: generatedDoc, title: `${docType ?? "Belge"} — EvrakAI` }); } catch {}
+    try { await Share.share({ message: generatedDoc, title: `${docType ?? "Belge"} — EvrakAI` }); } catch { }
   };
 
   const handleCopy = async () => {
@@ -148,7 +204,9 @@ export const ChatScreen: React.FC = () => {
     shareViaEmail(generatedDoc, `${docType ?? "Belge"} — EvrakAI`);
   };
 
-  const quotaColor = quota <= 2 ? Colors.red : quota <= 4 ? Colors.orange : Colors.accent;
+  const creditColor = credits === 0 ? Colors.red : credits <= 2 ? Colors.orange : Colors.accent;
+  const sessionMsgsLeft = MAX_SESSION_MSGS - sessionMsgCount;
+  const showSessionWarn = sessionMsgCount >= 10 && !sessionLimitReached;
 
   const renderMessage = ({ item }: { item: ChatMsg }) => {
     const isUser = item.role === "user";
@@ -178,15 +236,23 @@ export const ChatScreen: React.FC = () => {
           <View style={styles.logoMark}>
             <Text style={styles.logoGlyph}>⚖</Text>
           </View>
-          <View>
-            <Text style={styles.headerTitle}>EvrakAI</Text>
-          </View>
+          <Text style={styles.headerTitle}>EvrakAI</Text>
         </View>
         <View style={styles.headerRight}>
-          <View style={[styles.quotaBadge, { borderColor: quotaColor + "50" }]}>
-            <View style={[styles.quotaDot, { backgroundColor: quotaColor }]} />
-            <Text style={[styles.quotaText, { color: quotaColor }]}>{quota}/{MAX_FREE} kredi</Text>
-          </View>
+          {/* Credit badge */}
+          <TouchableOpacity
+            onPress={() => setBuyOpen(true)}
+            activeOpacity={0.75}
+            style={[styles.creditBadge, { borderColor: creditColor + "50" }]}
+          >
+            <View style={[styles.creditDot, { backgroundColor: creditColor }]} />
+            <Text style={[styles.creditText, { color: creditColor }]}>
+              {credits} kredi
+            </Text>
+            {credits === 0 && (
+              <ShoppingCart size={11} color={creditColor} strokeWidth={2} style={{ marginLeft: 2 }} />
+            )}
+          </TouchableOpacity>
           <TouchableOpacity onPress={handleNewChat} style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Plus size={17} color={Colors.accent} strokeWidth={2} />
           </TouchableOpacity>
@@ -278,29 +344,55 @@ export const ChatScreen: React.FC = () => {
           }
         />
 
-        {/* Input */}
-        <View style={styles.inputArea}>
-          <View style={styles.inputRow}>
-            <TextInput
-              value={input}
-              onChangeText={setInput}
-              placeholder="Bir belge talep edin…"
-              placeholderTextColor={Colors.mutedForeground}
-              multiline
-              style={styles.textInput}
-            />
-            <TouchableOpacity
-              onPress={() => handleSend(input)}
-              disabled={!input.trim() || typing}
-              style={[styles.sendBtn, (!input.trim() || typing) && styles.sendBtnDisabled]}
-            >
-              {typing
-                ? <RotateCcw size={14} color="#fff" strokeWidth={2} />
-                : <Send size={14} color="#fff" strokeWidth={2} />}
-            </TouchableOpacity>
+        {/* Session limit reached wall */}
+        {sessionLimitReached ? (
+          <View style={styles.limitWall}>
+            <View style={styles.limitWallInner}>
+              <Text style={styles.limitWallEmoji}>⏱️</Text>
+              <Text style={styles.limitWallTitle}>Oturum Limiti Doldu</Text>
+              <Text style={styles.limitWallDesc}>
+                Bu sohbette {MAX_SESSION_MSGS} mesaj hakkını kullandınız.{"\n"}
+                Yeni bir belge oluşturmak için yeni sohbet başlatın.
+              </Text>
+              <TouchableOpacity onPress={handleNewChat} style={styles.limitWallBtn} activeOpacity={0.8}>
+                <Plus size={14} color="#fff" strokeWidth={2} />
+                <Text style={styles.limitWallBtnText}>Yeni Sohbet Başlat</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={styles.disclaimer}>EvrakAI hukuki tavsiye vermez. Önemli işlemler için avukata danışın.</Text>
-        </View>
+        ) : (
+          <View style={styles.inputArea}>
+            {/* Session warn */}
+            {showSessionWarn && (
+              <View style={styles.sessionWarnBar}>
+                <MessageCircle size={12} color={Colors.orange} strokeWidth={2} />
+                <Text style={styles.sessionWarnText}>
+                  {sessionMsgsLeft} mesaj hakkınız kaldı — belgenizi tamamlamaya çalışın
+                </Text>
+              </View>
+            )}
+            <View style={styles.inputRow}>
+              <TextInput
+                value={input}
+                onChangeText={setInput}
+                placeholder="Bir belge talep edin…"
+                placeholderTextColor={Colors.mutedForeground}
+                multiline
+                style={styles.textInput}
+              />
+              <TouchableOpacity
+                onPress={() => handleSend(input)}
+                disabled={!input.trim() || typing}
+                style={[styles.sendBtn, (!input.trim() || typing) && styles.sendBtnDisabled]}
+              >
+                {typing
+                  ? <RotateCcw size={14} color="#fff" strokeWidth={2} />
+                  : <Send size={14} color="#fff" strokeWidth={2} />}
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.disclaimer}>EvrakAI hukuki tavsiye vermez. Önemli işlemler için avukata danışın.</Text>
+          </View>
+        )}
       </KeyboardAvoidingView>
 
       {/* Preview Sheet */}
@@ -344,7 +436,6 @@ export const ChatScreen: React.FC = () => {
               <Text style={styles.shareOptionDesc}>WhatsApp üzerinden gönder</Text>
             </View>
           </TouchableOpacity>
-
           <TouchableOpacity onPress={handleEmail} style={styles.shareOption} activeOpacity={0.75}>
             <View style={[styles.shareIcon, { backgroundColor: Colors.blue + "20" }]}>
               <Mail size={22} color={Colors.blue} strokeWidth={1.5} />
@@ -354,7 +445,6 @@ export const ChatScreen: React.FC = () => {
               <Text style={styles.shareOptionDesc}>E-posta uygulamasını aç</Text>
             </View>
           </TouchableOpacity>
-
           <TouchableOpacity onPress={handleCopy} style={styles.shareOption} activeOpacity={0.75}>
             <View style={[styles.shareIcon, { backgroundColor: Colors.accentLight }]}>
               <Copy size={22} color={Colors.accent} strokeWidth={1.5} />
@@ -364,7 +454,6 @@ export const ChatScreen: React.FC = () => {
               <Text style={styles.shareOptionDesc}>Metni kopyala, istediğin yere yapıştır</Text>
             </View>
           </TouchableOpacity>
-
           <TouchableOpacity onPress={() => { setShareOpen(false); handleNativeShare(); }} style={styles.shareOption} activeOpacity={0.75}>
             <View style={[styles.shareIcon, { backgroundColor: Colors.muted }]}>
               <Share2 size={22} color={Colors.label} strokeWidth={1.5} />
@@ -377,33 +466,63 @@ export const ChatScreen: React.FC = () => {
         </View>
       </DialogSheet>
 
-      {/* Upgrade Sheet */}
+      {/* Buy Credits Sheet */}
       <DialogSheet
-        visible={upgradeOpen}
-        onClose={() => setUpgradeOpen(false)}
-        title="Pro Plana Geç"
-        subtitle="Sınırsız belge ve gelişmiş özellikler"
-      >
-        <View style={styles.upgradeList}>
-          {["Sınırsız belge oluşturma", "Öncelikli AI yanıt süresi", "PDF dışa aktarma", "WhatsApp & E-posta paylaşımı", "Tüm şablonlara erişim"].map((f, i) => (
-            <View key={i} style={styles.upgradeRow}>
-              <Text style={styles.upgradeCheck}>✓</Text>
-              <Text style={styles.upgradeRowText}>{f}</Text>
-            </View>
-          ))}
-          <View style={styles.upgradePriceRow}>
-            <Text style={styles.upgradePrice}>₺149</Text>
-            <Text style={styles.upgradePeriod}>/ay</Text>
-          </View>
+        visible={buyOpen}
+        onClose={() => setBuyOpen(false)}
+        title="Kredi Satın Al"
+        subtitle="Her kredi 1 belge oluşturmanıza yarar"
+        footer={
           <GradientButton
-            onPress={() => { setUpgradeOpen(false); Alert.alert("Pro", "Ödeme entegrasyonu yakında aktif olacak!"); }}
-            title="Pro'ya Geç"
+            onPress={handleBuyCredits}
+            title={`Satın Al — ${CREDIT_PACKAGES.find(p => p.id === selectedPkg)?.price}`}
             size="lg"
-            style={{ marginTop: 4 }}
+            icon={<ShoppingCart size={15} color="#fff" />}
+            style={{ flex: 1 }}
           />
-          <TouchableOpacity onPress={() => setUpgradeOpen(false)} style={styles.skipBtn}>
-            <Text style={styles.skipText}>Şimdi değil</Text>
-          </TouchableOpacity>
+        }
+      >
+        <View style={styles.pkgList}>
+          {CREDIT_PACKAGES.map((pkg) => {
+            const isSelected = selectedPkg === pkg.id;
+            return (
+              <TouchableOpacity
+                key={pkg.id}
+                onPress={() => setSelectedPkg(pkg.id)}
+                activeOpacity={0.75}
+                style={[styles.pkgCard, isSelected && styles.pkgCardSelected]}
+              >
+                <View style={styles.pkgLeft}>
+                  <View style={styles.pkgRadio}>
+                    {isSelected && <View style={styles.pkgRadioFill} />}
+                  </View>
+                  <View>
+                    <View style={styles.pkgTitleRow}>
+                      <Text style={[styles.pkgLabel, isSelected && styles.pkgLabelSelected]}>
+                        {pkg.label}
+                      </Text>
+                      {pkg.badge && (
+                        <View style={[styles.pkgBadge, pkg.id === "p10" && styles.pkgBadgeGreen]}>
+                          <Text style={styles.pkgBadgeText}>{pkg.badge}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.pkgSub}>
+                      {pkg.credits} belge · {Math.round(pkg.priceNum / pkg.credits)}₺/belge
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.pkgPrice, isSelected && styles.pkgPriceSelected]}>
+                  {pkg.price}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+          <View style={styles.pkgNote}>
+            <Text style={styles.pkgNoteText}>
+              💡 Krediler satın alındıktan sonra süresiz geçerlidir. İptal edilemez.
+            </Text>
+          </View>
         </View>
       </DialogSheet>
     </SafeAreaView>
@@ -432,13 +551,13 @@ const styles = StyleSheet.create({
   logoGlyph: { fontSize: 15 },
   headerTitle: { fontSize: 17, fontWeight: "600", color: Colors.label, letterSpacing: -0.4 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
-  quotaBadge: {
+  creditBadge: {
     flexDirection: "row", alignItems: "center", gap: 5,
     paddingHorizontal: 10, paddingVertical: 5,
     borderRadius: 20, borderWidth: 1, backgroundColor: Colors.background,
   },
-  quotaDot: { width: 6, height: 6, borderRadius: 3 },
-  quotaText: { fontSize: 12, fontWeight: "500" },
+  creditDot: { width: 6, height: 6, borderRadius: 3 },
+  creditText: { fontSize: 12, fontWeight: "600" },
   iconBtn: {
     width: 32, height: 32, borderRadius: 8,
     backgroundColor: Colors.accentLight,
@@ -508,6 +627,36 @@ const styles = StyleSheet.create({
   docActionText: { fontSize: 12, color: Colors.accent, fontWeight: "500" },
   docActionDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.separator },
 
+  // Session limit wall
+  limitWall: {
+    paddingHorizontal: 20, paddingVertical: 14,
+    backgroundColor: Colors.card,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.separator,
+  },
+  limitWallInner: {
+    backgroundColor: Colors.background,
+    borderRadius: 16,
+    borderWidth: 1, borderColor: Colors.orange + "40",
+    padding: 18, alignItems: "center", gap: 6,
+  },
+  limitWallEmoji: { fontSize: 28, marginBottom: 4 },
+  limitWallTitle: { fontSize: 16, fontWeight: "700", color: Colors.label, letterSpacing: -0.3 },
+  limitWallDesc: { fontSize: 13, color: Colors.mutedForeground, textAlign: "center", lineHeight: 19 },
+  limitWallBtn: {
+    flexDirection: "row", alignItems: "center", gap: 7,
+    backgroundColor: Colors.accent, borderRadius: 12,
+    paddingHorizontal: 20, paddingVertical: 11, marginTop: 8,
+  },
+  limitWallBtnText: { fontSize: 14, fontWeight: "600", color: "#fff" },
+
+  // Input
+  sessionWarnBar: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: Colors.orange + "15",
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+    marginBottom: 8,
+  },
+  sessionWarnText: { fontSize: 12, color: Colors.orange, flex: 1 },
   inputArea: {
     paddingHorizontal: 12, paddingTop: 8,
     paddingBottom: Platform.OS === "ios" ? 4 : 12,
@@ -559,13 +708,42 @@ const styles = StyleSheet.create({
   shareOptionTitle: { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
   shareOptionDesc: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
 
-  upgradeList: { gap: 12 },
-  upgradeRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  upgradeCheck: { fontSize: 13, color: Colors.green, fontWeight: "700", width: 20, textAlign: "center" },
-  upgradeRowText: { fontSize: 15, color: Colors.label, letterSpacing: -0.2 },
-  upgradePriceRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "center", marginTop: 6 },
-  upgradePrice: { fontSize: 40, fontWeight: "700", color: Colors.accent, letterSpacing: -1 },
-  upgradePeriod: { fontSize: 15, color: Colors.mutedForeground, marginBottom: 8, marginLeft: 4 },
-  skipBtn: { alignItems: "center", paddingVertical: 12 },
-  skipText: { fontSize: 14, color: Colors.mutedForeground },
+  // Credit packages
+  pkgList: { gap: 10 },
+  pkgCard: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    padding: 14, borderRadius: 14,
+    borderWidth: 1.5, borderColor: Colors.separator,
+    backgroundColor: Colors.background,
+  },
+  pkgCardSelected: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentLight,
+  },
+  pkgLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  pkgRadio: {
+    width: 20, height: 20, borderRadius: 10,
+    borderWidth: 2, borderColor: Colors.separator,
+    alignItems: "center", justifyContent: "center",
+  },
+  pkgRadioFill: {
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: Colors.accent,
+  },
+  pkgTitleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
+  pkgLabel: { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
+  pkgLabelSelected: { color: Colors.accent },
+  pkgBadge: {
+    backgroundColor: Colors.accent + "20",
+    borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2,
+  },
+  pkgBadgeGreen: { backgroundColor: Colors.green + "20" },
+  pkgBadgeText: { fontSize: 10, fontWeight: "700", color: Colors.accent },
+  pkgSub: { fontSize: 12, color: Colors.mutedForeground, marginTop: 2 },
+  pkgPrice: { fontSize: 18, fontWeight: "700", color: Colors.label, letterSpacing: -0.5 },
+  pkgPriceSelected: { color: Colors.accent },
+  pkgNote: {
+    backgroundColor: Colors.muted, borderRadius: 10, padding: 12, marginTop: 4,
+  },
+  pkgNoteText: { fontSize: 12, color: Colors.mutedForeground, lineHeight: 17 },
 });
