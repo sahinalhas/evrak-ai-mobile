@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
   Alert, TextInput, KeyboardAvoidingView, Platform,
@@ -7,7 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import {
   ChevronRight, Shield, Info, LogOut,
-  ShoppingCart, FileText, Zap, Check, Sparkles,
+  ShoppingCart, FileText, Zap, Check,
 } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";
@@ -21,7 +22,6 @@ const PACKAGES = [
 ];
 
 export const ProfileScreen: React.FC = () => {
-  const [signedIn, setSignedIn] = useState(false);
   const [credits, setCredits] = useState(0);
   const [totalDocs, setTotalDocs] = useState(0);
   const [userInfo, setUserInfo] = useState<UserInfo>({ ad: "", soyad: "", tckn: "", telefon: "", adres: "", eposta: "" });
@@ -34,7 +34,6 @@ export const ProfileScreen: React.FC = () => {
   useFocusEffect(useCallback(() => { load(); }, []));
 
   const load = async () => {
-    setSignedIn(await StorageService.getUserLoggedIn());
     setCredits(await StorageService.getCredits());
     const docs = await StorageService.getDocuments();
     setTotalDocs(docs.length);
@@ -61,11 +60,14 @@ export const ProfileScreen: React.FC = () => {
   };
 
   const signOut = () =>
-    Alert.alert("Çıkış Yap", "Hesabınızdan çıkmak istiyor musunuz?", [
+    Alert.alert("Sıfırla", "Tüm veriler silinecek ve karşılama ekranına dönülecek. Emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {
-        text: "Çıkış", style: "destructive",
-        onPress: async () => { await StorageService.setUserLoggedIn(false); setSignedIn(false); },
+        text: "Sıfırla", style: "destructive",
+        onPress: async () => {
+          await StorageService.setUserLoggedIn(false);
+          await AsyncStorage.removeItem("evrak_ai_onboarding_done");
+        },
       },
     ]);
 
@@ -74,55 +76,6 @@ export const ProfileScreen: React.FC = () => {
   const initials    = ((userInfo.ad?.[0] ?? "") + (userInfo.soyad?.[0] ?? "")).toUpperCase() || "AI";
   const creditOut   = credits === 0;
   const creditLow   = credits > 0 && credits <= 2;
-
-  // ─── Onboarding ─────────────────────────────────────────────────────────────
-  if (!signedIn) {
-    return (
-      <SafeAreaView style={s.root}>
-        <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={s.onboardContent} showsVerticalScrollIndicator={false}>
-
-          <View style={s.hero}>
-            <View style={s.heroIconWrap}>
-              <View style={s.heroIconRing} />
-              <View style={s.heroIcon}>
-                <Sparkles size={38} color="#fff" strokeWidth={1.8} />
-              </View>
-            </View>
-            <Text style={s.heroTitle}>EvrakAI</Text>
-            <Text style={s.heroSubtitle}>
-              Yapay zekâ ile Türkçe hukuki belgeler.{"\n"}Saniyeler içinde hazır.
-            </Text>
-          </View>
-
-          <View style={s.featureCard}>
-            {[
-              { emoji: "📄", title: "Akıllı Belge Oluşturma", body: "Doğal dilde anlatın, belge anında hazır olsun" },
-              { emoji: "🔒", title: "Gizlilik Önce",           body: "Tüm veriler yalnızca cihazınızda saklanır" },
-              { emoji: "⚡", title: "Hızlı & Kolay",           body: "Form yok — sadece konuşun, asistan halleder" },
-            ].map((f, i, arr) => (
-              <View key={i} style={[s.featureRow, i < arr.length - 1 && s.featureRowBorder]}>
-                <View style={s.featureEmoji}><Text style={{ fontSize: 19 }}>{f.emoji}</Text></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.featureTitle}>{f.title}</Text>
-                  <Text style={s.featureBody}>{f.body}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-
-          <GradientButton
-            onPress={async () => { await StorageService.setUserLoggedIn(true); setSignedIn(true); }}
-            title="Ücretsiz Başla"
-            size="lg"
-            style={{ marginTop: 6 }}
-            icon={<Zap size={16} color="#fff" strokeWidth={2.5} />}
-          />
-          <Text style={s.termsNote}>Devam ederek Gizlilik Politikamızı kabul edersiniz.</Text>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
 
   // ─── Profile ─────────────────────────────────────────────────────────────────
   return (
@@ -363,56 +316,6 @@ export const ProfileScreen: React.FC = () => {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
-
-  // ── Onboarding
-  onboardContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 56 },
-  hero: { alignItems: "center", paddingTop: 64, paddingBottom: 52 },
-  heroIconWrap: { alignItems: "center", justifyContent: "center", marginBottom: 28 },
-  heroIconRing: {
-    position: "absolute",
-    width: 110, height: 110, borderRadius: 34,
-    backgroundColor: Colors.accentLight,
-    borderWidth: 1, borderColor: Colors.accentMid,
-  },
-  heroIcon: {
-    width: 88, height: 88, borderRadius: 26,
-    backgroundColor: Colors.accent,
-    alignItems: "center", justifyContent: "center",
-    ...Shadows.glow,
-  },
-  heroTitle: {
-    fontSize: 34, fontWeight: "800", color: Colors.label,
-    letterSpacing: -1.0, marginBottom: 12,
-  },
-  heroSubtitle: {
-    fontSize: 16, color: Colors.label2,
-    textAlign: "center", lineHeight: 26, letterSpacing: -0.2,
-  },
-  featureCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.separator,
-    overflow: "hidden",
-    marginBottom: 28,
-    ...Shadows.card,
-  },
-  featureRow: {
-    flexDirection: "row", alignItems: "center", gap: 15,
-    paddingHorizontal: 18, paddingVertical: 17,
-  },
-  featureRowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.separator,
-  },
-  featureEmoji: {
-    width: 44, height: 44, borderRadius: 14,
-    backgroundColor: Colors.fill,
-    alignItems: "center", justifyContent: "center",
-  },
-  featureTitle: { fontSize: 15, fontWeight: "700", color: Colors.label, marginBottom: 2, letterSpacing: -0.25 },
-  featureBody:  { fontSize: 13, color: Colors.label2, lineHeight: 19 },
-  termsNote:    { fontSize: 12, color: Colors.label3, textAlign: "center", marginTop: 18, lineHeight: 18 },
 
   // ── Profile header
   header: {

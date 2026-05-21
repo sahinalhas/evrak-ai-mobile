@@ -1,14 +1,17 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { StyleSheet, View, Text, Animated, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator, BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MessageSquare, FolderOpen, User } from "lucide-react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Colors, Shadows } from "./src/components/Theme";
 import { ChatScreen } from "./src/screens/ChatScreen";
 import { DocumentsScreen } from "./src/screens/DocumentsScreen";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
+import { WelcomeScreen } from "./src/screens/WelcomeScreen";
+import { StorageService } from "./src/services/storage";
 import {
   useFonts,
   Inter_400Regular,
@@ -17,12 +20,13 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 
-const Tab = createBottomTabNavigator();
+const Tab   = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
 const TABS = [
-  { name: "Sohbet",   label: "Sohbet",    Icon: MessageSquare },
-  { name: "Belgeler", label: "Belgeler",   Icon: FolderOpen },
-  { name: "Profil",   label: "Profil",     Icon: User },
+  { name: "Sohbet",   label: "Sohbet",   Icon: MessageSquare },
+  { name: "Belgeler", label: "Belgeler",  Icon: FolderOpen },
+  { name: "Profil",   label: "Profil",    Icon: User },
 ];
 
 function TabItem({ route, focused, onPress }: {
@@ -75,25 +79,46 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   );
 }
 
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      initialRouteName="Sohbet"
+      tabBar={props => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
+    >
+      <Tab.Screen name="Sohbet"   component={ChatScreen} />
+      <Tab.Screen name="Belgeler" component={DocumentsScreen} />
+      <Tab.Screen name="Profil"   component={ProfileScreen} />
+    </Tab.Navigator>
+  );
+}
+
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold,
   });
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
-  if (!fontsLoaded && !fontError) return null;
+  useEffect(() => {
+    StorageService.isOnboardingDone().then(setOnboardingDone);
+  }, []);
+
+  if ((!fontsLoaded && !fontError) || onboardingDone === null) return null;
+
+  if (!onboardingDone) {
+    return (
+      <SafeAreaProvider>
+        <WelcomeScreen onDone={() => setOnboardingDone(true)} />
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <Tab.Navigator
-          initialRouteName="Sohbet"
-          tabBar={props => <CustomTabBar {...props} />}
-          screenOptions={{ headerShown: false }}
-        >
-          <Tab.Screen name="Sohbet"   component={ChatScreen} />
-          <Tab.Screen name="Belgeler" component={DocumentsScreen} />
-          <Tab.Screen name="Profil"   component={ProfileScreen} />
-        </Tab.Navigator>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Main" component={MainTabs} />
+        </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
   );

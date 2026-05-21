@@ -33,6 +33,7 @@ const KEYS = {
   CREDITS: "evrak_ai_credits",
   USER_LOGGED_IN: "evrak_ai_user_logged_in",
   USER_INFO: "evrak_ai_user_info",
+  ONBOARDING_DONE: "evrak_ai_onboarding_done",
 };
 
 function daysAgo(n: number) {
@@ -235,6 +236,24 @@ export const StorageService = {
       await AsyncStorage.setItem(KEYS.USER_LOGGED_IN, status ? "true" : "false");
     } catch (e) {
       console.error("Error saving login status:", e);
+    }
+  },
+
+  async isOnboardingDone(): Promise<boolean> {
+    try {
+      const val = await AsyncStorage.getItem(KEYS.ONBOARDING_DONE);
+      return val === "true";
+    } catch {
+      return false;
+    }
+  },
+
+  async setOnboardingDone(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(KEYS.ONBOARDING_DONE, "true");
+      await AsyncStorage.setItem(KEYS.USER_LOGGED_IN, "true");
+    } catch (e) {
+      console.error("Error saving onboarding status:", e);
     }
   },
 };
