@@ -6,7 +6,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Send, Copy, Share2, RotateCcw, Printer, X, ChevronRight, Sparkles } from "lucide-react-native";
+import { Send, Copy, Share2, RotateCcw, Printer, X, ChevronRight, Sparkles, FileCheck } from "lucide-react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Colors, Shadows } from "../components/Theme";
 import { GradientButton, PulsingDots, DialogSheet } from "../components/ui";
@@ -58,17 +58,17 @@ const TEMPLATE_INFO: Record<string, {
     needed: ["Taahhüt konusu (davranışsal)", "Karşı taraf veya kurum", "Taahhüt süresi (varsa)", "Adınız ve TC kimlik no"],
     sample: "# TAAHHÜTNAME\n\nBen, aşağıda imzası bulunan …………… bundan böyle …………… konusunda üzerime düşen yükümlülükleri yerine getireceğimi taahhüt ederim.",
   },
-  "Referans Mektubu": {
+  "Referans": {
     label: "Referans Mektubu",
     needed: ["Referans verilen kişinin adı ve görevi", "Birlikte çalışma süresi", "Öne çıkan 2-3 özellik", "Referans verenin adı ve unvanı"],
     sample: "# REFERANS MEKTUBU\n\n…………… ile …………… süre boyunca birlikte çalışma fırsatı buldum.",
   },
-  "Kayıt Dondurma": {
+  "Kayıt Dondur": {
     label: "Kayıt Dondurma",
     needed: ["Üniversite / okul ve bölüm adı", "Öğrenci numarası", "Dondurma gerekçesi", "Dondurulmak istenen dönem"],
     sample: "# KAYIT DONDURMA TALEBİ\n\n**Fakülte Dekanlığı'na,**\n\n…………… Bölümü öğrencisi olarak, 2026-2027 Güz dönemi için kaydımın dondurulmasını talep ediyorum.",
   },
-  "Nakil Talebi": {
+  "Nakil": {
     label: "Nakil Talebi",
     needed: ["Mevcut okul / bölüm", "Nakil olmak istediğiniz yer", "Nakil gerekçesi", "Adınız ve öğrenci numarası"],
     sample: "# NAKİL TALEBİ\n\n**Öğrenci İşleri Daire Başkanlığı'na,**\n\n…………… bölümünden …………… bölümüne nakil olmak istediğimi arz ederim.",
@@ -110,15 +110,18 @@ export const ChatScreen: React.FC = () => {
 
   const onFocus = () => {
     setInputFocused(true);
-    Animated.timing(borderAnim, { toValue: 1, duration: 200, useNativeDriver: false }).start();
+    Animated.timing(borderAnim, { toValue: 1, duration: 180, useNativeDriver: false }).start();
   };
   const onBlur = () => {
     setInputFocused(false);
-    Animated.timing(borderAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start();
+    Animated.timing(borderAnim, { toValue: 0, duration: 180, useNativeDriver: false }).start();
   };
 
   const animatedBorder = borderAnim.interpolate({
     inputRange: [0, 1], outputRange: [Colors.separator, Colors.accent],
+  });
+  const animatedShadow = borderAnim.interpolate({
+    inputRange: [0, 1], outputRange: [0, 0.14],
   });
 
   const send = async (text?: string) => {
@@ -136,7 +139,6 @@ export const ChatScreen: React.FC = () => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
 
     try {
-      // Build proper ChatMsg history for the AI service
       const history: ChatMsg[] = [
         ...messages
           .filter(m => m.id !== "welcome")
@@ -216,11 +218,11 @@ export const ChatScreen: React.FC = () => {
     <SafeAreaView style={s.root} edges={["top"]}>
       <StatusBar style="dark" />
 
-      {/* Header */}
+      {/* ── Header ── */}
       <View style={s.header}>
         <View style={s.headerLeft}>
           <View style={s.logoMark}>
-            <Sparkles size={14} color="#fff" strokeWidth={2.2} />
+            <Sparkles size={13} color="#fff" strokeWidth={2.5} />
           </View>
           <View>
             <Text style={s.headerTitle}>EvrakAI</Text>
@@ -244,38 +246,37 @@ export const ChatScreen: React.FC = () => {
             </Text>
           </View>
           <TouchableOpacity onPress={resetChat} style={s.iconBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <RotateCcw size={15} color={Colors.label3} strokeWidth={2} />
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <RotateCcw size={14} color={Colors.label3} strokeWidth={2.2} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Template chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={s.chipsScroll}
-        contentContainerStyle={s.chipsContent}
-      >
-        {TEMPLATES.map(t => (
-          <TouchableOpacity
-            key={t}
-            onPress={() => setPreviewTemplate(t)}
-            style={[s.chip, previewTemplate === t && s.chipActive]}
-            activeOpacity={0.72}
-          >
-            <Text style={[s.chipText, previewTemplate === t && s.chipTextActive]}>{t}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* ── Template chips ── */}
+      <View style={s.chipsWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.chipsContent}
+        >
+          {TEMPLATES.map(t => (
+            <TouchableOpacity
+              key={t}
+              onPress={() => setPreviewTemplate(t)}
+              style={[s.chip, previewTemplate === t && s.chipActive]}
+              activeOpacity={0.72}
+            >
+              <Text style={[s.chipText, previewTemplate === t && s.chipTextActive]}>{t}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
-      <View style={s.divider} />
-
-      {/* Messages + Input */}
+      {/* ── Feed + Input ── */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
       >
         <ScrollView
           ref={scrollRef}
@@ -288,7 +289,7 @@ export const ChatScreen: React.FC = () => {
             <View key={m.id} style={[s.row, m.role === "user" && s.rowUser]}>
               {m.role === "assistant" && (
                 <View style={s.aiAvatar}>
-                  <Sparkles size={11} color={Colors.accent} strokeWidth={2} />
+                  <Sparkles size={10} color={Colors.accent} strokeWidth={2.2} />
                 </View>
               )}
               <View style={[s.bubble, m.role === "user" ? s.bubbleUser : s.bubbleAI]}>
@@ -298,7 +299,8 @@ export const ChatScreen: React.FC = () => {
                 {m.isDocument && m.role === "assistant" && (
                   <View style={s.docStrip}>
                     <View style={s.docBadgeWrap}>
-                      <Text style={s.docBadge}>✓ BELGE HAZIR</Text>
+                      <FileCheck size={10} color={Colors.accent} strokeWidth={2.5} />
+                      <Text style={s.docBadge}>BELGE HAZIR</Text>
                     </View>
                     <View style={{ flexDirection: "row", gap: 6 }}>
                       {[
@@ -307,7 +309,7 @@ export const ChatScreen: React.FC = () => {
                         { Icon: Printer, fn: () => printDocument(m.documentContent ?? m.content) },
                       ].map(({ Icon, fn }, i) => (
                         <TouchableOpacity key={i} onPress={fn} style={s.docBtn}>
-                          <Icon size={13} color={Colors.accent} strokeWidth={2} />
+                          <Icon size={12} color={Colors.accent} strokeWidth={2.2} />
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -320,7 +322,7 @@ export const ChatScreen: React.FC = () => {
           {loading && (
             <View style={s.row}>
               <View style={s.aiAvatar}>
-                <Sparkles size={11} color={Colors.accent} strokeWidth={2} />
+                <Sparkles size={10} color={Colors.accent} strokeWidth={2.2} />
               </View>
               <View style={[s.bubble, s.bubbleAI, s.bubbleLoading]}>
                 <PulsingDots />
@@ -328,7 +330,6 @@ export const ChatScreen: React.FC = () => {
             </View>
           )}
 
-          {/* Profile nudge */}
           {showProfileNudge && (
             <View style={s.nudge}>
               <View style={s.nudgeLeft}>
@@ -341,7 +342,7 @@ export const ChatScreen: React.FC = () => {
                   style={s.nudgeBtn}
                 >
                   <Text style={s.nudgeBtnTxt}>Profil</Text>
-                  <ChevronRight size={12} color={Colors.accent} strokeWidth={2.5} />
+                  <ChevronRight size={11} color={Colors.accent} strokeWidth={2.5} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setShowProfileNudge(false)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -352,9 +353,19 @@ export const ChatScreen: React.FC = () => {
           )}
         </ScrollView>
 
-        {/* Input bar */}
+        {/* ── Input bar ── */}
         <View style={s.inputBar}>
-          <Animated.View style={[s.inputWrap, { borderColor: animatedBorder }]}>
+          <Animated.View style={[
+            s.inputWrap,
+            {
+              borderColor: animatedBorder,
+              shadowColor: "#5B4CF5",
+              shadowOpacity: animatedShadow,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: inputFocused ? 3 : 1,
+            },
+          ]}>
             <TextInput
               value={input}
               onChangeText={setInput}
@@ -370,20 +381,20 @@ export const ChatScreen: React.FC = () => {
             <TouchableOpacity
               onPress={() => send()}
               disabled={!input.trim() || loading}
-              activeOpacity={0.82}
+              activeOpacity={0.80}
               style={[
                 s.sendBtn,
                 (!input.trim() || loading) && s.sendBtnDisabled,
               ]}
             >
-              <Send size={15} color="#fff" strokeWidth={2.2} />
+              <Send size={14} color="#fff" strokeWidth={2.5} />
             </TouchableOpacity>
           </Animated.View>
           <Text style={s.disclaimer}>EvrakAI hukuki tavsiye niteliği taşımaz.</Text>
         </View>
       </KeyboardAvoidingView>
 
-      {/* Template Preview Sheet */}
+      {/* ── Template Preview Sheet ── */}
       <DialogSheet
         visible={!!previewTemplate}
         onClose={() => setPreviewTemplate(null)}
@@ -403,7 +414,7 @@ export const ChatScreen: React.FC = () => {
           />
         }
       >
-        <View style={{ gap: 20 }}>
+        <View style={{ gap: 22 }}>
           <View style={s.previewSection}>
             <Text style={s.previewSectionLabel}>GEREKLİ BİLGİLER</Text>
             <View style={{ gap: 10 }}>
@@ -430,7 +441,7 @@ export const ChatScreen: React.FC = () => {
         </View>
       </DialogSheet>
 
-      {/* Document Preview Sheet */}
+      {/* ── Document Preview Sheet ── */}
       <DialogSheet
         visible={!!activeDoc}
         onClose={() => setActiveDoc(null)}
@@ -466,54 +477,62 @@ export const ChatScreen: React.FC = () => {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
 
-  // Header
+  // ── Header
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 18, paddingTop: 6, paddingBottom: 14,
+    paddingHorizontal: 18, paddingTop: 4, paddingBottom: 14,
     backgroundColor: Colors.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.separator,
   },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 11 },
   logoMark: {
-    width: 32, height: 32, borderRadius: 10,
+    width: 34, height: 34, borderRadius: 11,
     backgroundColor: Colors.accent,
     alignItems: "center", justifyContent: "center",
     ...Shadows.glow,
   },
-  headerTitle: { fontSize: 16, fontWeight: "700", color: Colors.label, letterSpacing: -0.4 },
-  headerSub:   { fontSize: 11, color: Colors.label3, marginTop: 1, letterSpacing: 0.1 },
+  headerTitle: { fontSize: 16, fontWeight: "800", color: Colors.label, letterSpacing: -0.5 },
+  headerSub:   { fontSize: 11, color: Colors.label3, marginTop: 1 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
 
   creditBadge: {
     flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 10, paddingVertical: 6,
-    backgroundColor: Colors.fill, borderRadius: 20,
+    paddingHorizontal: 11, paddingVertical: 6,
+    backgroundColor: Colors.fill, borderRadius: 22,
   },
   creditBadgeRed:    { backgroundColor: Colors.redLight },
-  creditBadgeOrange: { backgroundColor: Colors.warningLight },
+  creditBadgeOrange: { backgroundColor: Colors.orangeLight },
   creditDot:  { width: 6, height: 6, borderRadius: 3 },
-  creditText: { fontSize: 12, fontWeight: "600", color: Colors.label, letterSpacing: -0.1 },
+  creditText: { fontSize: 12, fontWeight: "700", color: Colors.label, letterSpacing: -0.1 },
 
   iconBtn: {
-    width: 32, height: 32, borderRadius: 10,
+    width: 34, height: 34, borderRadius: 11,
     backgroundColor: Colors.fill,
     alignItems: "center", justifyContent: "center",
   },
 
-  // Chips
-  chipsScroll:  { backgroundColor: Colors.card, maxHeight: 50 },
-  chipsContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 7, alignItems: "center", flexDirection: "row" },
+  // ── Chips
+  chipsWrapper: {
+    backgroundColor: Colors.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.separator,
+  },
+  chipsContent: {
+    paddingHorizontal: 16, paddingVertical: 11, gap: 7,
+    alignItems: "center", flexDirection: "row",
+  },
   chip: {
-    paddingHorizontal: 13, paddingVertical: 6, borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 22,
     backgroundColor: Colors.fill,
   },
-  chipActive: { backgroundColor: Colors.accentLight },
+  chipActive:     { backgroundColor: Colors.accentLight },
   chipText:       { fontSize: 13, fontWeight: "500", color: Colors.label2 },
-  chipTextActive: { color: Colors.accent, fontWeight: "600" },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.separator },
+  chipTextActive: { color: Colors.accent, fontWeight: "700" },
 
-  // Feed
+  // ── Feed
   feed:        { flex: 1, backgroundColor: Colors.bg },
-  feedContent: { padding: 16, gap: 14, paddingBottom: 10 },
+  feedContent: { padding: 18, gap: 14, paddingBottom: 12 },
 
   row:     { flexDirection: "row", alignItems: "flex-end", gap: 10 },
   rowUser: { flexDirection: "row-reverse" },
@@ -526,55 +545,56 @@ const s = StyleSheet.create({
     flexShrink: 0, marginBottom: 2,
   },
 
-  bubble: { maxWidth: "82%", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 12 },
+  bubble: { maxWidth: "82%", borderRadius: 22, paddingHorizontal: 15, paddingVertical: 12 },
   bubbleAI: {
     backgroundColor: Colors.card,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.separator,
     borderBottomLeftRadius: 6,
-    ...Shadows.xs,
+    ...Shadows.sm,
   },
-  bubbleLoading: { paddingVertical: 14 },
+  bubbleLoading: { paddingVertical: 15 },
   bubbleUser: {
     backgroundColor: Colors.accent,
     borderBottomRightRadius: 6,
     ...Shadows.glow,
   },
-  bubbleTxt:     { fontSize: 15, color: Colors.label, lineHeight: 22, letterSpacing: -0.1 },
+  bubbleTxt:     { fontSize: 15, color: Colors.label, lineHeight: 23, letterSpacing: -0.15 },
   bubbleTxtUser: { color: "#fff" },
 
-  // Doc strip
+  // ── Doc strip
   docStrip: {
     marginTop: 12, paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(79,70,229,0.15)",
+    borderTopColor: "rgba(91,76,245,0.12)",
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
   },
   docBadgeWrap: {
+    flexDirection: "row", alignItems: "center", gap: 5,
     backgroundColor: Colors.accentLight,
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 9, paddingVertical: 4,
+    borderRadius: 9,
   },
-  docBadge: { fontSize: 10, fontWeight: "700", color: Colors.accent, letterSpacing: 0.3 },
+  docBadge: { fontSize: 10, fontWeight: "800", color: Colors.accent, letterSpacing: 0.4 },
   docBtn: {
     width: 30, height: 30, borderRadius: 9,
     backgroundColor: Colors.accentLight,
     alignItems: "center", justifyContent: "center",
   },
 
-  // Profile nudge
+  // ── Profile nudge
   nudge: {
     flexDirection: "row", alignItems: "center", gap: 14,
     backgroundColor: Colors.card,
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1, borderColor: Colors.accentMid,
-    paddingHorizontal: 16, paddingVertical: 14,
+    paddingHorizontal: 16, paddingVertical: 15,
     marginTop: 2,
     ...Shadows.sm,
   },
   nudgeLeft:  { flex: 1 },
   nudgeRight: { alignItems: "flex-end", gap: 10, flexShrink: 0 },
-  nudgeTitle: { fontSize: 13, fontWeight: "700", color: Colors.label, marginBottom: 3, letterSpacing: -0.2 },
+  nudgeTitle: { fontSize: 13, fontWeight: "800", color: Colors.label, marginBottom: 3, letterSpacing: -0.3 },
   nudgeSub:   { fontSize: 12, color: Colors.label2, lineHeight: 17 },
   nudgeBtn: {
     flexDirection: "row", alignItems: "center", gap: 2,
@@ -583,7 +603,7 @@ const s = StyleSheet.create({
   },
   nudgeBtnTxt: { fontSize: 12, fontWeight: "700", color: Colors.accent },
 
-  // Input bar
+  // ── Input bar
   inputBar: {
     paddingHorizontal: 14, paddingTop: 10, paddingBottom: Platform.OS === "ios" ? 12 : 10,
     backgroundColor: Colors.card,
@@ -594,52 +614,48 @@ const s = StyleSheet.create({
     flexDirection: "row", alignItems: "flex-end", gap: 10,
     backgroundColor: Colors.bg,
     borderRadius: 18, borderWidth: 1.5,
-    paddingLeft: 14, paddingRight: 6, paddingVertical: 7,
+    paddingLeft: 16, paddingRight: 8, paddingVertical: 8,
   },
   input: {
     flex: 1, fontSize: 15, color: Colors.label,
-    maxHeight: 110, letterSpacing: -0.1,
-    paddingVertical: 4,
+    letterSpacing: -0.15, maxHeight: 110,
+    paddingTop: 4, paddingBottom: 4,
   },
   sendBtn: {
     width: 36, height: 36, borderRadius: 12,
     backgroundColor: Colors.accent,
     alignItems: "center", justifyContent: "center",
-    marginBottom: 1,
-    ...Shadows.glow,
+    flexShrink: 0,
+    ...Shadows.glowSm,
   },
-  sendBtnDisabled: {
-    backgroundColor: Colors.fill,
-    shadowOpacity: 0,
-  },
+  sendBtnDisabled: { backgroundColor: Colors.label3, shadowOpacity: 0 },
   disclaimer: {
     fontSize: 11, color: Colors.label3, textAlign: "center",
-    marginTop: 7, letterSpacing: 0.1,
+    marginTop: 7, letterSpacing: -0.05,
   },
 
-  // Template preview sheet
+  // ── Preview sheet
   previewSection: {
     backgroundColor: Colors.bg,
-    borderRadius: 16, padding: 16,
-    gap: 14,
+    borderRadius: 18, padding: 18, gap: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.separator,
   },
   previewSectionLabel: {
-    fontSize: 11, fontWeight: "700", color: Colors.label3,
-    letterSpacing: 0.8, marginBottom: 2,
+    fontSize: 11, fontWeight: "800", color: Colors.label3, letterSpacing: 0.9,
   },
-  neededRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  neededRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   neededNum: {
-    width: 20, height: 20, borderRadius: 10,
+    width: 26, height: 26, borderRadius: 9,
     backgroundColor: Colors.accentLight,
-    alignItems: "center", justifyContent: "center",
-    flexShrink: 0, marginTop: 1,
+    alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
-  neededNumTxt: { fontSize: 11, fontWeight: "700", color: Colors.accent },
-  neededText:   { flex: 1, fontSize: 14, color: Colors.label, lineHeight: 20 },
+  neededNumTxt: { fontSize: 12, fontWeight: "800", color: Colors.accent },
+  neededText:   { fontSize: 14, color: Colors.label, flex: 1, lineHeight: 20 },
   autoNote: {
-    marginTop: 4, paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.separator,
+    backgroundColor: Colors.fillSecondary,
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
   },
-  autoNoteText: { fontSize: 12, color: Colors.label2, lineHeight: 17 },
+  autoNoteText: { fontSize: 13, color: Colors.label2, lineHeight: 19 },
 });

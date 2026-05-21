@@ -18,12 +18,12 @@ const CAT_LABELS: Record<string, string> = {
 };
 
 const CAT_COLORS: Record<string, { bg: string; text: string }> = {
-  dilekce:  { bg: "rgba(79,70,229,0.08)",  text: "#4F46E5" },
-  basvuru:  { bg: "rgba(16,185,129,0.08)", text: "#059669" },
-  taahut:   { bg: "rgba(245,158,11,0.08)", text: "#D97706" },
-  sozlesme: { bg: "rgba(239,68,68,0.08)",  text: "#DC2626" },
-  mektup:   { bg: "rgba(99,102,241,0.08)", text: "#6366F1" },
-  diger:    { bg: "rgba(0,0,0,0.05)",       text: "#6B7280" },
+  dilekce:  { bg: "rgba(91,76,245,0.09)",   text: "#5B4CF5" },
+  basvuru:  { bg: "rgba(14,165,114,0.09)",  text: "#0A7A52" },
+  taahut:   { bg: "rgba(245,144,32,0.09)",  text: "#C97010" },
+  sozlesme: { bg: "rgba(232,58,58,0.09)",   text: "#B82A2A" },
+  mektup:   { bg: "rgba(124,58,237,0.09)", text: "#6B2FB0" },
+  diger:    { bg: "rgba(100,100,120,0.08)", text: "#60657A" },
 };
 
 function guessCategory(content: string): string {
@@ -98,7 +98,7 @@ export const DocumentsScreen: React.FC = () => {
   const Empty = () => (
     <View style={s.empty}>
       <View style={s.emptyIcon}>
-        <FileText size={30} color={Colors.label3} strokeWidth={1.2} />
+        <FileText size={28} color={Colors.label3} strokeWidth={1.4} />
       </View>
       <Text style={s.emptyTitle}>
         {query ? "Sonuç bulunamadı" : "Henüz belge yok"}
@@ -117,35 +117,35 @@ export const DocumentsScreen: React.FC = () => {
     return (
       <TouchableOpacity
         onPress={() => setSelectedDoc(item)}
-        activeOpacity={0.76}
+        activeOpacity={0.74}
         style={s.card}
       >
-        <View style={s.cardRow}>
+        <View style={s.cardInner}>
           <View style={s.cardIcon}>
-            <FileText size={16} color={Colors.accent} strokeWidth={1.8} />
+            <FileText size={15} color={Colors.accent} strokeWidth={1.9} />
           </View>
-          <View style={{ flex: 1, gap: 3 }}>
+          <View style={{ flex: 1, gap: 4 }}>
             <Text style={s.cardTitle} numberOfLines={1}>
               {item.preview || CAT_LABELS[cat]}
             </Text>
             <Text style={s.cardPreview} numberOfLines={2}>
               {firstLine(item.content)}
             </Text>
-          </View>
-        </View>
-        <View style={s.cardMeta}>
-          <Text style={s.cardDate}>{formatDate(item.createdAt)}</Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View style={[s.catTag, { backgroundColor: catStyle.bg }]}>
-              <Text style={[s.catTagText, { color: catStyle.text }]}>{CAT_LABELS[cat]}</Text>
+            <View style={s.cardMeta}>
+              <Text style={s.cardDate}>{formatDate(item.createdAt)}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View style={[s.catTag, { backgroundColor: catStyle.bg }]}>
+                  <Text style={[s.catTagText, { color: catStyle.text }]}>{CAT_LABELS[cat]}</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => deleteDoc(item.id)}
+                  style={s.deleteBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Trash2 size={13} color={Colors.label3} strokeWidth={1.8} />
+                </TouchableOpacity>
+              </View>
             </View>
-            <TouchableOpacity
-              onPress={() => deleteDoc(item.id)}
-              style={s.deleteBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Trash2 size={13} color={Colors.label3} strokeWidth={1.8} />
-            </TouchableOpacity>
           </View>
         </View>
       </TouchableOpacity>
@@ -156,19 +156,20 @@ export const DocumentsScreen: React.FC = () => {
     <SafeAreaView style={s.root} edges={["top"]}>
       <StatusBar style="dark" />
 
+      {/* ── Header ── */}
       <View style={s.header}>
         <View>
           <Text style={s.pageTitle}>Belgelerim</Text>
-          {docs.length > 0 && (
-            <Text style={s.pageCount}>{docs.length} belge kaydedildi</Text>
-          )}
+          <Text style={s.pageCount}>
+            {docs.length > 0 ? `${docs.length} belge kaydedildi` : "Henüz belge yok"}
+          </Text>
         </View>
       </View>
 
-      {/* Search */}
+      {/* ── Search ── */}
       <View style={s.searchContainer}>
         <View style={[s.searchBar, searchFocused && s.searchBarFocused]}>
-          <Search size={15} color={searchFocused ? Colors.accent : Colors.label3} strokeWidth={2} />
+          <Search size={15} color={searchFocused ? Colors.accent : Colors.label3} strokeWidth={2.2} />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -188,7 +189,7 @@ export const DocumentsScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Category filters */}
+      {/* ── Category filters ── */}
       {cats.length > 1 && (
         <View style={s.filters}>
           <TouchableOpacity
@@ -223,7 +224,7 @@ export const DocumentsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Detail Sheet */}
+      {/* ── Detail Sheet ── */}
       <DialogSheet
         visible={!!selectedDoc}
         onClose={() => setSelectedDoc(null)}
@@ -271,21 +272,25 @@ export const DocumentsScreen: React.FC = () => {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
 
+  // ── Header
   header: {
-    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16,
+    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 18,
     backgroundColor: Colors.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.separator,
   },
-  pageTitle: { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.6 },
-  pageCount: { fontSize: 13, color: Colors.label3, marginTop: 2 },
+  pageTitle: { fontSize: 30, fontWeight: "800", color: Colors.label, letterSpacing: -0.8 },
+  pageCount: { fontSize: 13, color: Colors.label3, marginTop: 3 },
 
+  // ── Search
   searchContainer: {
-    paddingHorizontal: 14, paddingVertical: 10,
+    paddingHorizontal: 14, paddingVertical: 11,
     backgroundColor: Colors.card,
   },
   searchBar: {
-    flexDirection: "row", alignItems: "center", gap: 9,
+    flexDirection: "row", alignItems: "center", gap: 10,
     backgroundColor: Colors.fill,
-    borderRadius: 14, paddingHorizontal: 13, paddingVertical: 10,
+    borderRadius: 15, paddingHorizontal: 14, paddingVertical: 11,
     borderWidth: 1.5, borderColor: "transparent",
   },
   searchBarFocused: {
@@ -295,57 +300,60 @@ const s = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 15, color: Colors.label, letterSpacing: -0.1 },
 
+  // ── Filters
   filters: {
     flexDirection: "row", flexWrap: "wrap",
-    paddingHorizontal: 14, paddingBottom: 12, paddingTop: 4,
+    paddingHorizontal: 14, paddingBottom: 13, paddingTop: 4,
     gap: 7, backgroundColor: Colors.card,
   },
   filterChip: {
-    paddingHorizontal: 13, paddingVertical: 6,
-    borderRadius: 20, backgroundColor: Colors.fill,
+    paddingHorizontal: 14, paddingVertical: 7,
+    borderRadius: 22, backgroundColor: Colors.fill,
   },
-  filterChipActive: { backgroundColor: Colors.accentLight },
-  filterText:       { fontSize: 13, fontWeight: "500", color: Colors.label2 },
-  filterTextActive: { color: Colors.accent, fontWeight: "600" },
+  filterChipActive:  { backgroundColor: Colors.accentLight },
+  filterText:        { fontSize: 13, fontWeight: "500", color: Colors.label2 },
+  filterTextActive:  { color: Colors.accent, fontWeight: "700" },
 
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.separator },
 
-  list:      { paddingBottom: 36 },
-  separator: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.separator, marginLeft: 70 },
+  // ── List
+  list:      { paddingBottom: 40 },
+  separator: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.separator, marginLeft: 72 },
 
+  // ── Card
   card: {
     backgroundColor: Colors.card,
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14,
-    gap: 12,
+    paddingHorizontal: 16, paddingVertical: 16,
   },
-  cardRow: { flexDirection: "row", gap: 13 },
+  cardInner: { flexDirection: "row", gap: 14, alignItems: "flex-start" },
   cardIcon: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 42, height: 42, borderRadius: 13,
     backgroundColor: Colors.accentLight,
     alignItems: "center", justifyContent: "center",
-    flexShrink: 0,
+    flexShrink: 0, marginTop: 1,
   },
   cardTitle: {
-    fontSize: 15, fontWeight: "600", color: Colors.label,
+    fontSize: 15, fontWeight: "700", color: Colors.label,
     letterSpacing: -0.3,
   },
   cardPreview: { fontSize: 13, color: Colors.label2, lineHeight: 19 },
-  cardMeta:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginLeft: 53 },
+  cardMeta:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
   cardDate:    { fontSize: 12, color: Colors.label3 },
   deleteBtn:   { padding: 4 },
   catTag: {
     paddingHorizontal: 9, paddingVertical: 3,
     borderRadius: 8,
   },
-  catTagText: { fontSize: 11, fontWeight: "600" },
+  catTagText: { fontSize: 11, fontWeight: "700" },
 
+  // ── Empty
   empty: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 32 },
   emptyIcon: {
-    width: 68, height: 68, borderRadius: 20,
+    width: 70, height: 70, borderRadius: 22,
     backgroundColor: Colors.fill,
     alignItems: "center", justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 22,
   },
-  emptyTitle: { fontSize: 17, fontWeight: "600", color: Colors.label, marginBottom: 7, letterSpacing: -0.3 },
+  emptyTitle: { fontSize: 17, fontWeight: "700", color: Colors.label, marginBottom: 8, letterSpacing: -0.3 },
   emptySub:   { fontSize: 14, color: Colors.label3, textAlign: "center", lineHeight: 21 },
 });

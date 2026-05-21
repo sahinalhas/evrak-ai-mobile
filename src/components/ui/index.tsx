@@ -33,17 +33,17 @@ export const GradientButton: React.FC<ButtonProps> = ({
   onPress, title, loading = false, disabled = false,
   variant = "filled", size = "md", style, textStyle, icon,
 }) => {
-  const H  = { sm: 40, md: 48, lg: 54 };
-  const R  = { sm: 12, md: 14, lg: 16 };
+  const H  = { sm: 42, md: 50, lg: 56 };
+  const R  = { sm: 13, md: 15, lg: 17 };
   const FS = { sm: 14, md: 15, lg: 16 };
 
-  const V: Record<string, { bg: string; fg: string }> = {
+  const V: Record<string, { bg: string; fg: string; border?: string }> = {
     filled:      { bg: Colors.accent, fg: "#FFF" },
     tinted:      { bg: Colors.accentLight, fg: Colors.accent },
     plain:       { bg: "transparent", fg: Colors.accent },
     destructive: { bg: Colors.destructive, fg: "#FFF" },
     gray:        { bg: Colors.fill, fg: Colors.label },
-    outline:     { bg: "transparent", fg: Colors.accent },
+    outline:     { bg: "transparent", fg: Colors.accent, border: Colors.accent },
   };
   const v = V[variant];
 
@@ -51,12 +51,12 @@ export const GradientButton: React.FC<ButtonProps> = ({
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.82}
+      activeOpacity={0.80}
       style={[
         bStyles.btn,
         { height: H[size], borderRadius: R[size], backgroundColor: v.bg },
         variant === "filled" && Shadows.glow,
-        variant === "outline" && { borderWidth: 1.5, borderColor: Colors.accent },
+        variant === "outline" && { borderWidth: 1.5, borderColor: v.border },
         style,
         (disabled || loading) && bStyles.disabled,
       ]}
@@ -76,23 +76,23 @@ export const GradientButton: React.FC<ButtonProps> = ({
 };
 
 const bStyles = StyleSheet.create({
-  btn:      { justifyContent: "center", alignItems: "center", paddingHorizontal: 20 },
-  inner:    { flexDirection: "row", alignItems: "center", gap: 7 },
-  text:     { fontWeight: "600", letterSpacing: -0.2 },
-  disabled: { opacity: 0.36 },
+  btn:      { justifyContent: "center", alignItems: "center", paddingHorizontal: 22 },
+  inner:    { flexDirection: "row", alignItems: "center", gap: 8 },
+  text:     { fontWeight: "700", letterSpacing: -0.3 },
+  disabled: { opacity: 0.34 },
 });
 
 // ─── PulsingDots ──────────────────────────────────────────────────────────────
 export const PulsingDots: React.FC = () => {
-  const dots = [0, 1, 2].map(() => useRef(new Animated.Value(0.25)).current);
+  const dots = [0, 1, 2].map(() => useRef(new Animated.Value(0.2)).current);
 
   useEffect(() => {
     const anims = dots.map((v, i) =>
       Animated.loop(
         Animated.sequence([
-          Animated.delay(i * 140),
-          Animated.timing(v, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.timing(v, { toValue: 0.25, duration: 400, useNativeDriver: true }),
+          Animated.delay(i * 130),
+          Animated.spring(v, { toValue: 1, speed: 14, bounciness: 8, useNativeDriver: true }),
+          Animated.spring(v, { toValue: 0.2, speed: 14, bounciness: 8, useNativeDriver: true }),
         ])
       )
     );
@@ -101,12 +101,13 @@ export const PulsingDots: React.FC = () => {
   }, []);
 
   return (
-    <View style={{ flexDirection: "row", gap: 5, paddingVertical: 3 }}>
+    <View style={{ flexDirection: "row", gap: 5, paddingVertical: 4 }}>
       {dots.map((v, i) => (
         <Animated.View key={i} style={{
-          width: 7, height: 7, borderRadius: 3.5,
+          width: 7, height: 7, borderRadius: 4,
           backgroundColor: Colors.accent,
           opacity: v,
+          transform: [{ scale: v }],
         }} />
       ))}
     </View>
@@ -117,8 +118,8 @@ export const PulsingDots: React.FC = () => {
 export const Badge: React.FC<{
   label: string; color?: string; bg?: string; size?: "sm" | "md";
 }> = ({ label, color = Colors.accent, bg = Colors.accentLight, size = "sm" }) => (
-  <View style={{ backgroundColor: bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 }}>
-    <Text style={{ color, fontSize: size === "sm" ? 11 : 13, fontWeight: "600", letterSpacing: 0.1 }}>{label}</Text>
+  <View style={{ backgroundColor: bg, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20 }}>
+    <Text style={{ color, fontSize: size === "sm" ? 11 : 13, fontWeight: "700", letterSpacing: 0.1 }}>{label}</Text>
   </View>
 );
 
@@ -142,13 +143,13 @@ export const DialogSheet: React.FC<SheetProps> = ({
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(slide, { toValue: 0, tension: 68, friction: 13, useNativeDriver: true }),
-        Animated.timing(bg, { toValue: 1, duration: 240, useNativeDriver: true }),
+        Animated.spring(slide, { toValue: 0, tension: 72, friction: 14, useNativeDriver: true }),
+        Animated.timing(bg, { toValue: 1, duration: 220, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(slide, { toValue: SCREEN_H, duration: 280, useNativeDriver: true }),
-        Animated.timing(bg, { toValue: 0, duration: 220, useNativeDriver: true }),
+        Animated.timing(slide, { toValue: SCREEN_H, duration: 260, useNativeDriver: true }),
+        Animated.timing(bg, { toValue: 0, duration: 200, useNativeDriver: true }),
       ]).start();
     }
   }, [visible]);
@@ -161,12 +162,10 @@ export const DialogSheet: React.FC<SheetProps> = ({
         </Animated.View>
 
         <Animated.View style={[sStyles.sheet, { maxHeight: maxHeight as any, transform: [{ translateY: slide }] }]}>
-          {/* Drag handle */}
           <View style={sStyles.handleBar}>
             <View style={sStyles.handle} />
           </View>
 
-          {/* Header */}
           <View style={sStyles.header}>
             <View style={{ flex: 1 }}>
               <Text style={sStyles.title}>{title}</Text>
@@ -178,7 +177,6 @@ export const DialogSheet: React.FC<SheetProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Body */}
           <ScrollView
             style={{ flexShrink: 1 }}
             contentContainerStyle={sStyles.body}
@@ -199,35 +197,35 @@ const sStyles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end" },
   sheet: {
     backgroundColor: Colors.card,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     ...Shadows.lg,
     overflow: "hidden",
   },
-  handleBar: { alignItems: "center", paddingTop: 12, paddingBottom: 4 },
-  handle:    { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.separatorOpaque },
+  handleBar: { alignItems: "center", paddingTop: 14, paddingBottom: 2 },
+  handle:    { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.separatorOpaque },
   header: {
     flexDirection: "row",
     alignItems: "flex-start",
     paddingHorizontal: 24,
-    paddingTop: 14,
-    paddingBottom: 16,
+    paddingTop: 16,
+    paddingBottom: 18,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.separator,
   },
-  title:    { fontSize: 18, fontWeight: "700", color: Colors.label, letterSpacing: -0.4 },
+  title:    { fontSize: 19, fontWeight: "800", color: Colors.label, letterSpacing: -0.5 },
   subtitle: { fontSize: 13, color: Colors.label3, marginTop: 3, letterSpacing: -0.1 },
   closeBtn: {
-    width: 30, height: 30, borderRadius: 15,
+    width: 32, height: 32, borderRadius: 16,
     backgroundColor: Colors.fill,
     alignItems: "center", justifyContent: "center",
     marginLeft: 14, marginTop: 2,
   },
-  closeX: { fontSize: 10, color: Colors.label2, fontWeight: "700" },
-  body:   { padding: 22, paddingBottom: 14 },
+  closeX: { fontSize: 10, color: Colors.label2, fontWeight: "800" },
+  body:   { padding: 22, paddingBottom: 16 },
   footer: {
     padding: 18,
-    paddingBottom: Platform.OS === "ios" ? 32 : 18,
+    paddingBottom: Platform.OS === "ios" ? 34 : 18,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.separator,
     backgroundColor: Colors.card,
@@ -236,24 +234,32 @@ const sStyles = StyleSheet.create({
 
 // ─── ProBanner ────────────────────────────────────────────────────────────────
 export const ProBanner: React.FC<{ onPress: () => void }> = ({ onPress }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.82} style={{
+  <TouchableOpacity onPress={onPress} activeOpacity={0.80} style={{
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: Colors.accentLight, marginHorizontal: 16, marginBottom: 8,
-    borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: Colors.accentMid,
+    backgroundColor: Colors.accent,
+    marginHorizontal: 16, marginBottom: 10,
+    borderRadius: 18, padding: 16,
+    ...Shadows.glow,
   }}>
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
       <View style={{
-        width: 36, height: 36, borderRadius: 10,
-        backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center",
+        width: 38, height: 38, borderRadius: 12,
+        backgroundColor: "rgba(255,255,255,0.18)",
+        alignItems: "center", justifyContent: "center",
       }}>
-        <Text style={{ fontSize: 16 }}>⚡</Text>
+        <Text style={{ fontSize: 18 }}>⚡</Text>
       </View>
       <View>
-        <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.accent, letterSpacing: -0.2 }}>Kredi Al</Text>
-        <Text style={{ fontSize: 12, color: Colors.accent, opacity: 0.65, marginTop: 1 }}>Sınırsız belge oluştur</Text>
+        <Text style={{ fontSize: 14, fontWeight: "800", color: "#fff", letterSpacing: -0.3 }}>Kredi Al</Text>
+        <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.72)", marginTop: 1 }}>Sınırsız belge oluştur</Text>
       </View>
     </View>
-    <Text style={{ fontSize: 18, color: Colors.accent, fontWeight: "300" }}>›</Text>
+    <View style={{
+      width: 28, height: 28, borderRadius: 14,
+      backgroundColor: "rgba(255,255,255,0.18)",
+      alignItems: "center", justifyContent: "center",
+    }}>
+      <Text style={{ fontSize: 14, color: "#fff", fontWeight: "700" }}>›</Text>
+    </View>
   </TouchableOpacity>
 );

@@ -83,8 +83,11 @@ export const ProfileScreen: React.FC = () => {
         <ScrollView contentContainerStyle={s.onboardContent} showsVerticalScrollIndicator={false}>
 
           <View style={s.hero}>
-            <View style={s.heroIcon}>
-              <Sparkles size={36} color="#fff" strokeWidth={1.8} />
+            <View style={s.heroIconWrap}>
+              <View style={s.heroIconRing} />
+              <View style={s.heroIcon}>
+                <Sparkles size={38} color="#fff" strokeWidth={1.8} />
+              </View>
             </View>
             <Text style={s.heroTitle}>EvrakAI</Text>
             <Text style={s.heroSubtitle}>
@@ -99,7 +102,7 @@ export const ProfileScreen: React.FC = () => {
               { emoji: "⚡", title: "Hızlı & Kolay",           body: "Form yok — sadece konuşun, asistan halleder" },
             ].map((f, i, arr) => (
               <View key={i} style={[s.featureRow, i < arr.length - 1 && s.featureRowBorder]}>
-                <View style={s.featureEmoji}><Text style={{ fontSize: 18 }}>{f.emoji}</Text></View>
+                <View style={s.featureEmoji}><Text style={{ fontSize: 19 }}>{f.emoji}</Text></View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.featureTitle}>{f.title}</Text>
                   <Text style={s.featureBody}>{f.body}</Text>
@@ -112,7 +115,7 @@ export const ProfileScreen: React.FC = () => {
             onPress={async () => { await StorageService.setUserLoggedIn(true); setSignedIn(true); }}
             title="Ücretsiz Başla"
             size="lg"
-            style={{ marginTop: 8 }}
+            style={{ marginTop: 6 }}
             icon={<Zap size={16} color="#fff" strokeWidth={2.5} />}
           />
           <Text style={s.termsNote}>Devam ederek Gizlilik Politikamızı kabul edersiniz.</Text>
@@ -125,9 +128,9 @@ export const ProfileScreen: React.FC = () => {
   return (
     <SafeAreaView style={s.root} edges={["top"]}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={{ paddingBottom: 52 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 56 }} showsVerticalScrollIndicator={false}>
 
-        {/* Header */}
+        {/* ── Header ── */}
         <View style={s.header}>
           <Text style={s.pageTitle}>Profil</Text>
           <TouchableOpacity onPress={signOut} style={s.headerBtn}
@@ -136,9 +139,9 @@ export const ProfileScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* User card */}
+        {/* ── User card ── */}
         <View style={s.section}>
-          <TouchableOpacity onPress={openInfoForm} activeOpacity={0.78} style={s.userCard}>
+          <TouchableOpacity onPress={openInfoForm} activeOpacity={0.76} style={s.userCard}>
             <View style={s.avatar}>
               <Text style={s.avatarInitials}>{initials}</Text>
             </View>
@@ -146,14 +149,14 @@ export const ProfileScreen: React.FC = () => {
               <Text style={s.userName}>{displayName}</Text>
               <Text style={s.userMeta}>
                 {hasInfo
-                  ? [userInfo.tckn && `TC · ${userInfo.tckn}`, userInfo.telefon].filter(Boolean).join("   ·   ") || "Bilgiler kaydedildi"
+                  ? [userInfo.tckn && `TC · ${userInfo.tckn}`, userInfo.telefon].filter(Boolean).join("  ·  ") || "Bilgiler kaydedildi"
                   : "Kişisel bilgilerini ekle →"}
               </Text>
             </View>
             {hasInfo
               ? (
                 <View style={s.activeBadge}>
-                  <Check size={10} color={Colors.green} strokeWidth={3} />
+                  <Check size={9} color={Colors.green} strokeWidth={3} />
                   <Text style={s.activeText}>Aktif</Text>
                 </View>
               )
@@ -162,7 +165,7 @@ export const ProfileScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Stats */}
+        {/* ── Stats ── */}
         <View style={[s.section, { marginTop: 14 }]}>
           <View style={s.statsRow}>
             {[
@@ -186,13 +189,13 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Kredi */}
+        {/* ── Kredi ── */}
         <View style={s.section}>
           <Text style={s.sectionLabel}>KREDİ</Text>
           <View style={s.groupCard}>
             <View style={s.listRow}>
               <View style={[s.rowIconWrap, { backgroundColor: creditOut ? Colors.redLight : Colors.accentLight }]}>
-                <Zap size={15} color={creditOut ? Colors.red : Colors.accent} strokeWidth={2} />
+                <Zap size={15} color={creditOut ? Colors.red : Colors.accent} strokeWidth={2.2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.rowTitle}>
@@ -200,15 +203,15 @@ export const ProfileScreen: React.FC = () => {
                 </Text>
                 <Text style={s.rowSub}>Belge başına 1 kredi · Süresiz</Text>
               </View>
-              <TouchableOpacity onPress={() => setBuyOpen(true)} style={s.buyBtn} activeOpacity={0.82}>
-                <ShoppingCart size={12} color="#fff" strokeWidth={2.2} />
+              <TouchableOpacity onPress={() => setBuyOpen(true)} style={s.buyBtn} activeOpacity={0.80}>
+                <ShoppingCart size={12} color="#fff" strokeWidth={2.5} />
                 <Text style={s.buyBtnText}>Satın Al</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        {/* Bilgi */}
+        {/* ── Bilgi ── */}
         <View style={s.section}>
           <Text style={s.sectionLabel}>BİLGİ</Text>
           <View style={s.groupCard}>
@@ -236,7 +239,7 @@ export const ProfileScreen: React.FC = () => {
                   style={[s.listRow, i < arr.length - 1 && s.listRowBorder]}
                 >
                   <View style={[s.rowIconWrap, { backgroundColor: item.iconBg }]}>
-                    <Icon size={15} color={item.iconColor} strokeWidth={1.8} />
+                    <Icon size={15} color={item.iconColor} strokeWidth={1.9} />
                   </View>
                   <Text style={s.rowTitle}>{item.title}</Text>
                   <Text style={s.rowSubRight}>{item.sub}</Text>
@@ -252,7 +255,7 @@ export const ProfileScreen: React.FC = () => {
         </Text>
       </ScrollView>
 
-      {/* Personal Info Sheet */}
+      {/* ── Personal Info Sheet ── */}
       <DialogSheet
         visible={infoOpen}
         onClose={() => setInfoOpen(false)}
@@ -278,7 +281,7 @@ export const ProfileScreen: React.FC = () => {
               { key: "eposta",  label: "E-posta",        placeholder: "isim@mail.com",   kb: "email-address",cap: "none" },
               { key: "adres",   label: "Adres",          placeholder: "Mahalle, Cadde, No, İlçe/İl", kb: "default", cap: "sentences", multi: true },
             ] as const).map(f => (
-              <View key={f.key} style={{ gap: 6 }}>
+              <View key={f.key} style={{ gap: 7 }}>
                 <Text style={s.formLabel}>{f.label}</Text>
                 <TextInput
                   value={draft[f.key]}
@@ -303,7 +306,7 @@ export const ProfileScreen: React.FC = () => {
         </KeyboardAvoidingView>
       </DialogSheet>
 
-      {/* Buy Credits Sheet */}
+      {/* ── Buy Credits Sheet ── */}
       <DialogSheet
         visible={buyOpen}
         onClose={() => setBuyOpen(false)}
@@ -326,7 +329,7 @@ export const ProfileScreen: React.FC = () => {
               <TouchableOpacity
                 key={pkg.id}
                 onPress={() => setSelectedPkg(pkg.id)}
-                activeOpacity={0.78}
+                activeOpacity={0.76}
                 style={[s.pkgRow, sel && s.pkgRowActive]}
               >
                 <View style={[s.pkgRadio, sel && s.pkgRadioActive]}>
@@ -361,124 +364,133 @@ export const ProfileScreen: React.FC = () => {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
 
-  // Onboarding
-  onboardContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 52 },
-  hero: { alignItems: "center", paddingTop: 60, paddingBottom: 48 },
+  // ── Onboarding
+  onboardContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 56 },
+  hero: { alignItems: "center", paddingTop: 64, paddingBottom: 52 },
+  heroIconWrap: { alignItems: "center", justifyContent: "center", marginBottom: 28 },
+  heroIconRing: {
+    position: "absolute",
+    width: 110, height: 110, borderRadius: 34,
+    backgroundColor: Colors.accentLight,
+    borderWidth: 1, borderColor: Colors.accentMid,
+  },
   heroIcon: {
-    width: 92, height: 92, borderRadius: 26,
+    width: 88, height: 88, borderRadius: 26,
     backgroundColor: Colors.accent,
     alignItems: "center", justifyContent: "center",
-    marginBottom: 24, ...Shadows.glow,
+    ...Shadows.glow,
   },
   heroTitle: {
-    fontSize: 32, fontWeight: "700", color: Colors.label,
-    letterSpacing: -0.8, marginBottom: 12,
+    fontSize: 34, fontWeight: "800", color: Colors.label,
+    letterSpacing: -1.0, marginBottom: 12,
   },
   heroSubtitle: {
     fontSize: 16, color: Colors.label2,
-    textAlign: "center", lineHeight: 25, letterSpacing: -0.2,
+    textAlign: "center", lineHeight: 26, letterSpacing: -0.2,
   },
   featureCard: {
     backgroundColor: Colors.card,
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.separator,
     overflow: "hidden",
-    marginBottom: 24,
+    marginBottom: 28,
     ...Shadows.card,
   },
   featureRow: {
-    flexDirection: "row", alignItems: "center", gap: 14,
-    paddingHorizontal: 18, paddingVertical: 16,
+    flexDirection: "row", alignItems: "center", gap: 15,
+    paddingHorizontal: 18, paddingVertical: 17,
   },
   featureRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.separator,
   },
   featureEmoji: {
-    width: 42, height: 42, borderRadius: 12,
+    width: 44, height: 44, borderRadius: 14,
     backgroundColor: Colors.fill,
     alignItems: "center", justifyContent: "center",
   },
-  featureTitle: { fontSize: 15, fontWeight: "600", color: Colors.label, marginBottom: 2, letterSpacing: -0.2 },
+  featureTitle: { fontSize: 15, fontWeight: "700", color: Colors.label, marginBottom: 2, letterSpacing: -0.25 },
   featureBody:  { fontSize: 13, color: Colors.label2, lineHeight: 19 },
-  termsNote:    { fontSize: 12, color: Colors.label3, textAlign: "center", marginTop: 16, lineHeight: 18 },
+  termsNote:    { fontSize: 12, color: Colors.label3, textAlign: "center", marginTop: 18, lineHeight: 18 },
 
-  // Profile
+  // ── Profile header
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16,
+    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 18,
     backgroundColor: Colors.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.separator,
   },
-  pageTitle: { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.6 },
+  pageTitle: { fontSize: 30, fontWeight: "800", color: Colors.label, letterSpacing: -0.8 },
   headerBtn: {
-    width: 34, height: 34, borderRadius: 10,
+    width: 36, height: 36, borderRadius: 11,
     backgroundColor: Colors.fill,
     alignItems: "center", justifyContent: "center",
   },
 
-  section: { marginTop: 20, paddingHorizontal: 16 },
+  section:      { marginTop: 20, paddingHorizontal: 16 },
   sectionLabel: {
-    fontSize: 11, fontWeight: "700", color: Colors.label3,
-    letterSpacing: 0.8, marginBottom: 10,
+    fontSize: 11, fontWeight: "800", color: Colors.label3,
+    letterSpacing: 1.0, marginBottom: 11, textTransform: "uppercase",
   },
 
-  // User card
+  // ── User card
   userCard: {
     flexDirection: "row", alignItems: "center", gap: 14,
     backgroundColor: Colors.card,
-    borderRadius: 20, padding: 16,
+    borderRadius: 22, padding: 17,
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
     ...Shadows.card,
   },
   avatar: {
-    width: 52, height: 52, borderRadius: 16,
+    width: 54, height: 54, borderRadius: 17,
     backgroundColor: Colors.accent,
     alignItems: "center", justifyContent: "center",
     ...Shadows.glow,
   },
-  avatarInitials: { fontSize: 18, fontWeight: "700", color: "#fff" },
-  userName:       { fontSize: 16, fontWeight: "600", color: Colors.label, letterSpacing: -0.3 },
+  avatarInitials: { fontSize: 18, fontWeight: "800", color: "#fff" },
+  userName:       { fontSize: 16, fontWeight: "700", color: Colors.label, letterSpacing: -0.4 },
   userMeta:       { fontSize: 12, color: Colors.label3, marginTop: 3 },
   activeBadge: {
     flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: Colors.successLight,
-    paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10,
   },
-  activeText: { fontSize: 11, fontWeight: "600", color: Colors.green },
+  activeText: { fontSize: 11, fontWeight: "700", color: Colors.green },
 
-  // Stats
+  // ── Stats
   statsRow: {
     flexDirection: "row",
+    backgroundColor: Colors.card,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
+    overflow: "hidden",
+    ...Shadows.card,
+  },
+  statItem:    { flex: 1, alignItems: "center", paddingVertical: 22, gap: 6 },
+  statDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.separator, marginVertical: 18 },
+  statValue:   { fontSize: 30, fontWeight: "800", color: Colors.label, letterSpacing: -1.0 },
+  statLabel:   { fontSize: 12, color: Colors.label3, letterSpacing: -0.1 },
+
+  // ── Group card
+  groupCard: {
     backgroundColor: Colors.card,
     borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
     overflow: "hidden",
     ...Shadows.card,
   },
-  statItem:    { flex: 1, alignItems: "center", paddingVertical: 20, gap: 5 },
-  statDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.separator, marginVertical: 16 },
-  statValue:   { fontSize: 28, fontWeight: "700", color: Colors.label, letterSpacing: -0.8 },
-  statLabel:   { fontSize: 12, color: Colors.label3 },
-
-  // Group card
-  groupCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.separator,
-    overflow: "hidden",
-    ...Shadows.card,
-  },
   listRow: {
     flexDirection: "row", alignItems: "center", gap: 13,
-    paddingHorizontal: 16, paddingVertical: 14,
+    paddingHorizontal: 16, paddingVertical: 15,
   },
   listRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.separator,
   },
   rowIconWrap: {
-    width: 34, height: 34, borderRadius: 10,
+    width: 36, height: 36, borderRadius: 11,
     alignItems: "center", justifyContent: "center",
   },
   rowTitle:    { flex: 1, fontSize: 15, fontWeight: "500", color: Colors.label, letterSpacing: -0.2 },
@@ -488,36 +500,37 @@ const s = StyleSheet.create({
   buyBtn: {
     flexDirection: "row", alignItems: "center", gap: 5,
     backgroundColor: Colors.accent,
-    paddingHorizontal: 13, paddingVertical: 8, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12,
     ...Shadows.glow,
   },
-  buyBtnText: { fontSize: 12, fontWeight: "700", color: "#fff", letterSpacing: -0.1 },
+  buyBtnText: { fontSize: 12, fontWeight: "800", color: "#fff", letterSpacing: -0.1 },
 
   footNote: {
     fontSize: 12, color: Colors.label3, textAlign: "center",
-    marginTop: 32, marginHorizontal: 36, lineHeight: 19,
+    marginTop: 34, marginHorizontal: 36, lineHeight: 19,
   },
 
-  // Form
-  formLabel: { fontSize: 13, fontWeight: "500", color: Colors.label2 },
+  // ── Form
+  formLabel: { fontSize: 13, fontWeight: "600", color: Colors.label2, letterSpacing: -0.1 },
   formInput: {
     backgroundColor: Colors.bg,
-    borderRadius: 14, borderWidth: 1.5, borderColor: Colors.separator,
-    paddingHorizontal: 14, paddingVertical: 12,
+    borderRadius: 15, borderWidth: 1.5, borderColor: Colors.separator,
+    paddingHorizontal: 15, paddingVertical: 13,
     fontSize: 15, color: Colors.label, letterSpacing: -0.1,
   },
-  formInputMulti: { height: 82, textAlignVertical: "top", paddingTop: 12 },
+  formInputMulti: { height: 84, textAlignVertical: "top", paddingTop: 13 },
   privacyNote: {
     flexDirection: "row", alignItems: "flex-start", gap: 9,
     backgroundColor: Colors.successLight,
-    borderRadius: 14, padding: 13,
+    borderRadius: 15, padding: 14,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.greenLight,
   },
   privacyText: { flex: 1, fontSize: 12, color: Colors.green, lineHeight: 18 },
 
-  // Packages
+  // ── Packages
   pkgRow: {
     flexDirection: "row", alignItems: "center", gap: 13,
-    padding: 16, borderRadius: 16,
+    padding: 17, borderRadius: 18,
     borderWidth: 1.5, borderColor: Colors.separator,
     backgroundColor: Colors.bg,
   },
@@ -528,12 +541,12 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   pkgRadioActive: { borderColor: Colors.accent },
-  pkgRadioFill:   { width: 11, height: 11, borderRadius: 6, backgroundColor: Colors.accent },
-  pkgTitle:  { fontSize: 15, fontWeight: "600", color: Colors.label, letterSpacing: -0.2 },
+  pkgRadioFill:   { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.accent },
+  pkgTitle:  { fontSize: 15, fontWeight: "700", color: Colors.label, letterSpacing: -0.3 },
   pkgPerDoc: { fontSize: 12, color: Colors.label3, marginTop: 2 },
-  pkgPrice:  { fontSize: 20, fontWeight: "700", color: Colors.label, letterSpacing: -0.5 },
-  pkgBadge:  { backgroundColor: Colors.accentLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  pkgBadgeText: { fontSize: 10, fontWeight: "700", color: Colors.accent, letterSpacing: 0.1 },
-  pkgNote:   { backgroundColor: Colors.fill, borderRadius: 14, padding: 14 },
+  pkgPrice:  { fontSize: 22, fontWeight: "800", color: Colors.label, letterSpacing: -0.6 },
+  pkgBadge:  { backgroundColor: Colors.accentLight, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 8 },
+  pkgBadgeText: { fontSize: 10, fontWeight: "800", color: Colors.accent, letterSpacing: 0.2 },
+  pkgNote:   { backgroundColor: Colors.fill, borderRadius: 15, padding: 15 },
   pkgNoteText: { fontSize: 13, color: Colors.label2, lineHeight: 19 },
 });
