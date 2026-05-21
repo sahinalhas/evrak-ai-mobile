@@ -178,7 +178,7 @@ export const DialogSheet: React.FC<SheetProps> = ({
           </View>
 
           <ScrollView
-            style={{ flexShrink: 1 }}
+            style={sStyles.scrollArea}
             contentContainerStyle={sStyles.body}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -222,9 +222,14 @@ const sStyles = StyleSheet.create({
     marginLeft: 14, marginTop: 2,
   },
   closeX: { fontSize: 10, color: Colors.label2, fontWeight: "800" },
+  scrollArea: { flexShrink: 1, flexGrow: 0 },
   body:   { padding: 22, paddingBottom: 16 },
   footer: {
-    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingTop: 14,
     paddingBottom: Platform.OS === "ios" ? 34 : 18,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.separator,

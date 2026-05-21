@@ -233,7 +233,7 @@ export const DocumentsScreen: React.FC = () => {
         maxHeight="92%"
         footer={
           selectedDoc && (
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <>
               <GradientButton
                 onPress={() => deleteDoc(selectedDoc.id)}
                 title="Sil"
@@ -259,7 +259,7 @@ export const DocumentsScreen: React.FC = () => {
                 style={{ flex: 1 }}
                 icon={<Share2 size={13} color="#fff" />}
               />
-            </View>
+            </>
           )
         }
       >

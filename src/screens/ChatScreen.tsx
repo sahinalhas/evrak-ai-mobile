@@ -449,7 +449,7 @@ export const ChatScreen: React.FC = () => {
         subtitle="Belgeler sekmesine otomatik kaydedildi"
         maxHeight="92%"
         footer={
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          <>
             <GradientButton
               onPress={() => activeDoc && copyText(activeDoc.content)}
               title="Kopyala" variant="tinted" size="md" style={{ flex: 1 }}
@@ -465,7 +465,7 @@ export const ChatScreen: React.FC = () => {
               title="Paylaş" variant="filled" size="md" style={{ flex: 1 }}
               icon={<Share2 size={13} color="#fff" />}
             />
-          </View>
+          </>
         }
       >
         {activeDoc && <MarkdownView content={activeDoc.content} />}
